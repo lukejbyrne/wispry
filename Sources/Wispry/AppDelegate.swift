@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var lastFunctionReleaseDate = Date.distantPast
     private var successResetWorkItem: DispatchWorkItem?
-    private let bubbleSize = NSSize(width: 94, height: 46)
+    private let bubbleSize = NSSize(width: 46, height: 46)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMenuBar()
@@ -206,6 +206,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             try dictationEngine.start(contextualStrings: store.dictionaryWords)
             isListening = true
+            hotKeys.installRecordingHotKeys()
             setBubbleState(.listening)
         } catch {
             isProcessingDictation = false
@@ -216,6 +217,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func stopDictation() {
         guard isListening else { return }
         isListening = false
+        hotKeys.uninstallRecordingHotKeys()
         functionKeyLatched = false
         setBubbleState(.processing)
         dictationEngine.stopAndCommit()
@@ -225,6 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isListening || isProcessingDictation else { return }
         isListening = false
         isProcessingDictation = false
+        hotKeys.uninstallRecordingHotKeys()
         functionKeyLatched = false
         dictationEngine.cancel()
         setBubbleState(.idle)
@@ -234,6 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func completeDictation(_ result: Result<String, Error>) {
         isListening = false
         isProcessingDictation = false
+        hotKeys.uninstallRecordingHotKeys()
         functionKeyLatched = false
 
         switch result {
@@ -415,6 +419,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func presentError(_ message: String) {
         isListening = false
         isProcessingDictation = false
+        hotKeys.uninstallRecordingHotKeys()
         functionKeyLatched = false
         setBubbleState(.error)
         bubbleWindow?.bubbleView.partialTranscript = ""
@@ -510,14 +515,6 @@ extension AppDelegate: BubbleViewDelegate {
         toggleDictation()
     }
 
-    func bubbleDidRequestCommit() {
-        stopDictation()
-    }
-
-    func bubbleDidRequestCancel() {
-        cancelDictation()
-    }
-
     func bubbleDidMove(to frame: NSRect) {
         store.bubbleFrame = frame
     }
@@ -538,6 +535,10 @@ extension AppDelegate: HotKeyManagerDelegate {
 
     func hotKeyManagerDidPressEscape() {
         cancelDictation()
+    }
+
+    func hotKeyManagerDidPressReturn() {
+        stopDictation()
     }
 }
 

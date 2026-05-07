@@ -30,6 +30,7 @@ enum TextPipeline {
         text = applySelfCorrections(text)
         text = replaceDictationPhrases(text)
         text = removeFillers(text)
+        text = removeRepeatedWords(text)
 
         let finalStyle = commandStyle ?? style
         text = apply(style: finalStyle, to: text)
@@ -133,11 +134,17 @@ enum TextPipeline {
 
     private static func applySelfCorrections(_ input: String) -> String {
         let markers = [
+            " no actually ",
+            " no, actually ",
+            " actually ",
+            " no this actually ",
+            " no, this actually ",
             " no i mean ",
             " no, i mean ",
             " sorry i mean ",
             " sorry, i mean ",
-            " i mean "
+            " i mean ",
+            " no "
         ]
 
         let lowered = input.lowercased()
@@ -163,10 +170,25 @@ enum TextPipeline {
 
     private static func removeFillers(_ input: String) -> String {
         input
-            .replacingOccurrences(of: #"\b(um|uh|erm|ah)\b,?\s*"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"\bkind of\b"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"\bsort of\b"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\b(um|uh|erm|ah|hmm)\b,?\s*"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\b(kind of|sort of|you know|you know what i mean)\b,?\s*"#, with: "", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+    }
+
+    private static func removeRepeatedWords(_ input: String) -> String {
+        var previous = ""
+        var output: [String] = []
+
+        for rawWord in input.split(separator: " ") {
+            let word = String(rawWord)
+            let normalized = word.lowercased().trimmingCharacters(in: .punctuationCharacters)
+            if normalized != previous || normalized.isEmpty {
+                output.append(word)
+            }
+            previous = normalized
+        }
+
+        return output.joined(separator: " ")
     }
 
     private static func apply(style: TransformStyle, to input: String) -> String {

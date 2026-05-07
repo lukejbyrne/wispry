@@ -6,6 +6,7 @@ protocol HotKeyManagerDelegate: AnyObject {
     func hotKeyManagerDidPressMouseTrigger()
     func hotKeyManagerDidPressRepolish(style: TransformStyle)
     func hotKeyManagerDidPressEscape()
+    func hotKeyManagerDidPressReturn()
 }
 
 final class HotKeyManager {
@@ -13,6 +14,7 @@ final class HotKeyManager {
 
     private var handlerRef: EventHandlerRef?
     private var hotKeyRefs: [EventHotKeyRef?] = []
+    private var recordingHotKeyRefs: [EventHotKeyRef?] = []
     private let signature = FourCharCode("WSPY")
 
     func install() {
@@ -53,6 +55,8 @@ final class HotKeyManager {
                     DispatchQueue.main.async { manager.delegate?.hotKeyManagerDidPressRepolish(style: .clean) }
                 case 7:
                     DispatchQueue.main.async { manager.delegate?.hotKeyManagerDidPressEscape() }
+                case 8, 9:
+                    DispatchQueue.main.async { manager.delegate?.hotKeyManagerDidPressReturn() }
                 default:
                     break
                 }
@@ -70,10 +74,25 @@ final class HotKeyManager {
         register(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(optionKey), id: 4)
         register(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(optionKey), id: 5)
         register(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(optionKey), id: 6)
-        register(keyCode: UInt32(kVK_Escape), modifiers: 0, id: 7)
     }
 
-    private func register(keyCode: UInt32, modifiers: UInt32, id: UInt32) {
+    func installRecordingHotKeys() {
+        uninstallRecordingHotKeys()
+        register(keyCode: UInt32(kVK_Escape), modifiers: 0, id: 7, recordingOnly: true)
+        register(keyCode: UInt32(kVK_Return), modifiers: 0, id: 8, recordingOnly: true)
+        register(keyCode: UInt32(kVK_ANSI_KeypadEnter), modifiers: 0, id: 9, recordingOnly: true)
+    }
+
+    func uninstallRecordingHotKeys() {
+        for ref in recordingHotKeyRefs {
+            if let ref {
+                UnregisterEventHotKey(ref)
+            }
+        }
+        recordingHotKeyRefs.removeAll()
+    }
+
+    private func register(keyCode: UInt32, modifiers: UInt32, id: UInt32, recordingOnly: Bool = false) {
         var ref: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: signature, id: id)
         let status = RegisterEventHotKey(
@@ -85,7 +104,11 @@ final class HotKeyManager {
             &ref
         )
         if status == noErr {
-            hotKeyRefs.append(ref)
+            if recordingOnly {
+                recordingHotKeyRefs.append(ref)
+            } else {
+                hotKeyRefs.append(ref)
+            }
         }
     }
 }

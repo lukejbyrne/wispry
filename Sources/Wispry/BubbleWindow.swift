@@ -10,8 +10,6 @@ enum BubbleState {
 
 protocol BubbleViewDelegate: AnyObject {
     func bubbleDidRequestToggle()
-    func bubbleDidRequestCommit()
-    func bubbleDidRequestCancel()
     func bubbleDidMove(to frame: NSRect)
 }
 
@@ -135,14 +133,7 @@ final class BubbleView: NSView {
             return
         }
 
-        let point = convert(event.locationInWindow, from: nil)
-        if state == .listening && cancelButtonRect.contains(point) {
-            delegate?.bubbleDidRequestCancel()
-        } else if state == .listening && commitButtonRect.contains(point) {
-            delegate?.bubbleDidRequestCommit()
-        } else {
-            delegate?.bubbleDidRequestToggle()
-        }
+        delegate?.bubbleDidRequestToggle()
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -165,10 +156,6 @@ final class BubbleView: NSView {
             drawErrorIcon(in: bubbleRect)
         }
 
-        if state == .listening {
-            drawSideButton(in: cancelButtonRect, symbol: .cancel)
-            drawSideButton(in: commitButtonRect, symbol: .commit)
-        }
     }
 
     private var centerBubbleRect: NSRect {
@@ -179,14 +166,6 @@ final class BubbleView: NSView {
             width: diameter,
             height: diameter
         )
-    }
-
-    private var cancelButtonRect: NSRect {
-        NSRect(x: 6, y: bounds.midY - 11, width: 22, height: 22)
-    }
-
-    private var commitButtonRect: NSRect {
-        NSRect(x: bounds.maxX - 28, y: bounds.midY - 11, width: 22, height: 22)
     }
 
     private func drawGlow(around rect: NSRect) {
@@ -304,40 +283,6 @@ final class BubbleView: NSView {
         }
 
         NSGraphicsContext.current?.restoreGraphicsState()
-    }
-
-    private enum SideButtonSymbol {
-        case cancel
-        case commit
-    }
-
-    private func drawSideButton(in rect: NSRect, symbol: SideButtonSymbol) {
-        let background = NSBezierPath(ovalIn: rect)
-        NSColor(calibratedWhite: 0.02, alpha: 0.78).setFill()
-        background.fill()
-        NSColor(calibratedWhite: 1.0, alpha: 0.18).setStroke()
-        background.lineWidth = 0.8
-        background.stroke()
-
-        NSColor(calibratedWhite: 1.0, alpha: 0.88).setStroke()
-        let glyph = NSBezierPath()
-        glyph.lineCapStyle = .round
-        glyph.lineJoinStyle = .round
-        glyph.lineWidth = 1.8
-
-        switch symbol {
-        case .cancel:
-            glyph.move(to: NSPoint(x: rect.midX - 4.5, y: rect.midY - 4.5))
-            glyph.line(to: NSPoint(x: rect.midX + 4.5, y: rect.midY + 4.5))
-            glyph.move(to: NSPoint(x: rect.midX + 4.5, y: rect.midY - 4.5))
-            glyph.line(to: NSPoint(x: rect.midX - 4.5, y: rect.midY + 4.5))
-        case .commit:
-            glyph.move(to: NSPoint(x: rect.midX - 5, y: rect.midY + 1))
-            glyph.line(to: NSPoint(x: rect.midX - 1, y: rect.midY + 5))
-            glyph.line(to: NSPoint(x: rect.midX + 6, y: rect.midY - 5))
-        }
-
-        glyph.stroke()
     }
 
     private func drawProcessingIcon(in rect: NSRect) {
