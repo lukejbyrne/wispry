@@ -41,7 +41,7 @@ macOS will ask for microphone and speech recognition access the first time you d
 
 - Native always-on-top draggable bubble.
 - Menu bar controls: Home, check for updates, paste/copy last transcript, shortcuts, microphone, help, feedback, and quit.
-- Home hub with sidebar navigation, searchable history, scratchpad, dictionary, snippets, style transform, and editable shortcuts.
+- Home hub with sidebar navigation, searchable history, dictionary hints, snippets, style transform, and editable shortcuts.
 - Minimal recording state on the bubble, without showing transcript text on screen.
 - Apple Speech transcription with personal dictionary context.
 - Snippets for reusable voice shortcuts.

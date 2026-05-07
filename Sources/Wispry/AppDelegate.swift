@@ -350,9 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
             target?.activate(options: [.activateIgnoringOtherApps])
             if AXIsProcessTrusted() {
-                if !self.insertTextIntoFocusedElement(text) {
-                    self.sendPasteShortcut(to: target)
-                }
+                self.sendPasteShortcut(to: target)
             } else {
                 self.sendPasteViaSystemEvents(target: target)
             }

@@ -4,22 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Wispry | Speak once, paste clean text anywhere</title>
-  <meta name="description" content="Wispry is a macOS dictation utility that turns spoken revisions into clean text and pastes it into the app you started from.">
+  <meta name="description" content="Wispry is a macOS dictation utility that turns messy speech into clean text and pastes it back into the app you started from.">
   <style>
     :root {
-      --ink: #111611;
-      --panel: #191f19;
-      --field: #0c120c;
-      --text: #f5f1e7;
-      --muted: rgba(245, 241, 231, 0.68);
-      --quiet: rgba(245, 241, 231, 0.44);
-      --line: rgba(245, 241, 231, 0.18);
-      --accent: #a7d06b;
-      --red: #c94536;
-      --blue: #7fb0ff;
-      --paper: #ebe4d2;
+      --ink: #101510;
+      --panel: #182018;
+      --panel-2: #222819;
+      --field: #0a100a;
+      --paper: #eee5d2;
+      --paper-2: #faf3df;
       --paper-text: #171813;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --text: #f6f1e5;
+      --muted: rgba(246, 241, 229, 0.68);
+      --quiet: rgba(246, 241, 229, 0.42);
+      --line: rgba(246, 241, 229, 0.18);
+      --accent: #abd56b;
+      --red: #c94536;
+      --blue: #80b6ff;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     }
 
     * {
@@ -33,77 +35,120 @@
     }
 
     body {
-      margin: 0;
       min-width: 320px;
+      margin: 0;
       background: var(--ink);
       color: var(--text);
+      cursor: none;
+    }
+
+    a,
+    button {
+      color: inherit;
+      cursor: none;
     }
 
     a {
-      color: inherit;
       text-decoration: none;
     }
 
     .site-nav {
-      position: sticky;
-      top: 0;
-      z-index: 20;
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      z-index: 40;
+      width: min(1010px, calc(100% - 32px));
+      min-height: 54px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 56px;
-      padding: 0 32px;
-      border-bottom: 1px solid var(--line);
-      background: rgba(17, 22, 17, 0.86);
-      backdrop-filter: blur(16px);
+      gap: 18px;
+      padding: 8px 10px 8px 18px;
+      border: 1px solid rgba(246, 241, 229, 0.18);
+      border-radius: 10px;
+      background: rgba(16, 21, 16, 0.78);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(18px);
+      transform: translateX(-50%);
     }
 
     .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       font-size: 15px;
-      font-weight: 850;
+      font-weight: 900;
       letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 23px;
+      height: 23px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--text);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 950;
     }
 
     .nav-links {
       display: flex;
-      gap: 24px;
+      align-items: center;
+      gap: 22px;
       color: var(--muted);
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 700;
     }
 
     .nav-action {
-      min-height: 34px;
+      min-height: 36px;
       display: inline-flex;
       align-items: center;
-      padding: 0 13px;
-      border: 1px solid rgba(245, 241, 231, 0.26);
-      border-radius: 7px;
+      justify-content: center;
+      padding: 0 14px;
+      border: 1px solid rgba(246, 241, 229, 0.26);
+      border-radius: 8px;
+      background: rgba(246, 241, 229, 0.08);
       color: var(--text);
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 850;
     }
 
     .hero {
       position: relative;
-      min-height: 82svh;
+      min-height: 100svh;
       overflow: hidden;
       border-bottom: 1px solid var(--line);
       background:
-        linear-gradient(90deg, rgba(245, 241, 231, 0.055) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(245, 241, 231, 0.04) 1px, transparent 1px),
-        radial-gradient(circle at 72% 28%, rgba(167, 208, 107, 0.16), transparent 30%),
-        radial-gradient(circle at 90% 92%, rgba(201, 69, 54, 0.16), transparent 32%),
+        linear-gradient(90deg, rgba(246, 241, 229, 0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(246, 241, 229, 0.035) 1px, transparent 1px),
+        radial-gradient(circle at 10% 18%, rgba(171, 213, 107, 0.16), transparent 34%),
+        radial-gradient(circle at 86% 78%, rgba(201, 69, 54, 0.17), transparent 34%),
         var(--ink);
-      background-size: 40px 40px, 40px 40px, auto, auto, auto;
+      background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    }
+
+    .voice-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
     }
 
     .hero-inner {
       position: relative;
-      z-index: 2;
-      max-width: 1180px;
+      z-index: 3;
+      width: min(1120px, calc(100% - 44px));
+      min-height: 100svh;
+      display: grid;
+      grid-template-columns: minmax(0, 0.96fr) minmax(360px, 0.78fr);
+      align-items: center;
+      gap: 44px;
       margin: 0 auto;
-      padding: 92px 32px 86px;
+      padding: 112px 0 66px;
     }
 
     .eyebrow {
@@ -113,7 +158,7 @@
       margin-bottom: 18px;
       color: var(--accent);
       font-size: 12px;
-      font-weight: 850;
+      font-weight: 900;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
@@ -124,23 +169,30 @@
       height: 8px;
       border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 22px rgba(167, 208, 107, 0.72);
+      box-shadow: 0 0 22px rgba(171, 213, 107, 0.72);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
     }
 
     h1 {
-      margin: 0 0 18px;
-      max-width: 660px;
-      font-size: 86px;
-      line-height: 0.9;
+      max-width: 720px;
+      margin-bottom: 20px;
+      font-size: clamp(58px, 8vw, 116px);
+      line-height: 0.88;
       letter-spacing: 0;
     }
 
     .hero-copy {
       max-width: 610px;
-      margin: 0;
+      margin-bottom: 0;
       color: var(--muted);
-      font-size: 22px;
-      line-height: 1.38;
+      font-size: clamp(19px, 2.1vw, 25px);
+      line-height: 1.34;
     }
 
     .hero-actions {
@@ -151,149 +203,193 @@
     }
 
     .button {
+      min-height: 46px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 46px;
       padding: 0 18px;
-      border-radius: 7px;
       border: 1px solid var(--text);
+      border-radius: 8px;
       background: var(--text);
       color: var(--ink);
       font-size: 14px;
-      font-weight: 850;
+      font-weight: 900;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
     }
 
     .button.secondary {
-      background: transparent;
+      background: rgba(246, 241, 229, 0.04);
       color: var(--text);
-      border-color: rgba(245, 241, 231, 0.32);
+      border-color: rgba(246, 241, 229, 0.32);
     }
 
-    .hero-proof {
+    .section.light .button {
+      background: var(--paper-text);
+      border-color: var(--paper-text);
+      color: var(--paper);
+    }
+
+    .section.light .button.secondary {
+      background: transparent;
+      border-color: rgba(23, 24, 19, 0.24);
+      color: var(--paper-text);
+    }
+
+    .proof-line {
       display: flex;
       flex-wrap: wrap;
       gap: 24px;
-      margin-top: 62px;
+      margin-top: 56px;
       color: var(--quiet);
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 700;
     }
 
-    .hero-proof strong {
+    .proof-line strong {
       display: block;
       margin-bottom: 4px;
       color: var(--text);
       font-size: 16px;
     }
 
-    .app-scene {
-      position: absolute;
-      z-index: 1;
-      right: max(22px, calc((100vw - 1180px) / 2));
-      top: 96px;
-      width: min(470px, 42vw);
-      min-height: 462px;
+    .demo-card {
+      position: relative;
+      align-self: end;
+      padding: 16px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: rgba(25, 31, 25, 0.88);
-      box-shadow: 0 32px 92px rgba(0, 0, 0, 0.36);
-      padding: 18px;
+      background: rgba(24, 32, 24, 0.82);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(14px);
     }
 
-    .app-scene::before {
+    .demo-card::before {
       content: "";
       position: absolute;
-      inset: -26px;
+      inset: -18px;
       z-index: -1;
-      border-radius: 28px;
-      background:
-        radial-gradient(circle at 20% 18%, rgba(167, 208, 107, 0.18), transparent 32%),
-        radial-gradient(circle at 90% 82%, rgba(201, 69, 54, 0.18), transparent 34%);
-      filter: blur(2px);
+      border: 1px solid rgba(246, 241, 229, 0.08);
+      border-radius: 22px;
+      background: rgba(246, 241, 229, 0.025);
     }
 
-    .scene-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-      font-size: 14px;
-      font-weight: 850;
-    }
-
-    .pill {
-      padding: 6px 10px;
-      border: 1px solid rgba(167, 208, 107, 0.24);
-      border-radius: 999px;
-      color: var(--accent);
-      background: rgba(167, 208, 107, 0.12);
-      font-size: 12px;
-      font-weight: 850;
-    }
-
-    .wave-panel {
-      height: 154px;
+    .window-bar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background:
-        radial-gradient(circle at 16% 18%, rgba(167, 208, 107, 0.18), transparent 32%),
-        radial-gradient(circle at 90% 92%, rgba(201, 69, 54, 0.18), transparent 36%),
-        var(--field);
-    }
-
-    .wave-panel i {
-      width: 8px;
-      border-radius: 999px;
-      background: var(--text);
-    }
-
-    .wave-panel i:nth-child(1) { height: 28px; opacity: 0.46; }
-    .wave-panel i:nth-child(2) { height: 54px; opacity: 0.68; }
-    .wave-panel i:nth-child(3) { height: 76px; opacity: 0.90; }
-    .wave-panel i:nth-child(4) { height: 48px; opacity: 0.62; }
-    .wave-panel i:nth-child(5) { height: 64px; opacity: 0.74; }
-
-    .scene-rows {
-      margin-top: 20px;
-      display: grid;
-    }
-
-    .scene-rows div {
-      display: flex;
       justify-content: space-between;
-      gap: 20px;
-      padding: 13px 0;
-      border-bottom: 1px solid rgba(245, 241, 231, 0.14);
+      gap: 14px;
+      margin-bottom: 14px;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 12px;
+      font-weight: 800;
     }
 
-    .scene-rows b {
-      color: var(--text);
+    .traffic {
+      display: flex;
+      gap: 6px;
     }
 
-    .transcript {
-      margin-top: 18px;
+    .traffic span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+
+    .traffic span:nth-child(2) {
+      background: #e0b545;
+    }
+
+    .traffic span:nth-child(3) {
+      background: var(--accent);
+    }
+
+    .screen-recording {
+      overflow: hidden;
+      min-height: 296px;
+      border: 1px solid rgba(246, 241, 229, 0.16);
+      border-radius: 9px;
+      background: var(--field);
+    }
+
+    .recording-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(246, 241, 229, 0.12);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .recording-body {
+      display: grid;
+      gap: 10px;
+      padding: 15px;
+    }
+
+    .before,
+    .after {
       padding: 14px;
-      border: 1px solid rgba(245, 241, 231, 0.14);
       border-radius: 8px;
-      background: rgba(12, 18, 12, 0.72);
+      font-size: 14px;
+      line-height: 1.46;
+    }
+
+    .before {
+      color: rgba(246, 241, 229, 0.56);
+      background: rgba(246, 241, 229, 0.055);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+      text-decoration-color: rgba(201, 69, 54, 0.7);
+    }
+
+    .after {
+      color: var(--text);
+      background:
+        linear-gradient(90deg, rgba(171, 213, 107, 0.15), transparent 46%),
+        rgba(171, 213, 107, 0.08);
+      border: 1px solid rgba(171, 213, 107, 0.2);
+      font-weight: 700;
+    }
+
+    .paste-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 6px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: rgba(246, 241, 229, 0.04);
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.45;
+      font-weight: 750;
     }
 
-    .transcript b {
-      color: var(--text);
+    .paste-row b {
+      color: var(--accent);
+    }
+
+    .scroll-note {
+      position: absolute;
+      right: max(22px, calc((100vw - 1120px) / 2));
+      bottom: 28px;
+      z-index: 3;
+      color: var(--quiet);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .section {
-      padding: 82px 32px;
+      padding: 84px 32px;
     }
 
     .section.light {
@@ -301,37 +397,35 @@
       color: var(--paper-text);
     }
 
-    .section.light .button {
-      color: var(--paper);
-      background: var(--paper-text);
-      border-color: var(--paper-text);
-    }
-
-    .section.light .button.secondary {
-      color: var(--paper-text);
-      background: transparent;
-      border-color: rgba(23, 24, 19, 0.24);
+    .section.dark {
+      background:
+        radial-gradient(circle at 12% 0%, rgba(128, 182, 255, 0.12), transparent 26%),
+        var(--ink);
     }
 
     .section-inner {
-      max-width: 1120px;
+      width: min(1080px, 100%);
       margin: 0 auto;
     }
 
     .section h2 {
       max-width: 760px;
-      margin: 0 0 18px;
-      font-size: 42px;
-      line-height: 1.04;
+      margin-bottom: 16px;
+      font-size: clamp(38px, 5vw, 64px);
+      line-height: 0.98;
       letter-spacing: 0;
     }
 
     .section p {
-      max-width: 680px;
-      margin: 0;
-      color: rgba(23, 24, 19, 0.68);
+      max-width: 690px;
+      margin-bottom: 0;
+      color: rgba(23, 24, 19, 0.66);
       font-size: 18px;
       line-height: 1.5;
+    }
+
+    .dark p {
+      color: var(--muted);
     }
 
     .workflow {
@@ -346,13 +440,13 @@
     .workflow article {
       min-height: 210px;
       padding: 24px;
-      background: #f7f1df;
+      background: var(--paper-2);
     }
 
     .workflow span {
-      color: var(--blue);
+      color: #527db7;
       font-size: 13px;
-      font-weight: 850;
+      font-weight: 950;
     }
 
     .workflow h3 {
@@ -361,27 +455,122 @@
     }
 
     .workflow p {
+      color: rgba(23, 24, 19, 0.68);
       font-size: 15px;
     }
 
-    .correction {
+    .video-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .video-tile {
+      min-height: 300px;
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(24, 32, 24, 0.72);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
+    }
+
+    .video-tile.large {
+      min-height: 360px;
+    }
+
+    .video-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .video-label b {
+      color: var(--text);
+    }
+
+    .fake-player {
+      min-height: 210px;
+      border: 1px solid rgba(246, 241, 229, 0.12);
+      border-radius: 9px;
+      background:
+        linear-gradient(90deg, rgba(246, 241, 229, 0.08), transparent 1px),
+        linear-gradient(0deg, rgba(246, 241, 229, 0.06), transparent 1px),
+        radial-gradient(circle at 30% 30%, rgba(171, 213, 107, 0.16), transparent 32%),
+        var(--field);
+      background-size: 32px 32px, 32px 32px, auto, auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fake-player::before,
+    .fake-player::after {
+      content: "";
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(246, 241, 229, 0.14);
+    }
+
+    .fake-player::before {
+      top: 42px;
+      width: 58%;
+    }
+
+    .fake-player::after {
+      top: 68px;
+      width: 78%;
+    }
+
+    .play-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 64px;
+      height: 64px;
+      border: 1px solid rgba(246, 241, 229, 0.22);
+      border-radius: 50%;
+      background: rgba(246, 241, 229, 0.1);
+      transform: translate(-50%, -50%);
+    }
+
+    .play-dot::before {
+      content: "";
+      position: absolute;
+      left: 25px;
+      top: 20px;
+      border-left: 18px solid var(--text);
+      border-top: 12px solid transparent;
+      border-bottom: 12px solid transparent;
+    }
+
+    .cleanup-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 22px;
-      margin-top: 36px;
+      gap: 18px;
+      margin-top: 34px;
     }
 
     .quote-box {
       padding: 24px;
       border: 1px solid var(--line);
-      border-radius: 10px;
-      background: rgba(25, 31, 25, 0.84);
+      border-radius: 12px;
+      background: rgba(24, 32, 24, 0.78);
     }
 
     .quote-box small {
       color: var(--accent);
       font-size: 12px;
-      font-weight: 850;
+      font-weight: 950;
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
@@ -389,8 +578,8 @@
     .quote-box p {
       margin-top: 16px;
       color: var(--text);
-      font-size: 19px;
-      line-height: 1.48;
+      font-size: 20px;
+      line-height: 1.45;
     }
 
     .quote-box output {
@@ -404,29 +593,29 @@
     .pricing {
       display: grid;
       grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      gap: 22px;
-      margin-top: 36px;
+      gap: 18px;
+      margin-top: 34px;
     }
 
     .price-card {
       padding: 26px;
       border: 1px solid rgba(23, 24, 19, 0.16);
-      border-radius: 10px;
-      background: #f7f1df;
+      border-radius: 12px;
+      background: var(--paper-2);
     }
 
     .price-card.featured {
       color: var(--text);
       background:
-        radial-gradient(circle at 12% 10%, rgba(167, 208, 107, 0.16), transparent 34%),
+        radial-gradient(circle at 16% 14%, rgba(171, 213, 107, 0.16), transparent 34%),
         var(--panel);
-      border-color: rgba(17, 22, 17, 0.72);
+      border-color: rgba(16, 21, 16, 0.72);
     }
 
     .price-card small {
-      color: var(--blue);
+      color: #527db7;
       font-size: 12px;
-      font-weight: 850;
+      font-weight: 950;
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
@@ -438,7 +627,7 @@
     .price {
       margin: 14px 0 10px;
       font-size: 42px;
-      font-weight: 900;
+      font-weight: 950;
       letter-spacing: 0;
     }
 
@@ -466,10 +655,6 @@
       color: var(--muted);
     }
 
-    .section-gap {
-      height: 70px;
-    }
-
     .footer {
       padding: 34px 32px;
       border-top: 1px solid var(--line);
@@ -478,186 +663,253 @@
     }
 
     .footer-inner {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: min(1080px, 100%);
       display: flex;
       justify-content: space-between;
       gap: 20px;
+      margin: 0 auto;
     }
 
-    @media (max-width: 980px) {
+    .cursor-dot {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      width: 34px;
+      height: 34px;
+      pointer-events: none;
+      border: 1px solid rgba(246, 241, 229, 0.44);
+      border-radius: 50%;
+      background: rgba(16, 21, 16, 0.54);
+      box-shadow: 0 0 0 7px rgba(171, 213, 107, 0.08), 0 10px 26px rgba(0, 0, 0, 0.2);
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(8px);
+      mix-blend-mode: screen;
+    }
+
+    .cursor-dot::before,
+    .cursor-dot::after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      width: 14px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--text);
+    }
+
+    .cursor-dot::before {
+      top: 11px;
+    }
+
+    .cursor-dot::after {
+      top: 19px;
+      opacity: 0.68;
+    }
+
+    @media (max-width: 960px) {
+      body,
+      a,
+      button {
+        cursor: auto;
+      }
+
+      .cursor-dot {
+        display: none;
+      }
+
       .site-nav {
-        padding: 0 18px;
+        top: 12px;
+        width: calc(100% - 24px);
       }
 
       .nav-links {
         display: none;
       }
 
-      .hero {
-        min-height: auto;
-      }
-
       .hero-inner {
-        padding: 54px 22px 330px;
+        min-height: auto;
+        grid-template-columns: 1fr;
+        padding: 104px 0 48px;
       }
 
-      h1 {
-        font-size: 58px;
+      .demo-card {
+        align-self: auto;
       }
 
-      .hero-copy {
-        font-size: 19px;
-      }
-
-      .app-scene {
-        left: 22px;
-        right: 22px;
-        top: auto;
-        bottom: 28px;
-        width: auto;
-        min-height: 260px;
-      }
-
-      .transcript,
-      .scene-rows {
+      .scroll-note {
         display: none;
       }
 
       .workflow,
-      .pricing,
-      .correction {
+      .video-strip,
+      .cleanup-grid,
+      .pricing {
         grid-template-columns: 1fr;
       }
 
       .section {
-        padding: 58px 22px;
+        padding: 64px 22px;
       }
 
       .footer-inner {
         flex-direction: column;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .button {
+        transition: none;
+      }
+    }
   </style>
 </head>
 <body>
   <nav class="site-nav" aria-label="Primary navigation">
-    <a class="brand" href="#">Wispry</a>
+    <a class="brand" href="#"><span class="brand-mark">W</span> Wispry</a>
     <div class="nav-links">
       <a href="#workflow">Workflow</a>
-      <a href="#cleanup">Cleanup</a>
+      <a href="#watch">Watch</a>
       <a href="#pricing">Pricing</a>
-      <a href="#download">Download</a>
     </div>
     <a class="nav-action" href="#download">Get Wispry</a>
   </nav>
 
-  <header class="hero">
-    <div class="app-scene" aria-label="Wispry app preview">
-      <div class="scene-top"><span>Ready</span><span class="pill">Paste on</span></div>
-      <div class="wave-panel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="scene-rows">
-        <div><span>Cleanup</span><b>Clean</b></div>
-        <div><span>Shortcut</span><b>Double Fn</b></div>
-        <div><span>Output</span><b>Inserted</b></div>
-      </div>
-      <div class="transcript"><b>Before:</b> It is green, no I mean red.<br><b>After:</b> It is red.</div>
-    </div>
-
+  <header class="hero" id="top">
+    <canvas class="voice-canvas" aria-hidden="true"></canvas>
     <div class="hero-inner">
-      <span class="eyebrow">Private macOS dictation</span>
-      <h1>Wispry</h1>
-      <p class="hero-copy">Speak naturally, revise mid-sentence, and paste cleaned text back into the app you started from.</p>
-      <div class="hero-actions">
-        <a class="button" href="#download">Download for Mac</a>
-        <a class="button secondary" href="#workflow">See workflow</a>
+      <div>
+        <span class="eyebrow">Mac dictation with taste</span>
+        <h1>Say it messy. Paste it clean.</h1>
+        <p class="hero-copy">Wispry lives in the menu bar, listens when you ask, removes the bits you took back, and pastes the cleaned text where your cursor already was.</p>
+        <div class="hero-actions">
+          <a class="button" href="#download">Download for Mac</a>
+          <a class="button secondary" href="#watch">See the trick</a>
+        </div>
+        <div class="proof-line" aria-label="Product highlights">
+          <div><strong>Double Fn</strong>Latch or hold to dictate</div>
+          <div><strong>No live transcript</strong>Just a tiny signal bubble</div>
+          <div><strong>Local history</strong>Find what you said later</div>
+        </div>
       </div>
-      <div class="hero-proof" aria-label="Product highlights">
-        <div><strong>Double Fn</strong>Latch or hold to dictate</div>
-        <div><strong>Takeback aware</strong>Repairs "no, actually..." speech</div>
-        <div><strong>Local history</strong>Find and reuse recent text</div>
-      </div>
+
+      <aside class="demo-card" aria-label="Wispry cleanup preview">
+        <div class="window-bar">
+          <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span>Wispry recording</span>
+        </div>
+        <div class="screen-recording">
+          <div class="recording-top"><span>Mail</span><span>Auto paste on</span></div>
+          <div class="recording-body">
+            <div class="before">Send it Friday. No, actually say Thursday morning and make it sound less blunt.</div>
+            <div class="after">Send it Thursday morning, and keep the tone warm.</div>
+            <div class="paste-row"><span>Clipboard set</span><b>Cmd+V sent</b></div>
+          </div>
+        </div>
+      </aside>
     </div>
+    <div class="scroll-note">Move the mouse</div>
   </header>
 
-  <section class="section light" id="workflow">
-    <div class="section-inner">
-      <h2>A tiny control surface for text you do not want to type.</h2>
-      <p>Wispry is built for the moment between thought and cursor: quick capture, light cleanup, and a paste path back to the active app.</p>
-      <div class="workflow">
-        <article>
-          <span>01</span>
-          <h3>Listen</h3>
-          <p>Hold Function for push-to-talk, double tap it to keep recording, or use the floating bubble.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h3>Polish</h3>
-          <p>Fillers, repeated words, spoken punctuation, and takebacks are cleaned before the text leaves Wispry.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h3>Paste</h3>
-          <p>The result is copied first, then inserted into the app you were using.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="cleanup">
-    <div class="section-inner">
-      <h2>Made for people who correct themselves while speaking.</h2>
-      <div class="correction">
-        <div class="quote-box">
-          <small>Raw speech</small>
-          <p>Use the green one. Take that back, use the red one.</p>
-          <output>Wispry identifies the correction and removes the abandoned instruction.</output>
-        </div>
-        <div class="quote-box">
-          <small>Clean result</small>
-          <p>Use the red one.</p>
-          <output>Short enough for chat, clean enough for work, still in your voice.</output>
+  <main>
+    <section class="section light" id="workflow">
+      <div class="section-inner">
+        <h2>A tiny control surface for text you do not want to type.</h2>
+        <p>Hold Function, double tap Function, or click the floating bubble. Wispry captures the thought, cleans the mess, and gets out of the way.</p>
+        <div class="workflow">
+          <article>
+            <span>01</span>
+            <h3>Listen</h3>
+            <p>Use push-to-talk for quick lines or latch recording when you need a longer thought.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Polish</h3>
+            <p>Fillers, repeated words, spoken punctuation, and takebacks are cleaned before the text leaves Wispry.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Paste</h3>
+            <p>The result is copied first, then pasted into the app you were using.</p>
+          </article>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section light" id="download">
-    <div class="section-inner">
-      <span class="eyebrow" id="pricing">Founding access</span>
-      <h2>Free for the community, cheap enough to own.</h2>
-      <p>Wispr Flow Pro is subscription priced. Wispry can be easier to try: free for Skool members while the product is improving, with a one-time founding license for everyone else.</p>
-      <div class="pricing">
-        <article class="price-card">
-          <small>Skool members</small>
-          <div class="price">Free</div>
-          <p>Use it, pressure test it, and shape the product while the core workflow is being hardened.</p>
-          <ul class="price-list">
-            <li>Mac menu bar app</li>
-            <li>Dictation history</li>
-            <li>Editable shortcuts</li>
-          </ul>
-        </article>
-        <article class="price-card featured">
-          <small>Founding license</small>
-          <div class="price">$9.99 lifetime</div>
-          <p>A simple one-time purchase for people who want the app without another monthly subscription.</p>
-          <ul class="price-list">
-            <li>Lifetime access to the local Mac build</li>
-            <li>No recurring subscription</li>
-            <li>Early buyer pricing while Wispry is young</li>
-          </ul>
-        </article>
+    <section class="section dark" id="watch">
+      <div class="section-inner">
+        <span class="eyebrow">Show, don't explain</span>
+        <h2>Built for short screen recordings.</h2>
+        <p>The page is ready for quick product clips: one showing the bubble, one showing speech turning into a clean paste. Until those clips exist, the slots behave like quiet product frames instead of stock mockups.</p>
+        <div class="video-strip">
+          <article class="video-tile large">
+            <div class="video-label"><b>Dictate in place</b><span>12 sec clip</span></div>
+            <div class="fake-player"><span class="play-dot" aria-hidden="true"></span></div>
+          </article>
+          <article class="video-tile">
+            <div class="video-label"><b>Clean a correction</b><span>8 sec clip</span></div>
+            <div class="fake-player"><span class="play-dot" aria-hidden="true"></span></div>
+          </article>
+        </div>
       </div>
-      <div class="section-gap"></div>
-      <h2>Built for macOS first.</h2>
-      <p>Wispry lives in the menu bar, watches for your shortcut, and stays out of the way when you are done.</p>
-      <div class="hero-actions">
-        <a class="button" href="#">Download local build</a>
-        <a class="button secondary" href="https://github.com/lukejbyrne/wispry">View repository</a>
+    </section>
+
+    <section class="section dark" id="cleanup">
+      <div class="section-inner">
+        <h2>Made for people who correct themselves while speaking.</h2>
+        <div class="cleanup-grid">
+          <div class="quote-box">
+            <small>Raw speech</small>
+            <p>Use the green one. Take that back, use the red one.</p>
+            <output>Wispry notices the correction and removes the abandoned instruction.</output>
+          </div>
+          <div class="quote-box">
+            <small>Clean result</small>
+            <p>Use the red one.</p>
+            <output>Short enough for chat, clean enough for work, still in your voice.</output>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <section class="section light" id="download">
+      <div class="section-inner">
+        <span class="eyebrow" id="pricing">Founding access</span>
+        <h2>Free for the community, cheap enough to own.</h2>
+        <p>Free for Skool members while the product is improving. A one-time founding license for everyone else.</p>
+        <div class="pricing">
+          <article class="price-card">
+            <small>Skool members</small>
+            <div class="price">Free</div>
+            <p>Use it, pressure test it, and shape the product while the workflow is being hardened.</p>
+            <ul class="price-list">
+              <li>Mac menu bar app</li>
+              <li>Dictation history</li>
+              <li>Editable shortcuts</li>
+            </ul>
+          </article>
+          <article class="price-card featured">
+            <small>Founding license</small>
+            <div class="price">$9.99 lifetime</div>
+            <p>A simple one-time purchase for people who want the app without another monthly subscription.</p>
+            <ul class="price-list">
+              <li>Lifetime access to the local Mac build</li>
+              <li>No recurring subscription</li>
+              <li>Early buyer pricing while Wispry is young</li>
+            </ul>
+          </article>
+        </div>
+        <div class="hero-actions">
+          <a class="button" href="#">Download local build</a>
+          <a class="button secondary" href="https://github.com/lukejbyrne/wispry">View repository</a>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <footer class="footer">
     <div class="footer-inner">
@@ -665,5 +917,141 @@
       <span>Speak, polish, paste.</span>
     </div>
   </footer>
+
+  <div class="cursor-dot" aria-hidden="true"></div>
+
+  <script>
+    const canvas = document.querySelector(".voice-canvas");
+    const ctx = canvas.getContext("2d");
+    const cursor = document.querySelector(".cursor-dot");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const phrases = [
+      "Send it Thursday morning.",
+      "Make it warmer.",
+      "Use the red one.",
+      "New paragraph.",
+      "Paste into Mail.",
+      "No, actually...",
+      "Clean text",
+      "Double Fn"
+    ];
+
+    const pointer = { x: window.innerWidth * 0.62, y: window.innerHeight * 0.48 };
+    const smooth = { x: pointer.x, y: pointer.y };
+    const sparks = [];
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let frame = 0;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = Math.max(document.querySelector(".hero").offsetHeight, window.innerHeight);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function movePointer(event) {
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      cursor.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`;
+
+      if (sparks.length < 38 && !reducedMotion) {
+        sparks.push({
+          x: event.clientX,
+          y: event.clientY,
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: (Math.random() - 0.5) * 1.2,
+          age: 0,
+          text: phrases[Math.floor(Math.random() * phrases.length)]
+        });
+      }
+    }
+
+    function drawWaveRow(y, offset, amp, near) {
+      ctx.beginPath();
+      for (let x = -20; x <= width + 20; x += 10) {
+        const dx = x - smooth.x;
+        const dy = y - smooth.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const influence = Math.max(0, 1 - distance / 230);
+        const wave = Math.sin((x + offset) * 0.032 + frame * 0.018) * amp;
+        const lift = wave - influence * 24 * Math.sin((x + frame * 3) * 0.04);
+        const px = x;
+        const py = y + lift;
+        if (x === -20) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.strokeStyle = near ? "rgba(171, 213, 107, 0.38)" : "rgba(246, 241, 229, 0.115)";
+      ctx.lineWidth = near ? 1.6 : 1;
+      ctx.stroke();
+    }
+
+    function drawTextField() {
+      ctx.save();
+      ctx.font = "700 13px ui-sans-serif, system-ui, -apple-system";
+      ctx.textBaseline = "middle";
+      phrases.forEach((phrase, index) => {
+        const angle = index * 0.82 + frame * 0.006;
+        const radius = 74 + (index % 3) * 34;
+        const x = smooth.x + Math.cos(angle) * radius;
+        const y = smooth.y + Math.sin(angle) * radius * 0.56;
+        const alpha = Math.max(0, 0.82 - Math.abs(y - smooth.y) / 180);
+        ctx.fillStyle = `rgba(246, 241, 229, ${alpha})`;
+        ctx.fillText(phrase, x, y);
+      });
+      ctx.restore();
+    }
+
+    function drawSparks() {
+      ctx.save();
+      ctx.font = "800 12px ui-sans-serif, system-ui, -apple-system";
+      for (let i = sparks.length - 1; i >= 0; i -= 1) {
+        const spark = sparks[i];
+        spark.age += 1;
+        spark.x += spark.vx;
+        spark.y += spark.vy - 0.18;
+        const alpha = Math.max(0, 1 - spark.age / 70);
+        ctx.fillStyle = `rgba(171, 213, 107, ${alpha * 0.72})`;
+        ctx.fillText(spark.text, spark.x, spark.y);
+        if (spark.age > 70) {
+          sparks.splice(i, 1);
+        }
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      frame += 1;
+      smooth.x += (pointer.x - smooth.x) * 0.12;
+      smooth.y += (pointer.y - smooth.y) * 0.12;
+
+      ctx.clearRect(0, 0, width, height);
+      for (let y = 116; y < height; y += 38) {
+        const distance = Math.abs(y - smooth.y);
+        drawWaveRow(y, y * 1.7, 8 + (y % 4), distance < 136);
+      }
+
+      drawTextField();
+      drawSparks();
+
+      if (!reducedMotion) {
+        requestAnimationFrame(draw);
+      }
+    }
+
+    resize();
+    movePointer({ clientX: pointer.x, clientY: pointer.y });
+    window.addEventListener("resize", resize);
+    window.addEventListener("pointermove", movePointer, { passive: true });
+    draw();
+  </script>
 </body>
 </html>

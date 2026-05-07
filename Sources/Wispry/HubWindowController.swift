@@ -2,15 +2,6 @@ import AppKit
 import Carbon
 
 private enum HubPalette {
-    static let window = NSColor(calibratedRed: 0.946, green: 0.949, blue: 0.936, alpha: 1)
-    static let sidebar = NSColor(calibratedRed: 0.912, green: 0.920, blue: 0.902, alpha: 1)
-    static let panel = NSColor(calibratedRed: 0.982, green: 0.980, blue: 0.966, alpha: 1)
-    static let field = NSColor(calibratedRed: 0.992, green: 0.990, blue: 0.976, alpha: 1)
-    static let text = NSColor(calibratedRed: 0.082, green: 0.086, blue: 0.078, alpha: 1)
-    static let muted = NSColor(calibratedRed: 0.382, green: 0.392, blue: 0.360, alpha: 1)
-    static let border = NSColor(calibratedRed: 0.746, green: 0.746, blue: 0.696, alpha: 1)
-    static let selected = NSColor(calibratedRed: 0.796, green: 0.875, blue: 0.980, alpha: 1)
-    static let accent = NSColor(calibratedRed: 0.094, green: 0.310, blue: 0.690, alpha: 1)
     static let signalSurface = NSColor(calibratedRed: 0.062, green: 0.080, blue: 0.062, alpha: 1)
     static let signalPanel = NSColor(calibratedRed: 0.088, green: 0.114, blue: 0.088, alpha: 1)
     static let signalField = NSColor(calibratedRed: 0.050, green: 0.065, blue: 0.050, alpha: 1)
@@ -19,17 +10,27 @@ private enum HubPalette {
     static let signalBorder = NSColor(calibratedRed: 0.965, green: 0.946, blue: 0.895, alpha: 0.18)
     static let signalAccent = NSColor(calibratedRed: 0.655, green: 0.815, blue: 0.420, alpha: 1)
     static let signalRed = NSColor(calibratedRed: 0.790, green: 0.270, blue: 0.210, alpha: 1)
+    static let window = signalSurface
+    static let sidebar = signalSurface
+    static let panel = signalPanel
+    static let field = signalField
+    static let text = signalText
+    static let muted = signalMuted
+    static let border = signalBorder
+    static let selected = signalAccent.withAlphaComponent(0.14)
+    static let accent = signalAccent
 }
 
 final class HubWindowController: NSWindowController {
     init(appDelegate: AppDelegate) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 540),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "Wispry"
+        window.minSize = NSSize(width: 820, height: 560)
         window.center()
         window.isReleasedWhenClosed = false
         window.contentViewController = HubViewController(appDelegate: appDelegate)
@@ -49,7 +50,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private enum Section: String, CaseIterable {
         case home = "Home"
         case history = "History"
-        case scratchpad = "Scratchpad"
         case dictionary = "Dictionary"
         case snippets = "Snippets"
         case shortcuts = "Shortcuts"
@@ -66,15 +66,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let historyTable = NSTableView()
     private let historySearchField = NSSearchField()
     private let historyDetailTextView = NSTextView()
-    private let scratchpadTextView = NSTextView()
     private let dictionaryTextView = NSTextView()
     private let snippetsTextView = NSTextView()
     private let dictionaryField = NSTextField()
     private let snippetPhraseField = NSTextField()
     private let snippetExpansionField = NSTextField()
-    private let stylePopup = NSPopUpButton()
-    private let autoPasteButton = NSButton(checkboxWithTitle: "Auto paste when dictation ends", target: nil, action: nil)
-    private let bubbleButton = NSButton(checkboxWithTitle: "Show floating bubble", target: nil, action: nil)
     private var homeStyleButtons: [TransformStyle: NSButton] = [:]
     private var sectionButtons: [Section: NSButton] = [:]
     private var historyExpandedAll = false
@@ -92,7 +88,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 540))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 860, height: 620))
         view.wantsLayer = true
         view.layer?.backgroundColor = HubPalette.window.cgColor
 
@@ -106,6 +102,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         sidebar.translatesAutoresizingMaskIntoConstraints = false
         sidebar.orientation = .vertical
         sidebar.alignment = .leading
+        sidebar.distribution = .fill
         sidebar.spacing = 6
         sidebar.edgeInsets = NSEdgeInsets(top: 18, left: 14, bottom: 18, right: 14)
         sidebar.wantsLayer = true
@@ -152,12 +149,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func buildSidebar() {
         let brand = NSTextField(labelWithString: "Wispry")
         brand.font = NSFont.systemFont(ofSize: 20, weight: .bold)
-        brand.textColor = HubPalette.text
+        brand.textColor = HubPalette.signalText
         sidebar.addArrangedSubview(brand)
 
         let tagline = NSTextField(labelWithString: "voice in, text out")
         tagline.font = NSFont.systemFont(ofSize: 11, weight: .medium)
-        tagline.textColor = HubPalette.muted
+        tagline.textColor = HubPalette.signalMuted
         sidebar.addArrangedSubview(tagline)
 
         let spacer = NSView()
@@ -177,6 +174,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             sectionButtons[section] = button
             sidebar.addArrangedSubview(button)
         }
+        let sidebarFill = NSView()
+        sidebarFill.setContentHuggingPriority(.defaultLow, for: .vertical)
+        sidebarFill.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        sidebarFill.heightAnchor.constraint(greaterThanOrEqualToConstant: 1).isActive = true
+        sidebar.addArrangedSubview(sidebarFill)
         updateSidebarSelection()
     }
 
@@ -208,7 +210,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             titleLabel.textColor = HubPalette.text
             subtitleLabel.stringValue = subtitle(for: section)
             subtitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-            subtitleLabel.textColor = HubPalette.muted
+            subtitleLabel.textColor = HubPalette.signalMuted
             subtitleLabel.maximumNumberOfLines = 2
 
             stack.addArrangedSubview(titleLabel)
@@ -232,10 +234,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return "Start quickly, keep paste predictable, tune the cleanup."
         case .history:
             return "Recent dictations by time, with a short summary and full text."
-        case .scratchpad:
-            return "Draft or paste text here, then clean it up locally."
         case .dictionary:
-            return "Terms Wispry should bias speech recognition toward."
+            return "Words and phrases Wispry should bias recognition toward on the next dictation."
         case .snippets:
             return "Spoken phrases that expand into reusable text."
         case .shortcuts:
@@ -249,8 +249,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return homeView()
         case .history:
             return historyView()
-        case .scratchpad:
-            return scratchpadView()
         case .dictionary:
             return dictionaryView()
         case .snippets:
@@ -261,11 +259,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func homeView() -> NSView {
-        stylePopup.removeAllItems()
-        stylePopup.addItems(withTitles: TransformStyle.allCases.map(\.rawValue))
-        stylePopup.target = self
-        stylePopup.action = #selector(styleChanged)
-
         let start = NSButton(title: "Start dictation", target: self, action: #selector(startDictation))
         stylePrimaryButton(start)
         start.keyEquivalent = "\r"
@@ -280,18 +273,18 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         topLine.orientation = .horizontal
         topLine.alignment = .centerY
         topLine.spacing = 10
-        topLine.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        topLine.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         let meter = SignalMeterView()
         meter.translatesAutoresizingMaskIntoConstraints = false
-        meter.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        meter.widthAnchor.constraint(equalToConstant: 560).isActive = true
         meter.heightAnchor.constraint(equalToConstant: 124).isActive = true
 
         let buttons = NSStackView(views: [start, accessibility, flexibleSpacer()])
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
         buttons.spacing = 8
-        buttons.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        buttons.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         let autoPaste = signalToggleButton(
             title: store.autoPaste ? "Auto paste on" : "Clipboard only",
@@ -307,7 +300,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         toggles.orientation = .horizontal
         toggles.alignment = .centerY
         toggles.spacing = 8
-        toggles.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        toggles.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         let stack = panelStack()
         stack.spacing = 13
@@ -327,19 +320,22 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         historySearchField.placeholderString = "Search history"
         historySearchField.target = self
         historySearchField.action = #selector(historySearchChanged)
-        historySearchField.widthAnchor.constraint(equalToConstant: 540).isActive = true
+        styleSignalTextField(historySearchField)
+        historySearchField.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         historyTable.headerView = nil
         historyTable.dataSource = self
         historyTable.delegate = self
+        historyTable.backgroundColor = HubPalette.signalField
+        historyTable.usesAlternatingRowBackgroundColors = false
         historyTable.rowHeight = 30
         historyTable.intercellSpacing = NSSize(width: 8, height: 4)
         historyTable.selectionHighlightStyle = .regular
         if historyTable.tableColumns.isEmpty {
             let timeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("time"))
-            timeColumn.width = 145
+            timeColumn.width = 150
             let summaryColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("summary"))
-            summaryColumn.width = 395
+            summaryColumn.width = 410
             historyTable.addTableColumn(timeColumn)
             historyTable.addTableColumn(summaryColumn)
         }
@@ -347,7 +343,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let tableScroll = scrollView(document: historyTable, height: 210)
         let detail = scrollableText(historyDetailTextView, height: 130)
         let copy = NSButton(title: "Copy selected", target: self, action: #selector(copySelectedHistory))
+        styleSignalSmallButton(copy, width: 112)
         let expand = NSButton(title: "Expand all", target: self, action: #selector(toggleExpandHistory))
+        styleSignalSmallButton(expand, width: 98)
         let buttons = NSStackView(views: [copy, expand])
         buttons.orientation = .horizontal
         buttons.spacing = 8
@@ -356,59 +354,58 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        return stack
-    }
-
-    private func scratchpadView() -> NSView {
-        let clean = NSButton(title: "Clean", target: self, action: #selector(cleanScratchpad))
-        let professional = NSButton(title: "Professional", target: self, action: #selector(professionalScratchpad))
-        let casual = NSButton(title: "Casual", target: self, action: #selector(casualScratchpad))
-        let list = NSButton(title: "List", target: self, action: #selector(listScratchpad))
-        let copy = NSButton(title: "Copy", target: self, action: #selector(copyScratchpad))
-        let clear = NSButton(title: "Clear", target: self, action: #selector(clearScratchpad))
-        let controls = NSStackView(views: [clean, professional, casual, list, copy, clear])
-        controls.orientation = .horizontal
-        controls.spacing = 8
-
-        let stack = NSStackView(views: [controls, scrollableText(scratchpadTextView, height: 250, editable: true)])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 10
-        return stack
+        return signalPanel(stack, height: 430)
     }
 
     private func dictionaryView() -> NSView {
         dictionaryField.placeholderString = "Add name, acronym, product, or technical term"
+        dictionaryField.target = self
+        dictionaryField.action = #selector(addDictionaryWord)
+        styleSignalTextField(dictionaryField)
         let add = NSButton(title: "Add", target: self, action: #selector(addDictionaryWord))
+        styleSignalSmallButton(add, width: 72)
         let clear = NSButton(title: "Clear", target: self, action: #selector(clearDictionary))
+        styleSignalSmallButton(clear, width: 72)
         let row = NSStackView(views: [dictionaryField, add, clear])
         row.orientation = .horizontal
+        row.alignment = .centerY
         row.spacing = 8
-        dictionaryField.widthAnchor.constraint(equalToConstant: 350).isActive = true
+        dictionaryField.widthAnchor.constraint(equalToConstant: 330).isActive = true
 
-        let stack = NSStackView(views: [row, scrollableText(dictionaryTextView, height: 260)])
+        let note = NSTextField(wrappingLabelWithString: "Dictionary terms are sent into Apple Speech as recognition hints when the next recording starts. They improve odds, but they are not hard replacements.")
+        note.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        note.textColor = HubPalette.signalMuted
+        note.maximumNumberOfLines = 3
+        note.widthAnchor.constraint(equalToConstant: 560).isActive = true
+
+        let stack = NSStackView(views: [row, note, scrollableText(dictionaryTextView, height: 280)])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 10
-        return stack
+        stack.spacing = 12
+        return signalPanel(stack, height: 390)
     }
 
     private func snippetsView() -> NSView {
         snippetPhraseField.placeholderString = "Spoken phrase"
         snippetExpansionField.placeholderString = "Expansion"
+        styleSignalTextField(snippetPhraseField)
+        styleSignalTextField(snippetExpansionField)
         let add = NSButton(title: "Add", target: self, action: #selector(addSnippet))
+        styleSignalSmallButton(add, width: 68)
         let reset = NSButton(title: "Reset", target: self, action: #selector(resetSnippets))
+        styleSignalSmallButton(reset, width: 72)
         let row = NSStackView(views: [snippetPhraseField, snippetExpansionField, add, reset])
         row.orientation = .horizontal
+        row.alignment = .centerY
         row.spacing = 8
         snippetPhraseField.widthAnchor.constraint(equalToConstant: 150).isActive = true
-        snippetExpansionField.widthAnchor.constraint(equalToConstant: 270).isActive = true
+        snippetExpansionField.widthAnchor.constraint(equalToConstant: 246).isActive = true
 
         let stack = NSStackView(views: [row, scrollableText(snippetsTextView, height: 260)])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 10
-        return stack
+        stack.spacing = 12
+        return signalPanel(stack, height: 356)
     }
 
     private func shortcutsView() -> NSView {
@@ -421,14 +418,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         fixed.font = NSFont.systemFont(ofSize: 12, weight: .regular)
         fixed.textColor = HubPalette.muted
         fixed.maximumNumberOfLines = 3
+        fixed.widthAnchor.constraint(equalToConstant: 560).isActive = true
         stack.addArrangedSubview(fixed)
-        return panel(stack, height: 310)
+        return signalPanel(stack, height: 326)
     }
 
     private func refresh() {
-        stylePopup.selectItem(withTitle: store.transformStyle.rawValue)
-        autoPasteButton.state = store.autoPaste ? .on : .off
-        bubbleButton.state = store.bubbleVisible ? .on : .off
         historySearchField.stringValue = historyQuery
         updateHomeStyleButtons()
         historyTable.reloadData()
@@ -462,45 +457,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         button.attributedAlternateTitle = title
     }
 
-    private func homeStatusView() -> NSView {
-        let paste = store.autoPaste ? "Paste on" : "Clipboard only"
-        let bubble = store.bubbleVisible ? "Bubble on" : "Bubble hidden"
-        let style = store.transformStyle.rawValue
-        let row = NSStackView(views: [
-            statusChip(title: "Ready"),
-            statusChip(title: paste),
-            statusChip(title: style),
-            statusChip(title: bubble)
-        ])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 8
-        return row
-    }
-
-    private func statusChip(title: String) -> NSView {
-        let label = NSTextField(labelWithString: title)
-        label.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        label.textColor = HubPalette.accent
-        label.alignment = .center
-
-        let wrapper = NSView()
-        wrapper.wantsLayer = true
-        wrapper.layer?.backgroundColor = HubPalette.selected.withAlphaComponent(0.56).cgColor
-        wrapper.layer?.cornerRadius = 7
-        wrapper.layer?.borderColor = HubPalette.selected.cgColor
-        wrapper.layer?.borderWidth = 1
-        wrapper.addSubview(label)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 5),
-            label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 9),
-            label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -9),
-            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -5)
-        ])
-        return wrapper
-    }
-
     private func signalChip(title: String) -> NSView {
         let label = NSTextField(labelWithString: title)
         label.font = NSFont.systemFont(ofSize: 12, weight: .bold)
@@ -524,13 +480,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         return wrapper
     }
 
-    private func strongLabel(_ text: String) -> NSTextField {
-        let label = NSTextField(labelWithString: text)
-        label.font = NSFont.systemFont(ofSize: 20, weight: .semibold)
-        label.textColor = HubPalette.text
-        return label
-    }
-
     private func signalTitleLabel(_ text: String) -> NSTextField {
         let label = NSTextField(labelWithString: text)
         label.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
@@ -543,27 +492,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return spacer
-    }
-
-    private func statusLine(label: String, value: String) -> NSView {
-        let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-        valueLabel.textColor = HubPalette.text
-        return statusControlLine(label: label, control: valueLabel)
-    }
-
-    private func statusControlLine(label: String, control: NSView) -> NSView {
-        let title = NSTextField(labelWithString: label)
-        title.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        title.textColor = HubPalette.muted
-        title.widthAnchor.constraint(equalToConstant: 92).isActive = true
-
-        let line = NSStackView(views: [title, control, flexibleSpacer()])
-        line.orientation = .horizontal
-        line.alignment = .centerY
-        line.spacing = 12
-        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
-        return line
     }
 
     private func signalStatusLine(label: String, value: String) -> NSView {
@@ -583,7 +511,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         line.orientation = .horizontal
         line.alignment = .centerY
         line.spacing = 12
-        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        line.widthAnchor.constraint(equalToConstant: 560).isActive = true
         return line
     }
 
@@ -659,7 +587,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let line = NSView()
         line.wantsLayer = true
         line.layer?.backgroundColor = HubPalette.signalBorder.cgColor
-        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        line.widthAnchor.constraint(equalToConstant: 560).isActive = true
         line.heightAnchor.constraint(equalToConstant: 1).isActive = true
         return line
     }
@@ -698,23 +626,35 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         button.widthAnchor.constraint(equalToConstant: 154).isActive = true
     }
 
-    private func styleSignalCheckbox(_ button: NSButton) {
+    private func styleSignalSmallButton(_ button: NSButton, width: CGFloat) {
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.backgroundColor = NSColor.clear.cgColor
+        button.layer?.borderColor = HubPalette.signalBorder.cgColor
+        button.layer?.borderWidth = 1
+        button.layer?.cornerRadius = 7
         button.attributedTitle = NSAttributedString(
             string: button.title,
             attributes: [
-                .foregroundColor: HubPalette.signalMuted,
-                .font: NSFont.systemFont(ofSize: 12, weight: .medium)
+                .foregroundColor: HubPalette.signalText,
+                .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
             ]
         )
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
     }
 
-    private func separator() -> NSView {
-        let line = NSView()
-        line.wantsLayer = true
-        line.layer?.backgroundColor = HubPalette.border.withAlphaComponent(0.65).cgColor
-        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
-        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        return line
+    private func styleSignalTextField(_ field: NSTextField) {
+        field.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        field.textColor = HubPalette.signalText
+        field.backgroundColor = HubPalette.signalField
+        field.drawsBackground = true
+        field.bezelStyle = .roundedBezel
+        field.wantsLayer = true
+        field.layer?.backgroundColor = HubPalette.signalField.cgColor
+        field.layer?.borderColor = HubPalette.signalBorder.cgColor
+        field.layer?.borderWidth = 1
+        field.layer?.cornerRadius = 7
     }
 
     private func panelStack() -> NSStackView {
@@ -723,28 +663,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.alignment = .leading
         stack.spacing = 12
         return stack
-    }
-
-    private func panel(_ content: NSView, height: CGFloat? = nil) -> NSView {
-        let wrapper = NSView()
-        wrapper.wantsLayer = true
-        wrapper.layer?.backgroundColor = HubPalette.panel.cgColor
-        wrapper.layer?.cornerRadius = 8
-        wrapper.layer?.borderColor = HubPalette.border.cgColor
-        wrapper.layer?.borderWidth = 1
-        content.translatesAutoresizingMaskIntoConstraints = false
-        wrapper.addSubview(content)
-        NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 14),
-            content.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 14),
-            content.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -14),
-            content.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -14),
-            wrapper.widthAnchor.constraint(equalToConstant: 560)
-        ])
-        if let height {
-            wrapper.heightAnchor.constraint(equalToConstant: height).isActive = true
-        }
-        return wrapper
     }
 
     private func signalPanel(_ content: NSView, height: CGFloat? = nil) -> NSView {
@@ -765,24 +683,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             content.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 18),
             content.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -18),
             content.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -18),
-            wrapper.widthAnchor.constraint(equalToConstant: 570)
+            wrapper.widthAnchor.constraint(equalToConstant: 600)
         ])
         if let height {
             wrapper.heightAnchor.constraint(equalToConstant: height).isActive = true
         }
         return wrapper
-    }
-
-    private func row(label text: String, control: NSView) -> NSView {
-        let label = NSTextField(labelWithString: text)
-        label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        label.textColor = HubPalette.text
-        label.widthAnchor.constraint(equalToConstant: 112).isActive = true
-        let row = NSStackView(views: [label, control])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 10
-        return row
     }
 
     private func scrollView(document: NSView, height: CGFloat) -> NSScrollView {
@@ -828,19 +734,17 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         let record = NSButton(title: "Record", target: self, action: #selector(recordShortcut(_:)))
         record.tag = ShortcutAction.allCases.firstIndex(of: action) ?? 0
+        styleSignalSmallButton(record, width: 72)
         let reset = NSButton(title: "Reset", target: self, action: #selector(resetShortcut(_:)))
         reset.tag = record.tag
+        styleSignalSmallButton(reset, width: 64)
 
         let row = NSStackView(views: [title, shortcut, record, reset])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
+        row.widthAnchor.constraint(equalToConstant: 560).isActive = true
         return row
-    }
-
-    @objc private func styleChanged() {
-        guard let title = stylePopup.selectedItem?.title, let style = TransformStyle(rawValue: title) else { return }
-        store.transformStyle = style
     }
 
     @objc private func homeStyleSelected(_ sender: NSButton) {
@@ -878,19 +782,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         render(section: .shortcuts)
     }
 
-    @objc private func autoPasteChanged() {
-        store.autoPaste = autoPasteButton.state == .on
-        render(section: .home)
-    }
-
     @objc private func toggleAutoPasteFromHome() {
         store.autoPaste.toggle()
-        render(section: .home)
-    }
-
-    @objc private func bubbleVisibilityChanged() {
-        store.bubbleVisible = bubbleButton.state == .on
-        appDelegate?.setBubbleVisible(store.bubbleVisible)
         render(section: .home)
     }
 
@@ -906,27 +799,6 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     @objc private func startDictation() {
         appDelegate?.toggleDictation()
-    }
-
-    @objc private func cleanScratchpad() { transformScratchpad(.clean) }
-    @objc private func professionalScratchpad() { transformScratchpad(.professional) }
-    @objc private func casualScratchpad() { transformScratchpad(.casual) }
-    @objc private func listScratchpad() { transformScratchpad(.list) }
-
-    @objc private func copyScratchpad() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(scratchpadTextView.string, forType: .string)
-    }
-
-    @objc private func clearScratchpad() {
-        scratchpadTextView.string = ""
-    }
-
-    private func transformScratchpad(_ style: TransformStyle) {
-        let processed = TextPipeline.process(scratchpadTextView.string, style: style, snippets: store.snippets)
-        if !processed.cancelled {
-            scratchpadTextView.string = processed.text
-        }
     }
 
     @objc private func copySelectedHistory() {
