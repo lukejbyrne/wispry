@@ -11,6 +11,14 @@ private enum HubPalette {
     static let border = NSColor(calibratedRed: 0.746, green: 0.746, blue: 0.696, alpha: 1)
     static let selected = NSColor(calibratedRed: 0.796, green: 0.875, blue: 0.980, alpha: 1)
     static let accent = NSColor(calibratedRed: 0.094, green: 0.310, blue: 0.690, alpha: 1)
+    static let signalSurface = NSColor(calibratedRed: 0.062, green: 0.080, blue: 0.062, alpha: 1)
+    static let signalPanel = NSColor(calibratedRed: 0.088, green: 0.114, blue: 0.088, alpha: 1)
+    static let signalField = NSColor(calibratedRed: 0.050, green: 0.065, blue: 0.050, alpha: 1)
+    static let signalText = NSColor(calibratedRed: 0.965, green: 0.946, blue: 0.895, alpha: 1)
+    static let signalMuted = NSColor(calibratedRed: 0.680, green: 0.692, blue: 0.642, alpha: 1)
+    static let signalBorder = NSColor(calibratedRed: 0.965, green: 0.946, blue: 0.895, alpha: 0.18)
+    static let signalAccent = NSColor(calibratedRed: 0.655, green: 0.815, blue: 0.420, alpha: 1)
+    static let signalRed = NSColor(calibratedRed: 0.790, green: 0.270, blue: 0.210, alpha: 1)
 }
 
 final class HubWindowController: NSWindowController {
@@ -253,15 +261,17 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         bubbleButton.action = #selector(bubbleVisibilityChanged)
 
         let start = NSButton(title: "Start dictation", target: self, action: #selector(startDictation))
-        start.bezelStyle = .rounded
+        stylePrimaryButton(start)
         start.keyEquivalent = "\r"
         let accessibility = NSButton(title: "Accessibility access", target: self, action: #selector(requestAccessibility))
-        accessibility.bezelStyle = .rounded
+        styleSecondarySignalButton(accessibility)
+        styleSignalCheckbox(autoPasteButton)
+        styleSignalCheckbox(bubbleButton)
 
         let topLine = NSStackView(views: [
-            strongLabel("Ready"),
+            signalTitleLabel("Ready"),
             flexibleSpacer(),
-            statusChip(title: store.autoPaste ? "Paste on" : "Clipboard only")
+            signalChip(title: store.autoPaste ? "Paste on" : "Clipboard only")
         ])
         topLine.orientation = .horizontal
         topLine.alignment = .centerY
@@ -285,16 +295,17 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         toggles.spacing = 16
 
         let stack = panelStack()
+        stack.spacing = 14
         stack.addArrangedSubview(topLine)
         stack.addArrangedSubview(meter)
         stack.addArrangedSubview(buttons)
-        stack.addArrangedSubview(separator())
-        stack.addArrangedSubview(statusLine(label: "Target", value: "Current app"))
-        stack.addArrangedSubview(statusControlLine(label: "Cleanup", control: stylePopup))
-        stack.addArrangedSubview(statusLine(label: "Shortcut", value: "Double Fn or click bubble"))
-        stack.addArrangedSubview(statusLine(label: "Output", value: store.autoPaste ? "Automatic paste" : "Clipboard only"))
+        stack.addArrangedSubview(signalSeparator())
+        stack.addArrangedSubview(signalStatusLine(label: "Target", value: "Current app"))
+        stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: stylePopup))
+        stack.addArrangedSubview(signalStatusLine(label: "Shortcut", value: "Double Fn or click bubble"))
+        stack.addArrangedSubview(signalStatusLine(label: "Output", value: store.autoPaste ? "Automatic paste" : "Clipboard only"))
         stack.addArrangedSubview(toggles)
-        return panel(stack, height: 386)
+        return signalPanel(stack, height: 406)
     }
 
     private func historyView() -> NSView {
@@ -474,10 +485,40 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         return wrapper
     }
 
+    private func signalChip(title: String) -> NSView {
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+        label.textColor = HubPalette.signalAccent
+        label.alignment = .center
+
+        let wrapper = NSView()
+        wrapper.wantsLayer = true
+        wrapper.layer?.backgroundColor = HubPalette.signalAccent.withAlphaComponent(0.14).cgColor
+        wrapper.layer?.cornerRadius = 999
+        wrapper.layer?.borderColor = HubPalette.signalAccent.withAlphaComponent(0.22).cgColor
+        wrapper.layer?.borderWidth = 1
+        wrapper.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 6),
+            label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -10),
+            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -6)
+        ])
+        return wrapper
+    }
+
     private func strongLabel(_ text: String) -> NSTextField {
         let label = NSTextField(labelWithString: text)
         label.font = NSFont.systemFont(ofSize: 20, weight: .semibold)
         label.textColor = HubPalette.text
+        return label
+    }
+
+    private func signalTitleLabel(_ text: String) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
+        label.textColor = HubPalette.signalText
         return label
     }
 
@@ -507,6 +548,80 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         line.spacing = 12
         line.widthAnchor.constraint(equalToConstant: 532).isActive = true
         return line
+    }
+
+    private func signalStatusLine(label: String, value: String) -> NSView {
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        valueLabel.textColor = HubPalette.signalText
+        return signalControlLine(label: label, control: valueLabel)
+    }
+
+    private func signalControlLine(label: String, control: NSView) -> NSView {
+        let title = NSTextField(labelWithString: label)
+        title.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        title.textColor = HubPalette.signalMuted
+        title.widthAnchor.constraint(equalToConstant: 92).isActive = true
+
+        let line = NSStackView(views: [title, control, flexibleSpacer()])
+        line.orientation = .horizontal
+        line.alignment = .centerY
+        line.spacing = 12
+        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        return line
+    }
+
+    private func signalSeparator() -> NSView {
+        let line = NSView()
+        line.wantsLayer = true
+        line.layer?.backgroundColor = HubPalette.signalBorder.cgColor
+        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
+        return line
+    }
+
+    private func stylePrimaryButton(_ button: NSButton) {
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.backgroundColor = HubPalette.signalText.cgColor
+        button.layer?.cornerRadius = 7
+        button.attributedTitle = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .foregroundColor: HubPalette.signalSurface,
+                .font: NSFont.systemFont(ofSize: 13, weight: .bold)
+            ]
+        )
+        button.heightAnchor.constraint(equalToConstant: 38).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 132).isActive = true
+    }
+
+    private func styleSecondarySignalButton(_ button: NSButton) {
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.backgroundColor = NSColor.clear.cgColor
+        button.layer?.borderColor = HubPalette.signalBorder.cgColor
+        button.layer?.borderWidth = 1
+        button.layer?.cornerRadius = 7
+        button.attributedTitle = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .foregroundColor: HubPalette.signalText,
+                .font: NSFont.systemFont(ofSize: 13, weight: .semibold)
+            ]
+        )
+        button.heightAnchor.constraint(equalToConstant: 38).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 154).isActive = true
+    }
+
+    private func styleSignalCheckbox(_ button: NSButton) {
+        button.attributedTitle = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .foregroundColor: HubPalette.signalMuted,
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium)
+            ]
+        )
     }
 
     private func separator() -> NSView {
@@ -541,6 +656,32 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             content.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -14),
             content.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -14),
             wrapper.widthAnchor.constraint(equalToConstant: 560)
+        ])
+        if let height {
+            wrapper.heightAnchor.constraint(equalToConstant: height).isActive = true
+        }
+        return wrapper
+    }
+
+    private func signalPanel(_ content: NSView, height: CGFloat? = nil) -> NSView {
+        let wrapper = NSView()
+        wrapper.wantsLayer = true
+        wrapper.layer?.backgroundColor = HubPalette.signalPanel.cgColor
+        wrapper.layer?.cornerRadius = 10
+        wrapper.layer?.borderColor = HubPalette.signalBorder.cgColor
+        wrapper.layer?.borderWidth = 1
+        wrapper.shadow = NSShadow()
+        wrapper.shadow?.shadowColor = NSColor(calibratedWhite: 0, alpha: 0.16)
+        wrapper.shadow?.shadowBlurRadius = 22
+        wrapper.shadow?.shadowOffset = NSSize(width: 0, height: -12)
+        content.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 18),
+            content.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 18),
+            content.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -18),
+            content.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -18),
+            wrapper.widthAnchor.constraint(equalToConstant: 570)
         ])
         if let height {
             wrapper.heightAnchor.constraint(equalToConstant: height).isActive = true
@@ -901,9 +1042,9 @@ private final class SignalMeterView: NSView {
 
         let rect = bounds.insetBy(dx: 0.5, dy: 0.5)
         let path = NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8)
-        HubPalette.field.setFill()
+        HubPalette.signalField.setFill()
         path.fill()
-        HubPalette.border.setStroke()
+        HubPalette.signalBorder.setStroke()
         path.lineWidth = 1
         path.stroke()
 
@@ -915,17 +1056,17 @@ private final class SignalMeterView: NSView {
         NSGraphicsContext.current?.saveGraphicsState()
         NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).addClip()
 
-        HubPalette.selected.withAlphaComponent(0.44).setFill()
-        NSBezierPath(ovalIn: NSRect(x: rect.minX - 40, y: rect.minY - 36, width: 180, height: 130)).fill()
+        HubPalette.signalAccent.withAlphaComponent(0.18).setFill()
+        NSBezierPath(ovalIn: NSRect(x: rect.minX - 42, y: rect.minY - 38, width: 190, height: 138)).fill()
 
-        NSColor(calibratedRed: 0.79, green: 0.27, blue: 0.21, alpha: 0.10).setFill()
-        NSBezierPath(ovalIn: NSRect(x: rect.maxX - 170, y: rect.maxY - 118, width: 220, height: 140)).fill()
+        HubPalette.signalRed.withAlphaComponent(0.18).setFill()
+        NSBezierPath(ovalIn: NSRect(x: rect.maxX - 176, y: rect.maxY - 122, width: 230, height: 146)).fill()
 
         NSGraphicsContext.current?.restoreGraphicsState()
     }
 
     private func drawWave(in rect: NSRect) {
-        HubPalette.text.setFill()
+        HubPalette.signalText.setFill()
         let bars: [CGFloat] = [18, 32, 42, 26, 36]
         let barWidth: CGFloat = 6
         let spacing: CGFloat = 6
@@ -934,7 +1075,7 @@ private final class SignalMeterView: NSView {
 
         for (index, height) in bars.enumerated() {
             let alpha = 0.42 + CGFloat(index) * 0.10
-            HubPalette.text.withAlphaComponent(min(alpha, 0.86)).setFill()
+            HubPalette.signalText.withAlphaComponent(min(alpha, 0.90)).setFill()
             let x = startX + CGFloat(index) * (barWidth + spacing)
             let y = rect.midY - height / 2
             let bar = NSBezierPath(
