@@ -29,6 +29,7 @@ enum TextPipeline {
         let commandStyle = styleFromSpokenCommand(&text)
         text = applySelfCorrections(text)
         text = replaceDictationPhrases(text)
+        text = removeConversationalLeadIns(text)
         text = removeFillers(text)
         text = removeRepeatedWords(text)
 
@@ -179,6 +180,22 @@ enum TextPipeline {
             .replacingOccurrences(of: #"\b(um|uh|erm|ah|hmm)\b,?\s*"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"\b(kind of|sort of|you know|you know what i mean)\b,?\s*"#, with: "", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+    }
+
+    private static func removeConversationalLeadIns(_ input: String) -> String {
+        input
+            .replacingOccurrences(
+                of: #"(?i)^\s*((also|and)\s+)?(yeah|yep|okay|ok|right|so|well)\b[,\s]*"#,
+                with: "",
+                options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: #"(?i)^\s*(also|and)\b[,\s]+"#,
+                with: "",
+                options: .regularExpression
+            )
+            .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func removeRepeatedWords(_ input: String) -> String {

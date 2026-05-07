@@ -291,21 +291,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func pasteOrCopy(_ text: String, shouldPressEnter: Bool) {
         copyToClipboard(text)
-        targetApplication?.activate(options: [.activateIgnoringOtherApps])
+        let target = targetApplication ?? lastExternalApplication
+        target?.activate(options: [.activateIgnoringOtherApps])
 
-        guard AXIsProcessTrusted() else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            target?.activate(options: [.activateIgnoringOtherApps])
+            if AXIsProcessTrusted() {
+                self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+            } else {
                 self.sendPasteViaSystemEvents()
             }
-            return
-        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-            if !self.insertTextIntoFocusedElement(text) {
-                self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
-            }
             if shouldPressEnter {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                     self.sendKey(UInt16(kVK_Return))
                 }
             }

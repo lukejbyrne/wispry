@@ -1,10 +1,22 @@
 import AppKit
 import Carbon
 
+private enum HubPalette {
+    static let window = NSColor(calibratedRed: 0.946, green: 0.949, blue: 0.936, alpha: 1)
+    static let sidebar = NSColor(calibratedRed: 0.912, green: 0.920, blue: 0.902, alpha: 1)
+    static let panel = NSColor(calibratedRed: 0.982, green: 0.980, blue: 0.966, alpha: 1)
+    static let field = NSColor(calibratedRed: 0.992, green: 0.990, blue: 0.976, alpha: 1)
+    static let text = NSColor(calibratedRed: 0.082, green: 0.086, blue: 0.078, alpha: 1)
+    static let muted = NSColor(calibratedRed: 0.382, green: 0.392, blue: 0.360, alpha: 1)
+    static let border = NSColor(calibratedRed: 0.746, green: 0.746, blue: 0.696, alpha: 1)
+    static let selected = NSColor(calibratedRed: 0.796, green: 0.875, blue: 0.980, alpha: 1)
+    static let accent = NSColor(calibratedRed: 0.094, green: 0.310, blue: 0.690, alpha: 1)
+}
+
 final class HubWindowController: NSWindowController {
     init(appDelegate: AppDelegate) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 540),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -67,9 +79,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 760, height: 520))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 540))
         view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor(calibratedRed: 0.92, green: 0.93, blue: 0.91, alpha: 1).cgColor
+        view.layer?.backgroundColor = HubPalette.window.cgColor
 
         let root = NSStackView()
         root.translatesAutoresizingMaskIntoConstraints = false
@@ -84,10 +96,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         sidebar.spacing = 6
         sidebar.edgeInsets = NSEdgeInsets(top: 18, left: 14, bottom: 18, right: 14)
         sidebar.wantsLayer = true
-        sidebar.layer?.backgroundColor = NSColor(calibratedRed: 0.07, green: 0.08, blue: 0.07, alpha: 1).cgColor
+        sidebar.layer?.backgroundColor = HubPalette.sidebar.cgColor
 
         let contentShell = NSView()
         contentShell.translatesAutoresizingMaskIntoConstraints = false
+        contentShell.wantsLayer = true
+        contentShell.layer?.backgroundColor = HubPalette.window.cgColor
         contentShell.addSubview(contentView)
         contentView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -99,7 +113,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             root.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             root.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             root.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            sidebar.widthAnchor.constraint(equalToConstant: 150),
+            sidebar.widthAnchor.constraint(equalToConstant: 156),
             contentView.topAnchor.constraint(equalTo: contentShell.topAnchor, constant: 22),
             contentView.leadingAnchor.constraint(equalTo: contentShell.leadingAnchor, constant: 24),
             contentView.trailingAnchor.constraint(equalTo: contentShell.trailingAnchor, constant: -24),
@@ -124,13 +138,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private func buildSidebar() {
         let brand = NSTextField(labelWithString: "Wispry")
-        brand.font = NSFont.systemFont(ofSize: 18, weight: .bold)
-        brand.textColor = NSColor(calibratedRed: 0.95, green: 0.97, blue: 0.90, alpha: 1)
+        brand.font = NSFont.systemFont(ofSize: 20, weight: .bold)
+        brand.textColor = HubPalette.text
         sidebar.addArrangedSubview(brand)
 
-        let tagline = NSTextField(labelWithString: "fast local speech")
+        let tagline = NSTextField(labelWithString: "voice in, text out")
         tagline.font = NSFont.systemFont(ofSize: 11, weight: .medium)
-        tagline.textColor = NSColor(calibratedWhite: 0.62, alpha: 1)
+        tagline.textColor = HubPalette.muted
         sidebar.addArrangedSubview(tagline)
 
         let spacer = NSView()
@@ -142,8 +156,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             button.bezelStyle = .shadowlessSquare
             button.alignment = .left
             button.isBordered = false
+            button.wantsLayer = true
+            button.layer?.cornerRadius = 7
             button.tag = Section.allCases.firstIndex(of: section) ?? 0
-            button.widthAnchor.constraint(equalToConstant: 122).isActive = true
+            button.widthAnchor.constraint(equalToConstant: 128).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 30).isActive = true
             sectionButtons[section] = button
             sidebar.addArrangedSubview(button)
         }
@@ -170,10 +187,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         titleLabel.stringValue = section.rawValue
         titleLabel.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
-        titleLabel.textColor = NSColor(calibratedWhite: 0.08, alpha: 1)
+        titleLabel.textColor = HubPalette.text
         subtitleLabel.stringValue = subtitle(for: section)
         subtitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = NSColor(calibratedWhite: 0.34, alpha: 1)
+        subtitleLabel.textColor = HubPalette.muted
         subtitleLabel.maximumNumberOfLines = 2
 
         stack.addArrangedSubview(titleLabel)
@@ -236,19 +253,25 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         bubbleButton.action = #selector(bubbleVisibilityChanged)
 
         let start = NSButton(title: "Start dictation", target: self, action: #selector(startDictation))
+        start.bezelStyle = .rounded
+        start.keyEquivalent = "\r"
         let accessibility = NSButton(title: "Accessibility access", target: self, action: #selector(requestAccessibility))
+        accessibility.bezelStyle = .rounded
 
         let styleRow = row(label: "Cleanup style", control: stylePopup)
         let buttons = NSStackView(views: [start, accessibility])
         buttons.orientation = .horizontal
         buttons.spacing = 8
 
+        let status = homeStatusView()
         let stack = panelStack()
+        stack.addArrangedSubview(status)
+        stack.addArrangedSubview(separator())
         stack.addArrangedSubview(styleRow)
         stack.addArrangedSubview(autoPasteButton)
         stack.addArrangedSubview(bubbleButton)
         stack.addArrangedSubview(buttons)
-        return panel(stack, height: 168)
+        return panel(stack, height: 228)
     }
 
     private func historyView() -> NSView {
@@ -347,7 +370,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         let fixed = NSTextField(wrappingLabelWithString: "Fixed while recording: Return commits, Escape cancels. Fn hold is push-to-talk; double-tap Fn latches, pressing Fn again commits. Mouse trigger: F13.")
         fixed.font = NSFont.systemFont(ofSize: 12, weight: .regular)
-        fixed.textColor = NSColor(calibratedWhite: 0.35, alpha: 1)
+        fixed.textColor = HubPalette.muted
         fixed.maximumNumberOfLines = 3
         stack.addArrangedSubview(fixed)
         return panel(stack, height: 310)
@@ -370,10 +393,71 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func updateSidebarSelection() {
         for (section, button) in sectionButtons {
             button.state = section == selectedSection ? .on : .off
-            button.contentTintColor = section == selectedSection
-                ? NSColor(calibratedRed: 0.90, green: 0.98, blue: 0.62, alpha: 1)
-                : NSColor(calibratedWhite: 0.78, alpha: 1)
+            applySidebarButtonStyle(button, selected: section == selectedSection)
         }
+    }
+
+    private func applySidebarButtonStyle(_ button: NSButton, selected: Bool) {
+        button.layer?.backgroundColor = selected ? HubPalette.selected.cgColor : NSColor.clear.cgColor
+        let color = selected ? HubPalette.accent : HubPalette.text
+        let font = NSFont.systemFont(ofSize: 13, weight: selected ? .semibold : .medium)
+        let title = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .foregroundColor: color,
+                .font: font
+            ]
+        )
+        button.attributedTitle = title
+        button.attributedAlternateTitle = title
+    }
+
+    private func homeStatusView() -> NSView {
+        let paste = store.autoPaste ? "Paste on" : "Clipboard only"
+        let bubble = store.bubbleVisible ? "Bubble on" : "Bubble hidden"
+        let style = store.transformStyle.rawValue
+        let row = NSStackView(views: [
+            statusChip(title: "Ready"),
+            statusChip(title: paste),
+            statusChip(title: style),
+            statusChip(title: bubble)
+        ])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        return row
+    }
+
+    private func statusChip(title: String) -> NSView {
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = HubPalette.accent
+        label.alignment = .center
+
+        let wrapper = NSView()
+        wrapper.wantsLayer = true
+        wrapper.layer?.backgroundColor = HubPalette.selected.withAlphaComponent(0.56).cgColor
+        wrapper.layer?.cornerRadius = 7
+        wrapper.layer?.borderColor = HubPalette.selected.cgColor
+        wrapper.layer?.borderWidth = 1
+        wrapper.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 5),
+            label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 9),
+            label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -9),
+            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -5)
+        ])
+        return wrapper
+    }
+
+    private func separator() -> NSView {
+        let line = NSView()
+        line.wantsLayer = true
+        line.layer?.backgroundColor = HubPalette.border.withAlphaComponent(0.65).cgColor
+        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
+        return line
     }
 
     private func panelStack() -> NSStackView {
@@ -387,9 +471,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func panel(_ content: NSView, height: CGFloat? = nil) -> NSView {
         let wrapper = NSView()
         wrapper.wantsLayer = true
-        wrapper.layer?.backgroundColor = NSColor(calibratedRed: 0.975, green: 0.968, blue: 0.945, alpha: 1).cgColor
+        wrapper.layer?.backgroundColor = HubPalette.panel.cgColor
         wrapper.layer?.cornerRadius = 8
-        wrapper.layer?.borderColor = NSColor(calibratedRed: 0.80, green: 0.79, blue: 0.72, alpha: 1).cgColor
+        wrapper.layer?.borderColor = HubPalette.border.cgColor
         wrapper.layer?.borderWidth = 1
         content.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(content)
@@ -398,7 +482,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             content.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 14),
             content.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -14),
             content.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -14),
-            wrapper.widthAnchor.constraint(equalToConstant: 540)
+            wrapper.widthAnchor.constraint(equalToConstant: 560)
         ])
         if let height {
             wrapper.heightAnchor.constraint(equalToConstant: height).isActive = true
@@ -409,7 +493,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func row(label text: String, control: NSView) -> NSView {
         let label = NSTextField(labelWithString: text)
         label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        label.textColor = NSColor(calibratedWhite: 0.18, alpha: 1)
+        label.textColor = HubPalette.text
         label.widthAnchor.constraint(equalToConstant: 112).isActive = true
         let row = NSStackView(views: [label, control])
         row.orientation = .horizontal
@@ -424,11 +508,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         scroll.documentView = document
         scroll.hasVerticalScroller = true
         scroll.wantsLayer = true
-        scroll.layer?.backgroundColor = NSColor(calibratedRed: 0.985, green: 0.982, blue: 0.960, alpha: 1).cgColor
+        scroll.drawsBackground = true
+        scroll.backgroundColor = HubPalette.field
+        scroll.layer?.backgroundColor = HubPalette.field.cgColor
         scroll.layer?.cornerRadius = 8
-        scroll.layer?.borderColor = NSColor(calibratedRed: 0.80, green: 0.79, blue: 0.72, alpha: 1).cgColor
+        scroll.layer?.borderColor = HubPalette.border.cgColor
         scroll.layer?.borderWidth = 1
-        scroll.widthAnchor.constraint(equalToConstant: 540).isActive = true
+        scroll.widthAnchor.constraint(equalToConstant: 560).isActive = true
         scroll.heightAnchor.constraint(equalToConstant: height).isActive = true
         return scroll
     }
@@ -436,24 +522,25 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func scrollableText(_ textView: NSTextView, height: CGFloat, editable: Bool = false) -> NSScrollView {
         textView.isEditable = editable
         textView.isSelectable = true
-        textView.drawsBackground = false
+        textView.drawsBackground = true
+        textView.backgroundColor = HubPalette.field
         textView.font = NSFont.systemFont(ofSize: 13)
-        textView.textColor = NSColor(calibratedWhite: 0.11, alpha: 1)
-        textView.insertionPointColor = NSColor(calibratedWhite: 0.1, alpha: 1)
+        textView.textColor = HubPalette.text
+        textView.insertionPointColor = HubPalette.text
         return scrollView(document: textView, height: height)
     }
 
     private func shortcutRow(for action: ShortcutAction) -> NSView {
         let title = NSTextField(labelWithString: action.title)
         title.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        title.textColor = NSColor(calibratedWhite: 0.12, alpha: 1)
+        title.textColor = HubPalette.text
         title.widthAnchor.constraint(equalToConstant: 180).isActive = true
 
         let shortcut = NSTextField(labelWithString: shortcutCaptureAction == action ? "Press new shortcut..." : store.shortcuts.shortcut(for: action).display)
         shortcut.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         shortcut.textColor = shortcutCaptureAction == action
-            ? NSColor(calibratedRed: 0.42, green: 0.32, blue: 0.05, alpha: 1)
-            : NSColor(calibratedWhite: 0.28, alpha: 1)
+            ? HubPalette.accent
+            : HubPalette.muted
         shortcut.widthAnchor.constraint(equalToConstant: 175).isActive = true
 
         let record = NSButton(title: "Record", target: self, action: #selector(recordShortcut(_:)))
@@ -502,11 +589,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     @objc private func autoPasteChanged() {
         store.autoPaste = autoPasteButton.state == .on
+        render(section: .home)
     }
 
     @objc private func bubbleVisibilityChanged() {
         store.bubbleVisible = bubbleButton.state == .on
         appDelegate?.setBubbleVisible(store.bubbleVisible)
+        render(section: .home)
     }
 
     @objc private func requestAccessibility() {
@@ -573,7 +662,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         field.translatesAutoresizingMaskIntoConstraints = false
         field.lineBreakMode = .byTruncatingTail
         field.font = tableColumn.identifier.rawValue == "time" ? NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular) : NSFont.systemFont(ofSize: 13, weight: .medium)
-        field.textColor = tableColumn.identifier.rawValue == "time" ? NSColor(calibratedWhite: 0.38, alpha: 1) : NSColor(calibratedWhite: 0.10, alpha: 1)
+        field.textColor = tableColumn.identifier.rawValue == "time" ? HubPalette.muted : HubPalette.text
         cell.addSubview(field)
         NSLayoutConstraint.activate([
             field.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),

@@ -11,6 +11,7 @@ struct TextPipelineSmoke {
         testCorrectionChain()
         testTakeBackCorrection()
         testFillerAndRepetitionCleanup()
+        testConversationalLeadInCleanup()
         testQuestionPunctuation()
         print("TextPipelineSmoke: OK")
     }
@@ -71,6 +72,11 @@ struct TextPipelineSmoke {
     private static func testFillerAndRepetitionCleanup() {
         let result = TextPipeline.process("um can you you know review review this", style: .clean, snippets: [])
         assert(result.text == "Can you review this?")
+    }
+
+    private static func testConversationalLeadInCleanup() {
+        let result = TextPipeline.process("also yeah that's fine", style: .clean, snippets: [])
+        assert(result.text == "That's fine.")
     }
 
     private static func testQuestionPunctuation() {
