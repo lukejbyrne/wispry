@@ -261,8 +261,8 @@
     .hero-visual {
       position: relative;
       min-width: 0;
-      min-height: 560px;
-      padding: 22px;
+      min-height: 590px;
+      padding: 24px;
       border: 1px solid rgba(23, 24, 19, 0.16);
       border-radius: 18px;
       background:
@@ -309,7 +309,7 @@
     .compose-window {
       position: relative;
       min-width: 0;
-      margin-top: 24px;
+      margin-top: 22px;
       overflow: hidden;
       border: 1px solid rgba(246, 241, 229, 0.14);
       border-radius: 14px;
@@ -356,6 +356,9 @@
     .raw-note {
       color: rgba(23, 24, 19, 0.52);
       background: rgba(23, 24, 19, 0.055);
+    }
+
+    .raw-note span {
       text-decoration: line-through;
       text-decoration-thickness: 1px;
       text-decoration-color: rgba(201, 69, 54, 0.66);
@@ -369,12 +372,26 @@
       font-weight: 850;
     }
 
+    .raw-note small,
+    .clean-note small {
+      color: rgba(23, 24, 19, 0.54);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    .clean-note small {
+      color: #315e1d;
+    }
+
     .compose-foot {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 0 18px 18px;
+      padding: 0 18px 22px;
       color: rgba(23, 24, 19, 0.54);
       font-size: 13px;
       font-weight: 800;
@@ -385,19 +402,40 @@
     }
 
     .speech-strip {
-      position: absolute;
-      left: 42px;
-      right: 42px;
-      bottom: 38px;
+      position: relative;
+      margin: 36px 18px 0;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 9px;
-      min-height: 88px;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 92px;
+      padding: 0 22px;
       border: 1px solid rgba(246, 241, 229, 0.12);
       border-radius: 999px;
       background: rgba(246, 241, 229, 0.06);
       color: var(--text);
+    }
+
+    .voice-badge,
+    .paste-badge {
+      flex: 0 0 auto;
+      color: rgba(246, 241, 229, 0.72);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .paste-badge {
+      color: var(--accent);
+    }
+
+    .speech-bars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-width: 104px;
     }
 
     .speech-strip i {
@@ -416,6 +454,26 @@
     .speech-strip i:nth-child(6) { height: 54px; }
     .speech-strip i:nth-child(7) { height: 28px; }
 
+    .flow-line {
+      position: relative;
+      flex: 1 1 auto;
+      height: 1px;
+      min-width: 74px;
+      background: linear-gradient(90deg, rgba(246, 241, 229, 0.16), rgba(171, 213, 107, 0.68));
+    }
+
+    .flow-line::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      right: -1px;
+      width: 9px;
+      height: 9px;
+      border-top: 1px solid rgba(171, 213, 107, 0.78);
+      border-right: 1px solid rgba(171, 213, 107, 0.78);
+      transform: rotate(45deg);
+    }
+
     .hero-visual:hover .speech-strip i {
       background: var(--accent);
       transform: scaleY(0.62);
@@ -423,8 +481,8 @@
 
     .bubble-cursor {
       position: fixed;
-      left: 62vw;
-      top: 58vh;
+      left: calc(100vw - 82px);
+      top: 76vh;
       z-index: 80;
       width: 48px;
       height: 48px;
@@ -680,6 +738,74 @@
       border-bottom: 12px solid transparent;
     }
 
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .privacy-card {
+      padding: 26px;
+      border: 1px solid rgba(23, 24, 19, 0.16);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .privacy-card.dark-card {
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 12%, rgba(171, 213, 107, 0.15), transparent 32%),
+        var(--panel);
+      border-color: rgba(16, 21, 16, 0.72);
+    }
+
+    .privacy-card small {
+      color: #315e1d;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .privacy-card.dark-card small {
+      color: var(--accent);
+    }
+
+    .privacy-card h3 {
+      margin: 14px 0 10px;
+      font-size: 24px;
+      line-height: 1.08;
+    }
+
+    .privacy-card p {
+      color: rgba(23, 24, 19, 0.68);
+      font-size: 16px;
+      line-height: 1.48;
+    }
+
+    .privacy-card.dark-card p {
+      color: var(--muted);
+    }
+
+    .privacy-list {
+      display: grid;
+      gap: 13px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .privacy-list b {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--text);
+      font-size: 15px;
+    }
+
     .cleanup-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -831,7 +957,7 @@
 
       .hero-visual {
         width: min(346px, calc(100vw - 44px));
-        min-height: 486px;
+        min-height: 526px;
         padding: 14px;
         overflow: hidden;
       }
@@ -852,9 +978,28 @@
       }
 
       .speech-strip {
-        left: 22px;
-        right: 22px;
-        bottom: 24px;
+        margin: 24px 0 0;
+        min-height: 74px;
+        gap: 10px;
+        padding: 0 14px;
+      }
+
+      .voice-badge,
+      .paste-badge {
+        font-size: 10px;
+      }
+
+      .speech-bars {
+        min-width: 74px;
+        gap: 6px;
+      }
+
+      .speech-strip i {
+        width: 5px;
+      }
+
+      .flow-line {
+        min-width: 28px;
       }
 
       .bubble-cursor,
@@ -864,6 +1009,7 @@
 
       .workflow,
       .video-strip,
+      .privacy-grid,
       .cleanup-grid,
       .pricing {
         grid-template-columns: 1fr;
@@ -895,6 +1041,7 @@
     <div class="nav-links">
       <a href="#workflow">Workflow</a>
       <a href="#watch">Watch</a>
+      <a href="#privacy">Privacy</a>
       <a href="#pricing">Pricing</a>
     </div>
     <a class="nav-action" href="#download">Get Wispry</a>
@@ -925,12 +1072,17 @@
         <div class="compose-window">
           <div class="compose-top"><b>Mail draft</b><span>Cursor stayed here</span></div>
           <div class="compose-body">
-            <div class="raw-note">Send it Friday. No, actually say Thursday morning and make it sound less blunt.</div>
-            <div class="clean-note">Send it Thursday morning, and keep the tone warm.</div>
+            <div class="raw-note"><small>Messy voice</small><span>Send it Friday. No, actually say Thursday morning and make it sound less blunt.</span></div>
+            <div class="clean-note"><small>Clean paste</small><span>Send it Thursday morning, and keep the tone warm.</span></div>
           </div>
           <div class="compose-foot"><span>Copied to clipboard</span><b>Pasted into Mail</b></div>
         </div>
-        <div class="speech-strip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="speech-strip" aria-hidden="true">
+          <span class="voice-badge">Voice in</span>
+          <span class="speech-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="flow-line"></span>
+          <span class="paste-badge">Clean paste</span>
+        </div>
       </aside>
     </div>
   </header>
@@ -973,6 +1125,29 @@
           <article class="video-tile">
             <div class="video-label"><b>Clean a correction</b><span>8 sec clip</span></div>
             <div class="fake-player"><span class="play-dot" aria-hidden="true"></span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section light" id="privacy">
+      <div class="section-inner">
+        <span class="eyebrow">Privacy first</span>
+        <h2>Your dictation tool should not feel creepy.</h2>
+        <p>Wispry is built local-first: your cleanup rules, snippets, dictionary terms, and history live on your Mac, and the text polish happens inside the app before anything is pasted.</p>
+        <div class="privacy-grid">
+          <article class="privacy-card">
+            <small>On your Mac</small>
+            <h3>History and cleanup stay local.</h3>
+            <p>Recent dictations, reusable snippets, dictionary hints, and cleanup preferences are stored in local app settings. Wispry does not need an account to remember them.</p>
+          </article>
+          <article class="privacy-card dark-card">
+            <small>Speech recognition</small>
+            <ul class="privacy-list">
+              <li><b>Mac permission gate</b>Microphone and Speech Recognition access are requested by macOS.</li>
+              <li><b>On-device when available</b>Wispry asks Apple Speech for local recognition when your Mac and language support it.</li>
+              <li><b>No live transcript wall</b>The floating bubble stays minimal while you speak.</li>
+            </ul>
           </article>
         </div>
       </div>
@@ -1025,7 +1200,6 @@
         </div>
         <div class="hero-actions">
           <a class="button" href="#">Download local build</a>
-          <a class="button secondary" href="https://github.com/lukejbyrne/wispry">View repository</a>
         </div>
       </div>
     </section>
@@ -1043,7 +1217,7 @@
   <script>
     const bubble = document.querySelector(".bubble-cursor");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pointer = { x: window.innerWidth * 0.62, y: window.innerHeight * 0.58 };
+    const pointer = { x: window.innerWidth - 82, y: window.innerHeight * 0.76 };
     const smooth = { x: pointer.x, y: pointer.y };
     let lastTrail = 0;
     let lastX = pointer.x;

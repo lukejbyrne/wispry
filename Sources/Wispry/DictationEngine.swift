@@ -66,6 +66,9 @@ final class DictationEngine {
         if #available(macOS 13.0, *) {
             request.addsPunctuation = true
         }
+        if #available(macOS 10.15, *), recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
         request.contextualStrings = contextualStrings
 
         let inputNode = audioEngine.inputNode

@@ -43,7 +43,7 @@ macOS will ask for microphone and speech recognition access the first time you d
 - Menu bar controls: Home, check for updates, paste/copy last transcript, shortcuts, microphone, help, feedback, and quit.
 - Home hub with sidebar navigation, searchable history, dictionary hints, snippets, style transform, and editable shortcuts.
 - Minimal recording state on the bubble, without showing transcript text on screen.
-- Apple Speech transcription with personal dictionary context.
+- Apple Speech transcription with personal dictionary context and on-device recognition requested when macOS supports it.
 - Snippets for reusable voice shortcuts.
 - Local cleanup styles: clean, professional, casual, and list.
 - App-aware style defaults for Mail, Messages, Slack, Discord, and code editors.
