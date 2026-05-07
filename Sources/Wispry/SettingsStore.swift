@@ -1,0 +1,152 @@
+import AppKit
+
+enum TransformStyle: String, Codable, CaseIterable {
+    case verbatim = "Verbatim"
+    case clean = "Clean"
+    case professional = "Professional"
+    case casual = "Casual"
+    case list = "List"
+}
+
+struct VoiceSnippet: Codable, Equatable {
+    var phrase: String
+    var expansion: String
+
+    static let defaults: [VoiceSnippet] = [
+        VoiceSnippet(phrase: "insert signature", expansion: "Best,\nLuke"),
+        VoiceSnippet(phrase: "standup update", expansion: "Yesterday:\n- \n\nToday:\n- \n\nBlocked:\n- None"),
+        VoiceSnippet(phrase: "shipping note", expansion: "Implemented, checked locally, and ready for review.")
+    ]
+}
+
+struct RecentDictation: Codable {
+    var date: Date
+    var appName: String
+    var text: String
+}
+
+final class SettingsStore {
+    static let shared = SettingsStore()
+
+    private let defaults = UserDefaults.standard
+    private let dictionaryKey = "dictionaryWords"
+    private let snippetsKey = "voiceSnippets"
+    private let recentKey = "recentDictations"
+    private let styleKey = "transformStyle"
+    private let bubbleFrameKey = "bubbleFrame"
+    private let bubbleVisibleKey = "bubbleVisible"
+    private let autoPasteKey = "autoPaste"
+
+    private init() {
+        if defaults.object(forKey: snippetsKey) == nil {
+            snippets = VoiceSnippet.defaults
+        }
+        if defaults.object(forKey: styleKey) == nil {
+            transformStyle = .clean
+        }
+        if defaults.object(forKey: bubbleVisibleKey) == nil {
+            bubbleVisible = true
+        }
+        if defaults.object(forKey: autoPasteKey) == nil {
+            autoPaste = true
+        }
+    }
+
+    var dictionaryWords: [String] {
+        get { defaults.stringArray(forKey: dictionaryKey) ?? [] }
+        set {
+            let cleaned = newValue
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            defaults.set(Array(NSOrderedSet(array: cleaned)) as? [String] ?? cleaned, forKey: dictionaryKey)
+        }
+    }
+
+    var snippets: [VoiceSnippet] {
+        get { decode([VoiceSnippet].self, key: snippetsKey) ?? [] }
+        set { encode(newValue, key: snippetsKey) }
+    }
+
+    var recent: [RecentDictation] {
+        get { decode([RecentDictation].self, key: recentKey) ?? [] }
+        set { encode(Array(newValue.prefix(30)), key: recentKey) }
+    }
+
+    var transformStyle: TransformStyle {
+        get {
+            guard let raw = defaults.string(forKey: styleKey) else { return .clean }
+            return TransformStyle(rawValue: raw) ?? .clean
+        }
+        set { defaults.set(newValue.rawValue, forKey: styleKey) }
+    }
+
+    var bubbleVisible: Bool {
+        get { defaults.bool(forKey: bubbleVisibleKey) }
+        set { defaults.set(newValue, forKey: bubbleVisibleKey) }
+    }
+
+    var autoPaste: Bool {
+        get { defaults.bool(forKey: autoPasteKey) }
+        set { defaults.set(newValue, forKey: autoPasteKey) }
+    }
+
+    var bubbleFrame: NSRect? {
+        get {
+            guard let raw = defaults.string(forKey: bubbleFrameKey) else { return nil }
+            let rect = NSRectFromString(raw)
+            return rect == .zero ? nil : rect
+        }
+        set {
+            if let newValue {
+                defaults.set(NSStringFromRect(newValue), forKey: bubbleFrameKey)
+            } else {
+                defaults.removeObject(forKey: bubbleFrameKey)
+            }
+        }
+    }
+
+    func addRecent(text: String, appName: String) {
+        var items = recent
+        items.insert(RecentDictation(date: Date(), appName: appName, text: text), at: 0)
+        recent = items
+    }
+
+    func learnLikelyTerms(from text: String) {
+        let candidates = text
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
+            .map(String.init)
+            .filter { word in
+                word.count > 2 && word.rangeOfCharacter(from: .uppercaseLetters) != nil
+            }
+
+        guard !candidates.isEmpty else { return }
+        dictionaryWords = dictionaryWords + candidates
+    }
+
+    func style(for bundleIdentifier: String?, appName: String?) -> TransformStyle {
+        let haystack = [bundleIdentifier, appName]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+
+        if haystack.contains("mail") || haystack.contains("outlook") || haystack.contains("gmail") {
+            return .professional
+        }
+        if haystack.contains("messages") || haystack.contains("slack") || haystack.contains("discord") {
+            return .casual
+        }
+        if haystack.contains("xcode") || haystack.contains("code") || haystack.contains("terminal") || haystack.contains("cursor") {
+            return .verbatim
+        }
+        return transformStyle
+    }
+
+    private func decode<T: Decodable>(_ type: T.Type, key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func encode<T: Encodable>(_ value: T, key: String) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        defaults.set(data, forKey: key)
+    }
+}
