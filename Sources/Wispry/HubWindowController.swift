@@ -71,6 +71,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let stylePopup = NSPopUpButton()
     private let autoPasteButton = NSButton(checkboxWithTitle: "Auto paste when dictation ends", target: nil, action: nil)
     private let bubbleButton = NSButton(checkboxWithTitle: "Show floating bubble", target: nil, action: nil)
+    private var homeStyleButtons: [TransformStyle: NSButton] = [:]
     private var sectionButtons: [Section: NSButton] = [:]
     private var historyExpandedAll = false
     private var historyQuery = ""
@@ -193,16 +194,18 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.spacing = 14
         contentView.addSubview(stack)
 
-        titleLabel.stringValue = section.rawValue
-        titleLabel.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
-        titleLabel.textColor = HubPalette.text
-        subtitleLabel.stringValue = subtitle(for: section)
-        subtitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = HubPalette.muted
-        subtitleLabel.maximumNumberOfLines = 2
+        if section != .home {
+            titleLabel.stringValue = section.rawValue
+            titleLabel.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
+            titleLabel.textColor = HubPalette.text
+            subtitleLabel.stringValue = subtitle(for: section)
+            subtitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+            subtitleLabel.textColor = HubPalette.muted
+            subtitleLabel.maximumNumberOfLines = 2
 
-        stack.addArrangedSubview(titleLabel)
-        stack.addArrangedSubview(subtitleLabel)
+            stack.addArrangedSubview(titleLabel)
+            stack.addArrangedSubview(subtitleLabel)
+        }
         stack.addArrangedSubview(content(for: section))
 
         NSLayoutConstraint.activate([
@@ -255,18 +258,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stylePopup.target = self
         stylePopup.action = #selector(styleChanged)
 
-        autoPasteButton.target = self
-        autoPasteButton.action = #selector(autoPasteChanged)
-        bubbleButton.target = self
-        bubbleButton.action = #selector(bubbleVisibilityChanged)
-
         let start = NSButton(title: "Start dictation", target: self, action: #selector(startDictation))
         stylePrimaryButton(start)
         start.keyEquivalent = "\r"
         let accessibility = NSButton(title: "Accessibility access", target: self, action: #selector(requestAccessibility))
         styleSecondarySignalButton(accessibility)
-        styleSignalCheckbox(autoPasteButton)
-        styleSignalCheckbox(bubbleButton)
 
         let topLine = NSStackView(views: [
             signalTitleLabel("Ready"),
@@ -289,23 +285,34 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         buttons.spacing = 8
         buttons.widthAnchor.constraint(equalToConstant: 532).isActive = true
 
-        let toggles = NSStackView(views: [autoPasteButton, bubbleButton])
+        let autoPaste = signalToggleButton(
+            title: store.autoPaste ? "Auto paste on" : "Clipboard only",
+            selected: store.autoPaste,
+            action: #selector(toggleAutoPasteFromHome)
+        )
+        let bubble = signalToggleButton(
+            title: store.bubbleVisible ? "Bubble visible" : "Bubble hidden",
+            selected: store.bubbleVisible,
+            action: #selector(toggleBubbleFromHome)
+        )
+        let toggles = NSStackView(views: [autoPaste, bubble, flexibleSpacer()])
         toggles.orientation = .horizontal
         toggles.alignment = .centerY
-        toggles.spacing = 16
+        toggles.spacing = 8
+        toggles.widthAnchor.constraint(equalToConstant: 532).isActive = true
 
         let stack = panelStack()
-        stack.spacing = 14
+        stack.spacing = 13
         stack.addArrangedSubview(topLine)
         stack.addArrangedSubview(meter)
         stack.addArrangedSubview(buttons)
         stack.addArrangedSubview(signalSeparator())
-        stack.addArrangedSubview(signalStatusLine(label: "Target", value: "Current app"))
-        stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: stylePopup))
+        stack.addArrangedSubview(signalStatusLine(label: "Target", value: "Frontmost app"))
+        stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: homeStylePicker()))
         stack.addArrangedSubview(signalStatusLine(label: "Shortcut", value: "Double Fn or click bubble"))
         stack.addArrangedSubview(signalStatusLine(label: "Output", value: store.autoPaste ? "Automatic paste" : "Clipboard only"))
         stack.addArrangedSubview(toggles)
-        return signalPanel(stack, height: 406)
+        return signalPanel(stack, height: 424)
     }
 
     private func historyView() -> NSView {
@@ -415,6 +422,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         autoPasteButton.state = store.autoPaste ? .on : .off
         bubbleButton.state = store.bubbleVisible ? .on : .off
         historySearchField.stringValue = historyQuery
+        updateHomeStyleButtons()
         historyTable.reloadData()
         if historyTable.selectedRow < 0 && !filteredHistory.isEmpty {
             historyTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
@@ -569,6 +577,74 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         line.spacing = 12
         line.widthAnchor.constraint(equalToConstant: 532).isActive = true
         return line
+    }
+
+    private func homeStylePicker() -> NSView {
+        homeStyleButtons.removeAll()
+        let styles: [TransformStyle] = [.clean, .professional, .casual, .list, .verbatim]
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
+
+        for style in styles {
+            let button = NSButton(title: style.rawValue, target: self, action: #selector(homeStyleSelected(_:)))
+            button.tag = styles.firstIndex(of: style) ?? 0
+            button.isBordered = false
+            button.wantsLayer = true
+            button.layer?.cornerRadius = 7
+            button.heightAnchor.constraint(equalToConstant: 28).isActive = true
+            button.widthAnchor.constraint(greaterThanOrEqualToConstant: style == .professional ? 96 : 62).isActive = true
+            homeStyleButtons[style] = button
+            row.addArrangedSubview(button)
+        }
+
+        updateHomeStyleButtons()
+        return row
+    }
+
+    private func updateHomeStyleButtons() {
+        for (style, button) in homeStyleButtons {
+            let selected = store.transformStyle == style
+            button.layer?.backgroundColor = selected
+                ? HubPalette.signalText.cgColor
+                : HubPalette.signalAccent.withAlphaComponent(0.11).cgColor
+            button.layer?.borderColor = selected
+                ? HubPalette.signalText.cgColor
+                : HubPalette.signalBorder.cgColor
+            button.layer?.borderWidth = 1
+            button.attributedTitle = NSAttributedString(
+                string: style.rawValue,
+                attributes: [
+                    .foregroundColor: selected ? HubPalette.signalSurface : HubPalette.signalText,
+                    .font: NSFont.systemFont(ofSize: 12, weight: selected ? .bold : .semibold)
+                ]
+            )
+        }
+    }
+
+    private func signalToggleButton(title: String, selected: Bool, action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = 7
+        button.layer?.backgroundColor = selected
+            ? HubPalette.signalAccent.withAlphaComponent(0.16).cgColor
+            : NSColor.clear.cgColor
+        button.layer?.borderColor = selected
+            ? HubPalette.signalAccent.withAlphaComponent(0.28).cgColor
+            : HubPalette.signalBorder.cgColor
+        button.layer?.borderWidth = 1
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .foregroundColor: selected ? HubPalette.signalAccent : HubPalette.signalMuted,
+                .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
+            ]
+        )
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        button.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
+        return button
     }
 
     private func signalSeparator() -> NSView {
@@ -759,6 +835,14 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         store.transformStyle = style
     }
 
+    @objc private func homeStyleSelected(_ sender: NSButton) {
+        let styles: [TransformStyle] = [.clean, .professional, .casual, .list, .verbatim]
+        guard sender.tag >= 0 && sender.tag < styles.count else { return }
+        store.transformStyle = styles[sender.tag]
+        updateHomeStyleButtons()
+        render(section: .home)
+    }
+
     @objc private func historySearchChanged() {
         historyQuery = historySearchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         historyTable.deselectAll(nil)
@@ -791,8 +875,19 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         render(section: .home)
     }
 
+    @objc private func toggleAutoPasteFromHome() {
+        store.autoPaste.toggle()
+        render(section: .home)
+    }
+
     @objc private func bubbleVisibilityChanged() {
         store.bubbleVisible = bubbleButton.state == .on
+        appDelegate?.setBubbleVisible(store.bubbleVisible)
+        render(section: .home)
+    }
+
+    @objc private func toggleBubbleFromHome() {
+        store.bubbleVisible.toggle()
         appDelegate?.setBubbleVisible(store.bubbleVisible)
         render(section: .home)
     }

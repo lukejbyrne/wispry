@@ -401,6 +401,75 @@
       line-height: 1.5;
     }
 
+    .pricing {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 22px;
+      margin-top: 36px;
+    }
+
+    .price-card {
+      padding: 26px;
+      border: 1px solid rgba(23, 24, 19, 0.16);
+      border-radius: 10px;
+      background: #f7f1df;
+    }
+
+    .price-card.featured {
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(167, 208, 107, 0.16), transparent 34%),
+        var(--panel);
+      border-color: rgba(17, 22, 17, 0.72);
+    }
+
+    .price-card small {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .price-card.featured small {
+      color: var(--accent);
+    }
+
+    .price {
+      margin: 14px 0 10px;
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .price-card p {
+      color: rgba(23, 24, 19, 0.68);
+      font-size: 16px;
+    }
+
+    .price-card.featured p {
+      color: var(--muted);
+    }
+
+    .price-list {
+      display: grid;
+      gap: 10px;
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+      color: rgba(23, 24, 19, 0.72);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .price-card.featured .price-list {
+      color: var(--muted);
+    }
+
+    .section-gap {
+      height: 70px;
+    }
+
     .footer {
       padding: 34px 32px;
       border-top: 1px solid var(--line);
@@ -456,6 +525,7 @@
       }
 
       .workflow,
+      .pricing,
       .correction {
         grid-template-columns: 1fr;
       }
@@ -476,6 +546,7 @@
     <div class="nav-links">
       <a href="#workflow">Workflow</a>
       <a href="#cleanup">Cleanup</a>
+      <a href="#pricing">Pricing</a>
       <a href="#download">Download</a>
     </div>
     <a class="nav-action" href="#download">Get Wispry</a>
@@ -553,6 +624,32 @@
 
   <section class="section light" id="download">
     <div class="section-inner">
+      <span class="eyebrow" id="pricing">Founding access</span>
+      <h2>Free for the community, cheap enough to own.</h2>
+      <p>Wispr Flow Pro is subscription priced. Wispry can be easier to try: free for Skool members while the product is improving, with a one-time founding license for everyone else.</p>
+      <div class="pricing">
+        <article class="price-card">
+          <small>Skool members</small>
+          <div class="price">Free</div>
+          <p>Use it, pressure test it, and shape the product while the core workflow is being hardened.</p>
+          <ul class="price-list">
+            <li>Mac menu bar app</li>
+            <li>Dictation history</li>
+            <li>Editable shortcuts</li>
+          </ul>
+        </article>
+        <article class="price-card featured">
+          <small>Founding license</small>
+          <div class="price">$9.99 lifetime</div>
+          <p>A simple one-time purchase for people who want the app without another monthly subscription.</p>
+          <ul class="price-list">
+            <li>Lifetime access to the local Mac build</li>
+            <li>No recurring subscription</li>
+            <li>Early buyer pricing while Wispry is young</li>
+          </ul>
+        </article>
+      </div>
+      <div class="section-gap"></div>
       <h2>Built for macOS first.</h2>
       <p>Wispry lives in the menu bar, watches for your shortcut, and stays out of the way when you are done.</p>
       <div class="hero-actions">
