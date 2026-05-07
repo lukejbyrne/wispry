@@ -12,6 +12,10 @@ struct TextPipelineSmoke {
         testTakeBackCorrection()
         testFillerAndRepetitionCleanup()
         testConversationalLeadInCleanup()
+        testPluralPunctuationWordsStayWords()
+        testSpokenPunctuationCommands()
+        testSentenceCapitalization()
+        testNumericPunctuationSpacing()
         testQuestionPunctuation()
         print("TextPipelineSmoke: OK")
     }
@@ -77,6 +81,26 @@ struct TextPipelineSmoke {
     private static func testConversationalLeadInCleanup() {
         let result = TextPipeline.process("also yeah that's fine", style: .clean, snippets: [])
         assert(result.text == "That's fine.")
+    }
+
+    private static func testPluralPunctuationWordsStayWords() {
+        let result = TextPipeline.process("you are not adding commas full stops et cetera", style: .clean, snippets: [])
+        assert(result.text == "You are not adding commas full stops etc.")
+    }
+
+    private static func testSpokenPunctuationCommands() {
+        let result = TextPipeline.process("hello comma please review this full stop thanks", style: .clean, snippets: [])
+        assert(result.text == "Hello, please review this. Thanks.")
+    }
+
+    private static func testSentenceCapitalization() {
+        let result = TextPipeline.process("first sentence period second sentence", style: .clean, snippets: [])
+        assert(result.text == "First sentence. Second sentence.")
+    }
+
+    private static func testNumericPunctuationSpacing() {
+        let result = TextPipeline.process("version 3.14 costs 1,000", style: .clean, snippets: [])
+        assert(result.text == "Version 3.14 costs 1,000.")
     }
 
     private static func testQuestionPunctuation() {

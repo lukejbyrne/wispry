@@ -28,13 +28,16 @@ enum TextPipeline {
         text = expandSnippets(in: text, snippets: snippets)
         let commandStyle = styleFromSpokenCommand(&text)
         text = applySelfCorrections(text)
+        text = normalizeSpeechArtifacts(text)
         text = replaceDictationPhrases(text)
+        text = normalizePunctuationSpacing(text)
         text = removeConversationalLeadIns(text)
         text = removeFillers(text)
         text = removeRepeatedWords(text)
 
         let finalStyle = commandStyle ?? style
         text = apply(style: finalStyle, to: text)
+        text = normalizePunctuationSpacing(text)
         text = normalizeWhitespace(text)
 
         return ProcessedText(text: text, shouldPressEnter: shouldPressEnter, cancelled: false)
@@ -127,10 +130,31 @@ enum TextPipeline {
         ]
 
         for (phrase, replacement) in replacements {
-            text = text.replacingOccurrences(of: " \(phrase)", with: replacement, options: .caseInsensitive)
-            text = text.replacingOccurrences(of: phrase, with: replacement, options: [.caseInsensitive, .anchored])
+            let escaped = NSRegularExpression.escapedPattern(for: phrase)
+            let pattern = #"(?i)(^|\s)"# + escaped + #"(?=\s|$|[.,!?;:])"#
+            text = text.replacingOccurrences(
+                of: pattern,
+                with: "$1\(replacement)",
+                options: .regularExpression
+            )
         }
         return text
+    }
+
+    private static func normalizeSpeechArtifacts(_ input: String) -> String {
+        input
+            .replacingOccurrences(of: #"(?i)\bet cetera\b"#, with: "etc.", options: .regularExpression)
+            .replacingOccurrences(of: #"(?i)\betcetera\b"#, with: "etc.", options: .regularExpression)
+    }
+
+    private static func normalizePunctuationSpacing(_ input: String) -> String {
+        input
+            .replacingOccurrences(of: #"\s+([,.;:!?])"#, with: "$1", options: .regularExpression)
+            .replacingOccurrences(of: #"([,;:!?])([^\s\d,.;:!?])"#, with: "$1 $2", options: .regularExpression)
+            .replacingOccurrences(of: #"(?<!\d)\.([^\s\d,.;:!?])"#, with: ". $1", options: .regularExpression)
+            .replacingOccurrences(of: #"\betc\s*\."#, with: "etc.", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func applySelfCorrections(_ input: String) -> String {
@@ -219,7 +243,7 @@ enum TextPipeline {
         case .verbatim:
             return input.trimmingCharacters(in: .whitespacesAndNewlines)
         case .clean:
-            return finishSentence(capitalizeFirst(input))
+            return finishSentence(capitalizeSentences(input))
         case .professional:
             return makeProfessional(input)
         case .casual:
@@ -232,6 +256,28 @@ enum TextPipeline {
     private static func capitalizeFirst(_ input: String) -> String {
         guard let first = input.first else { return input }
         return first.uppercased() + input.dropFirst()
+    }
+
+    private static func capitalizeSentences(_ input: String) -> String {
+        var output = ""
+        var shouldCapitalize = true
+
+        for character in input {
+            if shouldCapitalize, character.isLetter {
+                output.append(contentsOf: character.uppercased())
+                shouldCapitalize = false
+                continue
+            }
+
+            output.append(character)
+            if ".!?\n".contains(character) {
+                shouldCapitalize = true
+            } else if !character.isWhitespace {
+                shouldCapitalize = false
+            }
+        }
+
+        return output
     }
 
     private static func finishSentence(_ input: String) -> String {
@@ -262,7 +308,7 @@ enum TextPipeline {
     }
 
     private static func makeProfessional(_ input: String) -> String {
-        var text = capitalizeFirst(input)
+        var text = capitalizeSentences(input)
         text = text.replacingOccurrences(of: #"(?i)\bhey\b"#, with: "Hello", options: .regularExpression)
         text = text.replacingOccurrences(of: #"(?i)\bthanks\b"#, with: "Thank you", options: .regularExpression)
         text = text.replacingOccurrences(of: #"(?i)\bi think\b"#, with: "I think", options: .regularExpression)
@@ -270,7 +316,7 @@ enum TextPipeline {
     }
 
     private static func makeCasual(_ input: String) -> String {
-        var text = capitalizeFirst(input)
+        var text = capitalizeSentences(input)
         text = text.replacingOccurrences(of: #"(?i)\bhello\b"#, with: "Hey", options: .regularExpression)
         return finishSentence(text)
     }

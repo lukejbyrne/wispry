@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wispry Landing Concepts</title>
+  <style>
+    :root {
+      --ink: #161713;
+      --soft-ink: #4f554d;
+      --paper: #f4f1e7;
+      --panel: #fbf8ee;
+      --blue: #245ca7;
+      --red: #c94536;
+      --green: #557b55;
+      --line: #cbc4ad;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    main {
+      display: grid;
+      gap: 18px;
+      padding: 24px;
+    }
+
+    .concept {
+      min-height: 680px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 18px 50px rgba(42, 35, 18, 0.12);
+    }
+
+    .bar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .bar nav {
+      display: flex;
+      gap: 20px;
+      color: var(--soft-ink);
+      font-weight: 650;
+    }
+
+    .hero {
+      min-height: 632px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+      align-items: center;
+      gap: 38px;
+      padding: 54px;
+      position: relative;
+    }
+
+    .copy {
+      max-width: 660px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 64px;
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--soft-ink);
+      font-size: 19px;
+      line-height: 1.45;
+      max-width: 590px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 7px;
+      border: 1px solid var(--ink);
+      color: var(--panel);
+      background: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .button.secondary {
+      color: var(--ink);
+      background: transparent;
+    }
+
+    .product {
+      border: 1px solid var(--line);
+      background: #f8f3e6;
+      box-shadow: 0 22px 58px rgba(25, 24, 20, 0.16);
+      min-height: 420px;
+      border-radius: 10px;
+      padding: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .product-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: #d8e5f6;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .wave-card {
+      height: 148px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(36, 92, 167, 0.22), transparent 30%),
+        radial-gradient(circle at 92% 96%, rgba(201, 69, 54, 0.13), transparent 35%),
+        #fbf8ee;
+    }
+
+    .wave-card i {
+      width: 8px;
+      border-radius: 999px;
+      background: var(--ink);
+    }
+
+    .wave-card i:nth-child(1) { height: 28px; opacity: 0.46; }
+    .wave-card i:nth-child(2) { height: 54px; opacity: 0.68; }
+    .wave-card i:nth-child(3) { height: 76px; opacity: 0.86; }
+    .wave-card i:nth-child(4) { height: 48px; opacity: 0.62; }
+    .wave-card i:nth-child(5) { height: 64px; opacity: 0.74; }
+
+    .rows {
+      margin-top: 18px;
+      display: grid;
+      gap: 0;
+    }
+
+    .rows div {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(203, 196, 173, 0.76);
+      color: var(--soft-ink);
+      font-size: 14px;
+    }
+
+    .rows b {
+      color: var(--ink);
+    }
+
+    .concept-a {
+      background:
+        linear-gradient(90deg, rgba(245, 241, 231, 0.055) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(245, 241, 231, 0.04) 1px, transparent 1px),
+        #111611;
+      background-size: 38px 38px;
+      color: #f5f1e7;
+    }
+
+    .concept-a .bar {
+      border-color: rgba(245, 241, 231, 0.18);
+    }
+
+    .concept-a nav,
+    .concept-a p {
+      color: rgba(245, 241, 231, 0.68);
+    }
+
+    .concept-a .eyebrow {
+      color: #a7d06b;
+    }
+
+    .concept-a .button {
+      color: #111611;
+      background: #f5f1e7;
+      border-color: #f5f1e7;
+    }
+
+    .concept-a .button.secondary {
+      color: #f5f1e7;
+      background: transparent;
+    }
+
+    .concept-a .product {
+      background: #191f19;
+      border-color: rgba(245, 241, 231, 0.20);
+    }
+
+    .concept-a .wave-card {
+      border-color: rgba(245, 241, 231, 0.18);
+      background:
+        radial-gradient(circle at 18% 16%, rgba(167, 208, 107, 0.22), transparent 30%),
+        radial-gradient(circle at 92% 96%, rgba(201, 69, 54, 0.18), transparent 35%),
+        #101510;
+    }
+
+    .concept-a .wave-card i {
+      background: #f5f1e7;
+    }
+
+    .concept-a .rows div {
+      border-color: rgba(245, 241, 231, 0.16);
+      color: rgba(245, 241, 231, 0.68);
+    }
+
+    .concept-a .rows b,
+    .concept-a .product-top {
+      color: #f5f1e7;
+    }
+
+    .concept-b {
+      background: #111611;
+      color: #f5f1e7;
+    }
+
+    .concept-b .bar {
+      border-color: rgba(245, 241, 231, 0.18);
+    }
+
+    .concept-b nav,
+    .concept-b p {
+      color: rgba(245, 241, 231, 0.68);
+    }
+
+    .concept-b .eyebrow {
+      color: #a7d06b;
+    }
+
+    .concept-b .button {
+      color: #111611;
+      background: #f5f1e7;
+      border-color: #f5f1e7;
+    }
+
+    .concept-b .button.secondary {
+      color: #f5f1e7;
+      background: transparent;
+    }
+
+    .concept-b .product {
+      background: #191f19;
+      border-color: rgba(245, 241, 231, 0.20);
+    }
+
+    .concept-b .wave-card {
+      border-color: rgba(245, 241, 231, 0.18);
+      background:
+        radial-gradient(circle at 16% 16%, rgba(167, 208, 107, 0.22), transparent 30%),
+        radial-gradient(circle at 90% 96%, rgba(201, 69, 54, 0.18), transparent 34%),
+        #101510;
+    }
+
+    .concept-b .wave-card i {
+      background: #f5f1e7;
+    }
+
+    .concept-b .rows div {
+      border-color: rgba(245, 241, 231, 0.16);
+      color: rgba(245, 241, 231, 0.68);
+    }
+
+    .concept-b .rows b,
+    .concept-b .product-top {
+      color: #f5f1e7;
+    }
+
+    .concept-c {
+      background: #e9e5d7;
+    }
+
+    .concept-c .hero {
+      grid-template-columns: 0.9fr 1.1fr;
+    }
+
+    .route-lines {
+      position: absolute;
+      inset: 70px 38px 40px auto;
+      width: 45%;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .route-lines span {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--blue);
+      transform: rotate(-18deg);
+    }
+
+    .route-lines span:nth-child(2) {
+      top: 130px;
+      background: var(--red);
+      transform: rotate(14deg);
+    }
+
+    .route-lines span:nth-child(3) {
+      top: 260px;
+      background: var(--green);
+      transform: rotate(-8deg);
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .concept-c .hero {
+        grid-template-columns: 1fr;
+        padding: 32px;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+
+      .route-lines {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="concept concept-a">
+      <div class="bar">
+        <strong>Wispry</strong>
+        <nav><span>Home</span><span>Workflow</span><span>Download</span></nav>
+      </div>
+      <div class="hero">
+        <div class="copy">
+          <span class="eyebrow">Option A, Signal Desk Dark</span>
+          <h1>Speak once. Paste clean text anywhere.</h1>
+          <p>A calm landing page that mirrors the app Home screen: focused, utility-first, and easy to trust.</p>
+          <div class="actions">
+            <a class="button" href="#">Download for Mac</a>
+            <a class="button secondary" href="#">See workflow</a>
+          </div>
+        </div>
+        <div class="product">
+          <div class="product-top"><span>Ready</span><span class="pill">Paste on</span></div>
+          <div class="wave-card"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="rows">
+            <div><span>Cleanup</span><b>Clean</b></div>
+            <div><span>Shortcut</span><b>Double Fn</b></div>
+            <div><span>Output</span><b>Inserted</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="concept concept-b">
+      <div class="bar">
+        <strong>Wispry</strong>
+        <nav><span>Listen</span><span>Polish</span><span>Paste</span></nav>
+      </div>
+      <div class="hero">
+        <div class="copy">
+          <span class="eyebrow">Option B, After Hours</span>
+          <h1>Dictation for people who revise while they speak.</h1>
+          <p>A darker product story for a focused London-at-night feel: fewer words, stronger contrast, and a more premium mood.</p>
+          <div class="actions">
+            <a class="button" href="#">Try Wispry</a>
+            <a class="button secondary" href="#">Watch paste test</a>
+          </div>
+        </div>
+        <div class="product">
+          <div class="product-top"><span>Listening</span><span class="pill">Fn latched</span></div>
+          <div class="wave-card"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="rows">
+            <div><span>Heard</span><b>No, actually...</b></div>
+            <div><span>Fixed</span><b>Takeback removed</b></div>
+            <div><span>Result</span><b>Pasted clean</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="concept concept-c">
+      <div class="bar">
+        <strong>Wispry</strong>
+        <nav><span>Route</span><span>History</span><span>Shortcuts</span></nav>
+      </div>
+      <div class="hero">
+        <div class="copy">
+          <span class="eyebrow">Option C, London Lines</span>
+          <h1>Your voice routed into the app you meant.</h1>
+          <p>A London-inspired route system that explains the product visually: listen, polish, paste. Strongest if the future London page leans into map language.</p>
+          <div class="actions">
+            <a class="button" href="#">Start dictating</a>
+            <a class="button secondary" href="#">Explore shortcuts</a>
+          </div>
+        </div>
+        <div class="route-lines"><span></span><span></span><span></span></div>
+        <div class="product">
+          <div class="product-top"><span>Route</span><span class="pill">Current app</span></div>
+          <div class="rows">
+            <div><span>1. Listen</span><b>Hold or latch Fn</b></div>
+            <div><span>2. Polish</span><b>Correct speech drift</b></div>
+            <div><span>3. Paste</span><b>Return focus</b></div>
+            <div><span>4. Save</span><b>History ledger</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

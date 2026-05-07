@@ -63,6 +63,9 @@ final class DictationEngine {
         let audioEngine = AVAudioEngine()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        if #available(macOS 13.0, *) {
+            request.addsPunctuation = true
+        }
         request.contextualStrings = contextualStrings
 
         let inputNode = audioEngine.inputNode

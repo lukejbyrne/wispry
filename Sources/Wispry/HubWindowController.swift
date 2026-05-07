@@ -258,20 +258,43 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let accessibility = NSButton(title: "Accessibility access", target: self, action: #selector(requestAccessibility))
         accessibility.bezelStyle = .rounded
 
-        let styleRow = row(label: "Cleanup style", control: stylePopup)
-        let buttons = NSStackView(views: [start, accessibility])
-        buttons.orientation = .horizontal
-        buttons.spacing = 8
+        let topLine = NSStackView(views: [
+            strongLabel("Ready"),
+            flexibleSpacer(),
+            statusChip(title: store.autoPaste ? "Paste on" : "Clipboard only")
+        ])
+        topLine.orientation = .horizontal
+        topLine.alignment = .centerY
+        topLine.spacing = 10
+        topLine.widthAnchor.constraint(equalToConstant: 532).isActive = true
 
-        let status = homeStatusView()
+        let meter = SignalMeterView()
+        meter.translatesAutoresizingMaskIntoConstraints = false
+        meter.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        meter.heightAnchor.constraint(equalToConstant: 124).isActive = true
+
+        let buttons = NSStackView(views: [start, accessibility, flexibleSpacer()])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 8
+        buttons.widthAnchor.constraint(equalToConstant: 532).isActive = true
+
+        let toggles = NSStackView(views: [autoPasteButton, bubbleButton])
+        toggles.orientation = .horizontal
+        toggles.alignment = .centerY
+        toggles.spacing = 16
+
         let stack = panelStack()
-        stack.addArrangedSubview(status)
-        stack.addArrangedSubview(separator())
-        stack.addArrangedSubview(styleRow)
-        stack.addArrangedSubview(autoPasteButton)
-        stack.addArrangedSubview(bubbleButton)
+        stack.addArrangedSubview(topLine)
+        stack.addArrangedSubview(meter)
         stack.addArrangedSubview(buttons)
-        return panel(stack, height: 228)
+        stack.addArrangedSubview(separator())
+        stack.addArrangedSubview(statusLine(label: "Target", value: "Current app"))
+        stack.addArrangedSubview(statusControlLine(label: "Cleanup", control: stylePopup))
+        stack.addArrangedSubview(statusLine(label: "Shortcut", value: "Double Fn or click bubble"))
+        stack.addArrangedSubview(statusLine(label: "Output", value: store.autoPaste ? "Automatic paste" : "Clipboard only"))
+        stack.addArrangedSubview(toggles)
+        return panel(stack, height: 386)
     }
 
     private func historyView() -> NSView {
@@ -449,6 +472,41 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -5)
         ])
         return wrapper
+    }
+
+    private func strongLabel(_ text: String) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 20, weight: .semibold)
+        label.textColor = HubPalette.text
+        return label
+    }
+
+    private func flexibleSpacer() -> NSView {
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return spacer
+    }
+
+    private func statusLine(label: String, value: String) -> NSView {
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        valueLabel.textColor = HubPalette.text
+        return statusControlLine(label: label, control: valueLabel)
+    }
+
+    private func statusControlLine(label: String, control: NSView) -> NSView {
+        let title = NSTextField(labelWithString: label)
+        title.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        title.textColor = HubPalette.muted
+        title.widthAnchor.constraint(equalToConstant: 92).isActive = true
+
+        let line = NSStackView(views: [title, control, flexibleSpacer()])
+        line.orientation = .horizontal
+        line.alignment = .centerY
+        line.spacing = 12
+        line.widthAnchor.constraint(equalToConstant: 532).isActive = true
+        return line
     }
 
     private func separator() -> NSView {
@@ -832,5 +890,59 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func resetSnippets() {
         store.snippets = VoiceSnippet.defaults
         refresh()
+    }
+}
+
+private final class SignalMeterView: NSView {
+    override var isFlipped: Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        let rect = bounds.insetBy(dx: 0.5, dy: 0.5)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8)
+        HubPalette.field.setFill()
+        path.fill()
+        HubPalette.border.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+
+        drawWash(in: rect)
+        drawWave(in: rect)
+    }
+
+    private func drawWash(in rect: NSRect) {
+        NSGraphicsContext.current?.saveGraphicsState()
+        NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).addClip()
+
+        HubPalette.selected.withAlphaComponent(0.44).setFill()
+        NSBezierPath(ovalIn: NSRect(x: rect.minX - 40, y: rect.minY - 36, width: 180, height: 130)).fill()
+
+        NSColor(calibratedRed: 0.79, green: 0.27, blue: 0.21, alpha: 0.10).setFill()
+        NSBezierPath(ovalIn: NSRect(x: rect.maxX - 170, y: rect.maxY - 118, width: 220, height: 140)).fill()
+
+        NSGraphicsContext.current?.restoreGraphicsState()
+    }
+
+    private func drawWave(in rect: NSRect) {
+        HubPalette.text.setFill()
+        let bars: [CGFloat] = [18, 32, 42, 26, 36]
+        let barWidth: CGFloat = 6
+        let spacing: CGFloat = 6
+        let totalWidth = CGFloat(bars.count) * barWidth + CGFloat(bars.count - 1) * spacing
+        let startX = rect.midX - totalWidth / 2
+
+        for (index, height) in bars.enumerated() {
+            let alpha = 0.42 + CGFloat(index) * 0.10
+            HubPalette.text.withAlphaComponent(min(alpha, 0.86)).setFill()
+            let x = startX + CGFloat(index) * (barWidth + spacing)
+            let y = rect.midY - height / 2
+            let bar = NSBezierPath(
+                roundedRect: NSRect(x: x, y: y, width: barWidth, height: height),
+                xRadius: 3,
+                yRadius: 3
+            )
+            bar.fill()
+        }
     }
 }

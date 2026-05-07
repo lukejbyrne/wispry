@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var successResetWorkItem: DispatchWorkItem?
     private var recordingEventTap: CFMachPort?
     private var recordingEventRunLoopSource: CFRunLoopSource?
+    private var functionEventTap: CFMachPort?
+    private var functionEventRunLoopSource: CFRunLoopSource?
     private let bubbleSize = NSSize(width: 46, height: 46)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         dictationEngine.cancel()
+        removeFunctionEventTap()
     }
 
     func setBubbleVisible(_ visible: Bool) {
@@ -123,6 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installFunctionKeyMonitor() {
+        if installFunctionEventTap() {
+            return
+        }
+
         NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFunctionModifierChange(event)
         }
@@ -133,7 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleFunctionModifierChange(_ event: NSEvent) {
-        let isDown = event.modifierFlags.contains(.function)
+        handleFunctionFlagChange(isDown: event.modifierFlags.contains(.function))
+    }
+
+    private func handleFunctionFlagChange(isDown: Bool) {
         guard isDown != functionKeyIsDown else { return }
 
         functionKeyIsDown = isDown
@@ -166,6 +176,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             functionReleaseStopWorkItem = item
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.32, execute: item)
         }
+    }
+
+    private func installFunctionEventTap() -> Bool {
+        removeFunctionEventTap()
+        guard AXIsProcessTrusted() else { return false }
+
+        let mask = CGEventMask(1 << CGEventType.flagsChanged.rawValue)
+        let callback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard type == .flagsChanged, let userInfo else {
+                return Unmanaged.passUnretained(event)
+            }
+
+            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            let isFunctionKeyEvent = keyCode == UInt16(kVK_Function)
+            guard isFunctionKeyEvent else {
+                return Unmanaged.passUnretained(event)
+            }
+
+            let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userInfo).takeUnretainedValue()
+            let isDown = event.flags.contains(.maskSecondaryFn)
+            DispatchQueue.main.async {
+                appDelegate.handleFunctionFlagChange(isDown: isDown)
+            }
+            return nil
+        }
+
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        functionEventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: userInfo
+        )
+
+        guard let functionEventTap else { return false }
+        functionEventRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, functionEventTap, 0)
+        if let functionEventRunLoopSource {
+            CFRunLoopAddSource(CFRunLoopGetMain(), functionEventRunLoopSource, .commonModes)
+        }
+        CGEvent.tapEnable(tap: functionEventTap, enable: true)
+        return true
     }
 
     private func installApplicationTracking() {
@@ -294,12 +347,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let target = targetApplication ?? lastExternalApplication
         target?.activate(options: [.activateIgnoringOtherApps])
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
             target?.activate(options: [.activateIgnoringOtherApps])
             if AXIsProcessTrusted() {
-                self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+                if !self.insertTextIntoFocusedElement(text) {
+                    self.sendPasteShortcut(to: target)
+                }
             } else {
-                self.sendPasteViaSystemEvents()
+                self.sendPasteViaSystemEvents(target: target)
             }
 
             if shouldPressEnter {
@@ -356,8 +411,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func sendPasteViaSystemEvents() {
-        let script = "tell application \"System Events\" to keystroke \"v\" using command down"
+    private func sendPasteShortcut(to target: NSRunningApplication?) {
+        sendCommandShortcut(UInt16(kVK_ANSI_V), pid: target?.processIdentifier)
+    }
+
+    private func sendPasteViaSystemEvents(target: NSRunningApplication? = nil) {
+        let activateLine: String
+        if let bundleIdentifier = target?.bundleIdentifier {
+            activateLine = "tell application id \"\(bundleIdentifier)\" to activate\n"
+        } else {
+            activateLine = ""
+        }
+        let script = "\(activateLine)delay 0.05\ntell application \"System Events\" to keystroke \"v\" using command down"
         var errorInfo: NSDictionary?
         NSAppleScript(source: script)?.executeAndReturnError(&errorInfo)
     }
@@ -458,6 +523,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recordingEventRunLoopSource = nil
     }
 
+    private func removeFunctionEventTap() {
+        if let functionEventTap {
+            CGEvent.tapEnable(tap: functionEventTap, enable: false)
+            CFMachPortInvalidate(functionEventTap)
+        }
+        if let functionEventRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), functionEventRunLoopSource, .commonModes)
+        }
+        functionEventTap = nil
+        functionEventRunLoopSource = nil
+    }
+
     private func currentExternalApplication() -> NSRunningApplication? {
         guard let application = NSWorkspace.shared.frontmostApplication else { return nil }
         return isExternalApplication(application) ? application : nil
@@ -483,15 +560,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return NSRect(origin: origin, size: size)
     }
 
-    private func sendKey(_ keyCode: UInt16, flags: CGEventFlags = []) {
+    private func sendKey(_ keyCode: UInt16, flags: CGEventFlags = [], pid: pid_t? = nil) {
         let source = CGEventSource(stateID: .hidSystemState)
         let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true)
         down?.flags = flags
-        down?.post(tap: .cghidEventTap)
 
         let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false)
         up?.flags = flags
-        up?.post(tap: .cghidEventTap)
+
+        post(down, pid: pid)
+        post(up, pid: pid)
+    }
+
+    private func sendCommandShortcut(_ keyCode: UInt16, pid: pid_t? = nil) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let commandDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: true)
+        commandDown?.flags = .maskCommand
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true)
+        keyDown?.flags = .maskCommand
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false)
+        keyUp?.flags = .maskCommand
+        let commandUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: false)
+
+        post(commandDown, pid: pid)
+        post(keyDown, pid: pid)
+        post(keyUp, pid: pid)
+        post(commandUp, pid: pid)
+    }
+
+    private func post(_ event: CGEvent?, pid: pid_t?) {
+        guard let event else { return }
+        if let pid {
+            event.postToPid(pid)
+        } else {
+            event.post(tap: .cghidEventTap)
+        }
     }
 
     private func showCopyButtonTemporarily() {

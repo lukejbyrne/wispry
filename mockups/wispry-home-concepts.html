@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wispry Home Concepts</title>
+  <style>
+    :root {
+      --ink: #171813;
+      --muted: #5d6259;
+      --paper: #f4f1e7;
+      --panel: #fbf8ee;
+      --line: #cbc4ad;
+      --blue: #245ca7;
+      --red: #c94536;
+      --green: #557b55;
+      --gold: #a6762c;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(36, 92, 167, 0.06) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(36, 92, 167, 0.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 36px 36px;
+    }
+
+    main {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 34px 28px 42px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 620px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .concept {
+      min-height: 620px;
+      border: 1px solid var(--line);
+      background: rgba(251, 248, 238, 0.88);
+      box-shadow: 0 18px 44px rgba(43, 38, 26, 0.12);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .concept-title {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 241, 231, 0.82);
+    }
+
+    .eyebrow {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      min-height: 560px;
+      background: var(--panel);
+    }
+
+    .rail {
+      padding: 16px 12px;
+      background: #e9e5d7;
+      border-right: 1px solid var(--line);
+    }
+
+    .brand {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .nav {
+      display: grid;
+      gap: 7px;
+    }
+
+    .nav span {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .nav .active {
+      color: var(--blue);
+      background: #d8e5f6;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 10px;
+    }
+
+    .topline strong {
+      font-size: 20px;
+    }
+
+    .pill {
+      padding: 6px 9px;
+      border: 1px solid rgba(36, 92, 167, 0.26);
+      border-radius: 999px;
+      color: var(--blue);
+      background: rgba(216, 229, 246, 0.64);
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .meter {
+      position: relative;
+      height: 124px;
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(120deg, rgba(201, 69, 54, 0.12), transparent 42%),
+        linear-gradient(0deg, rgba(36, 92, 167, 0.12), transparent 58%),
+        #f8f3e6;
+      overflow: hidden;
+    }
+
+    .wave {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 50%;
+      height: 42px;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .wave i {
+      width: 6px;
+      border-radius: 999px;
+      background: var(--ink);
+    }
+
+    .wave i:nth-child(1) { height: 18px; opacity: 0.42; }
+    .wave i:nth-child(2) { height: 32px; opacity: 0.62; }
+    .wave i:nth-child(3) { height: 42px; opacity: 0.86; }
+    .wave i:nth-child(4) { height: 26px; opacity: 0.54; }
+    .wave i:nth-child(5) { height: 36px; opacity: 0.72; }
+
+    .primary {
+      width: 100%;
+      height: 42px;
+      border: 0;
+      border-radius: 7px;
+      color: #fbf8ee;
+      background: var(--ink);
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .status-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(203, 196, 173, 0.75);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-list b {
+      color: var(--ink);
+    }
+
+    .tube-map {
+      display: grid;
+      gap: 16px;
+    }
+
+    .route {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8f3e6;
+    }
+
+    .dot {
+      width: 18px;
+      height: 18px;
+      border: 4px solid var(--blue);
+      border-radius: 50%;
+      background: var(--panel);
+      box-shadow: 30px 0 0 -4px var(--panel), 30px 0 0 0 var(--red);
+    }
+
+    .route p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .route b {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .ledger {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ledger-row {
+      display: grid;
+      grid-template-columns: 54px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(203, 196, 173, 0.75);
+      font-size: 12px;
+    }
+
+    .ledger-row time {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ledger-row b {
+      font-size: 13px;
+    }
+
+    .mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fbf8ee;
+      background: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .concept {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Wispry Home Concepts</h1>
+        <p>Three directions for the native Home screen, designed to work with a London-facing page later: a compact utility, a transit-inspired control map, and a transcript ledger.</p>
+      </div>
+      <span class="pill">Native app home, HTML sketch</span>
+    </header>
+
+    <section class="grid">
+      <article class="concept">
+        <div class="concept-title">
+          <span class="eyebrow">Option A</span>
+          <h2>Signal Desk</h2>
+        </div>
+        <div class="app">
+          <aside class="rail">
+            <div class="brand">Wispry</div>
+            <nav class="nav">
+              <span class="active">Home</span>
+              <span>History</span>
+              <span>Words</span>
+              <span>Shortcuts</span>
+            </nav>
+          </aside>
+          <section class="content">
+            <div class="topline">
+              <strong>Ready</strong>
+              <span class="pill">Paste on</span>
+            </div>
+            <div class="meter">
+              <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <button class="primary">Start dictation</button>
+            <div class="status-list">
+              <div><span>Target</span><b>Current app</b></div>
+              <div><span>Cleanup</span><b>Clean</b></div>
+              <div><span>Shortcut</span><b>Double Fn</b></div>
+              <div><span>Last result</span><b>Pasted</b></div>
+            </div>
+            <p class="footer-note">Best if the app should feel like a reliable desk tool: clear state, one main action, no mystery.</p>
+          </section>
+        </div>
+      </article>
+
+      <article class="concept">
+        <div class="concept-title">
+          <span class="eyebrow">Option B</span>
+          <h2>London Lines</h2>
+        </div>
+        <div class="app">
+          <aside class="rail">
+            <div class="brand">Wispry</div>
+            <nav class="nav">
+              <span class="active">Home</span>
+              <span>History</span>
+              <span>Snippets</span>
+              <span>Settings</span>
+            </nav>
+          </aside>
+          <section class="content">
+            <div class="topline">
+              <strong>Route speech</strong>
+              <span class="pill">Clean mode</span>
+            </div>
+            <div class="tube-map">
+              <div class="route">
+                <span class="dot"></span>
+                <p><b>Listen</b>Hold Fn, double-tap to latch</p>
+              </div>
+              <div class="route">
+                <span class="dot"></span>
+                <p><b>Polish</b>Remove filler, repair takebacks, add punctuation</p>
+              </div>
+              <div class="route">
+                <span class="dot"></span>
+                <p><b>Paste</b>Insert in the app you started from</p>
+              </div>
+            </div>
+            <button class="primary" style="margin-top: 18px;">Start route</button>
+            <p class="footer-note">Best if the London page uses map logic or route language. It gives Home a memorable structure without making the app decorative.</p>
+          </section>
+        </div>
+      </article>
+
+      <article class="concept">
+        <div class="concept-title">
+          <span class="eyebrow">Option C</span>
+          <h2>Transcript Ledger</h2>
+        </div>
+        <div class="app">
+          <aside class="rail">
+            <div class="brand">Wispry</div>
+            <nav class="nav">
+              <span class="active">Home</span>
+              <span>History</span>
+              <span>Dictionary</span>
+              <span>Shortcuts</span>
+            </nav>
+          </aside>
+          <section class="content">
+            <div class="topline">
+              <strong>Today</strong>
+              <span class="pill">8 entries</span>
+            </div>
+            <button class="primary">Speak now</button>
+            <div class="ledger" style="margin-top: 18px;">
+              <div class="ledger-row"><time>10:42</time><b>Home feedback</b><span class="mark">P</span></div>
+              <div class="ledger-row"><time>10:31</time><b>London page notes</b><span class="mark">C</span></div>
+              <div class="ledger-row"><time>10:12</time><b>Shortcut test</b><span class="mark">P</span></div>
+              <div class="ledger-row"><time>09:55</time><b>Clipboard retry</b><span class="mark">C</span></div>
+            </div>
+            <div class="status-list">
+              <div><span>Paste</span><b>Automatic</b></div>
+              <div><span>Cleanup</span><b>Professional</b></div>
+            </div>
+            <p class="footer-note">Best if Home should center on evidence: what happened, where it went, and whether it pasted.</p>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
