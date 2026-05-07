@@ -39,6 +39,10 @@ final class HubWindowController: NSWindowController {
     required init?(coder: NSCoder) {
         nil
     }
+
+    func showShortcuts() {
+        (window?.contentViewController as? HubViewController)?.showShortcuts()
+    }
 }
 
 final class HubViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
@@ -95,7 +99,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let root = NSStackView()
         root.translatesAutoresizingMaskIntoConstraints = false
         root.orientation = .horizontal
-        root.alignment = .top
+        root.alignment = .height
         root.spacing = 0
         view.addSubview(root)
 
@@ -180,6 +184,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let sections = Section.allCases
         guard sender.tag >= 0 && sender.tag < sections.count else { return }
         render(section: sections[sender.tag])
+    }
+
+    func showShortcuts() {
+        render(section: .shortcuts)
     }
 
     private func render(section: Section) {

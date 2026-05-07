@@ -347,7 +347,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let target = targetApplication ?? lastExternalApplication
         target?.activate(options: [.activateIgnoringOtherApps])
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
             target?.activate(options: [.activateIgnoringOtherApps])
             if AXIsProcessTrusted() {
                 if !self.insertTextIntoFocusedElement(text) {
@@ -412,7 +412,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sendPasteShortcut(to target: NSRunningApplication?) {
-        sendCommandShortcut(UInt16(kVK_ANSI_V), pid: target?.processIdentifier)
+        target?.activate(options: [.activateIgnoringOtherApps])
+        sendCommandShortcut(UInt16(kVK_ANSI_V))
     }
 
     private func sendPasteViaSystemEvents(target: NSRunningApplication? = nil) {
@@ -436,10 +437,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let element = focusedElement as! AXUIElement
-        if AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef) == .success {
-            return true
-        }
-
         var valueRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef) == .success,
               let currentValue = valueRef as? String else {
@@ -711,7 +708,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func menuOpenShortcuts() {
-        menuOpenHub()
+        if hubWindowController == nil {
+            hubWindowController = HubWindowController(appDelegate: self)
+        }
+        hubWindowController?.showWindow(nil)
+        hubWindowController?.showShortcuts()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func menuHelp() {
