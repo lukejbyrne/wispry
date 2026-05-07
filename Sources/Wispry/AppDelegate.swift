@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var functionKeyLatched = false
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var lastFunctionReleaseDate = Date.distantPast
+    private var successResetWorkItem: DispatchWorkItem?
     private let bubbleSize = NSSize(width: 46, height: 46)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -242,7 +243,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lastTranscript = processed.text
             store.addRecent(text: processed.text, appName: targetAppName)
             store.learnLikelyTerms(from: processed.text)
-            setBubbleState(.idle)
+            showSuccessTick()
 
             if store.autoPaste {
                 pasteOrCopy(processed.text, shouldPressEnter: processed.shouldPressEnter)
@@ -369,6 +370,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusImage(state)
     }
 
+    private func showSuccessTick() {
+        successResetWorkItem?.cancel()
+        setBubbleState(.success)
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, self.bubbleWindow?.bubbleView.state == .success else { return }
+            self.setBubbleState(.idle)
+        }
+        successResetWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85, execute: item)
+    }
+
     private func updateStatusImage(_ state: BubbleState) {
         let symbol: String
         switch state {
@@ -378,6 +390,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             symbol = "mic.circle.fill"
         case .processing:
             symbol = "sparkles"
+        case .success:
+            symbol = "checkmark.circle.fill"
         case .error:
             symbol = "exclamationmark.circle"
         }

@@ -4,6 +4,7 @@ enum BubbleState {
     case idle
     case listening
     case processing
+    case success
     case error
 }
 
@@ -144,11 +145,13 @@ final class BubbleView: NSView {
 
         switch state {
         case .idle:
-            drawIdleIcon(in: bubbleRect)
+            drawStaticSoundIcon(in: bubbleRect)
         case .listening:
             drawWaveform(in: bubbleRect)
         case .processing:
             drawProcessingIcon(in: bubbleRect)
+        case .success:
+            drawSuccessIcon(in: bubbleRect)
         case .error:
             drawErrorIcon(in: bubbleRect)
         }
@@ -163,6 +166,8 @@ final class BubbleView: NSView {
             color = NSColor(calibratedWhite: 0.0, alpha: 0.42)
         case .processing:
             color = NSColor(calibratedWhite: 0.0, alpha: 0.34)
+        case .success:
+            color = NSColor(calibratedWhite: 0.0, alpha: 0.32)
         case .error:
             color = NSColor(calibratedRed: 0.9, green: 0.12, blue: 0.12, alpha: 0.26)
         }
@@ -188,6 +193,8 @@ final class BubbleView: NSView {
             fill = NSColor(calibratedWhite: 0.015, alpha: 0.92)
         case .processing:
             fill = NSColor(calibratedWhite: 0.04, alpha: 0.84)
+        case .success:
+            fill = NSColor(calibratedWhite: 0.015, alpha: 0.90)
         case .error:
             fill = NSColor(calibratedRed: 0.18, green: 0.03, blue: 0.03, alpha: 0.90)
         }
@@ -206,7 +213,27 @@ final class BubbleView: NSView {
         }
     }
 
-    private func drawIdleIcon(in rect: NSRect) {
+    private func drawStaticSoundIcon(in rect: NSRect) {
+        NSColor(calibratedWhite: 1.0, alpha: hover ? 0.90 : 0.68).setFill()
+
+        let bars: [CGFloat] = [7, 13, 9]
+        let barWidth: CGFloat = 3
+        let spacing: CGFloat = 4
+        let totalWidth = CGFloat(bars.count) * barWidth + CGFloat(bars.count - 1) * spacing
+        let startX = rect.midX - totalWidth / 2
+
+        for (index, height) in bars.enumerated() {
+            let x = startX + CGFloat(index) * (barWidth + spacing)
+            let y = rect.midY - height / 2
+            NSBezierPath(
+                roundedRect: NSRect(x: x, y: y, width: barWidth, height: height),
+                xRadius: 1.5,
+                yRadius: 1.5
+            ).fill()
+        }
+    }
+
+    private func drawMicrophoneIcon(in rect: NSRect) {
         NSColor(calibratedWhite: 1.0, alpha: hover ? 0.92 : 0.72).setStroke()
         let centerX = rect.midX
         let top = rect.minY + 13
@@ -230,8 +257,12 @@ final class BubbleView: NSView {
     private func drawWaveform(in rect: NSRect) {
         NSColor(calibratedWhite: 1.0, alpha: 0.90).setFill()
 
-        let bars = 5
-        let spacing: CGFloat = 3
+        let clip = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
+        NSGraphicsContext.current?.saveGraphicsState()
+        clip.addClip()
+
+        let bars = 4
+        let spacing: CGFloat = 3.2
         let barWidth: CGFloat = 3
         let totalWidth = CGFloat(bars) * barWidth + CGFloat(bars - 1) * spacing
         let startX = rect.midX - totalWidth / 2
@@ -239,12 +270,14 @@ final class BubbleView: NSView {
         for index in 0..<bars {
             let offset = CGFloat(index) * 0.75
             let amplitude = (sin(phase + offset) + 1) / 2
-            let height = 8 + amplitude * 16
+            let height = 6 + amplitude * 12
             let x = startX + CGFloat(index) * (barWidth + spacing)
             let y = rect.midY - height / 2
             let bar = NSBezierPath(roundedRect: NSRect(x: x, y: y, width: barWidth, height: height), xRadius: 2, yRadius: 2)
             bar.fill()
         }
+
+        NSGraphicsContext.current?.restoreGraphicsState()
     }
 
     private func drawProcessingIcon(in rect: NSRect) {
@@ -252,6 +285,18 @@ final class BubbleView: NSView {
         let path = NSBezierPath()
         path.lineWidth = 2.2
         path.appendArc(withCenter: NSPoint(x: rect.midX, y: rect.midY), radius: 11, startAngle: 20, endAngle: 300)
+        path.stroke()
+    }
+
+    private func drawSuccessIcon(in rect: NSRect) {
+        NSColor(calibratedWhite: 1.0, alpha: 0.92).setStroke()
+        let path = NSBezierPath()
+        path.lineCapStyle = .round
+        path.lineJoinStyle = .round
+        path.lineWidth = 2.6
+        path.move(to: NSPoint(x: rect.midX - 8, y: rect.midY + 1))
+        path.line(to: NSPoint(x: rect.midX - 2, y: rect.midY + 7))
+        path.line(to: NSPoint(x: rect.midX + 9, y: rect.midY - 7))
         path.stroke()
     }
 
