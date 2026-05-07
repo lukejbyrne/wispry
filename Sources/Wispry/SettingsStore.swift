@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 
 enum TransformStyle: String, Codable, CaseIterable {
     case verbatim = "Verbatim"
@@ -25,6 +26,70 @@ struct RecentDictation: Codable {
     var text: String
 }
 
+struct KeyShortcut: Codable, Equatable {
+    var keyCode: UInt32
+    var modifiers: UInt32
+    var display: String
+
+    static func make(keyCode: UInt32, modifiers: UInt32, display: String) -> KeyShortcut {
+        KeyShortcut(keyCode: keyCode, modifiers: modifiers, display: display)
+    }
+}
+
+enum ShortcutAction: String, Codable, CaseIterable {
+    case toggle
+    case professional
+    case casual
+    case list
+    case clean
+
+    var title: String {
+        switch self {
+        case .toggle: return "Toggle dictation"
+        case .professional: return "Professional rewrite"
+        case .casual: return "Casual rewrite"
+        case .list: return "List rewrite"
+        case .clean: return "Clean rewrite"
+        }
+    }
+}
+
+struct ShortcutSettings: Codable, Equatable {
+    var toggle: KeyShortcut
+    var professional: KeyShortcut
+    var casual: KeyShortcut
+    var list: KeyShortcut
+    var clean: KeyShortcut
+
+    static let defaults = ShortcutSettings(
+        toggle: .make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Control+Option+Space"),
+        professional: .make(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(optionKey), display: "Option+2"),
+        casual: .make(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(optionKey), display: "Option+3"),
+        list: .make(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(optionKey), display: "Option+4"),
+        clean: .make(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(optionKey), display: "Option+5")
+    )
+
+    func shortcut(for action: ShortcutAction) -> KeyShortcut {
+        switch action {
+        case .toggle: return toggle
+        case .professional: return professional
+        case .casual: return casual
+        case .list: return list
+        case .clean: return clean
+        }
+    }
+
+    mutating func set(_ shortcut: KeyShortcut, for action: ShortcutAction) {
+        switch action {
+        case .toggle: toggle = shortcut
+        case .professional: professional = shortcut
+        case .casual: casual = shortcut
+        case .list: list = shortcut
+        case .clean: clean = shortcut
+        }
+    }
+}
+
 final class SettingsStore {
     static let shared = SettingsStore()
 
@@ -36,6 +101,7 @@ final class SettingsStore {
     private let bubbleFrameKey = "bubbleFrame"
     private let bubbleVisibleKey = "bubbleVisible"
     private let autoPasteKey = "autoPaste"
+    private let shortcutsKey = "shortcuts"
 
     private init() {
         if defaults.object(forKey: snippetsKey) == nil {
@@ -49,6 +115,9 @@ final class SettingsStore {
         }
         if defaults.object(forKey: autoPasteKey) == nil {
             autoPaste = true
+        }
+        if defaults.object(forKey: shortcutsKey) == nil {
+            shortcuts = .defaults
         }
     }
 
@@ -103,6 +172,17 @@ final class SettingsStore {
                 defaults.removeObject(forKey: bubbleFrameKey)
             }
         }
+    }
+
+    var shortcuts: ShortcutSettings {
+        get { decode(ShortcutSettings.self, key: shortcutsKey) ?? .defaults }
+        set { encode(newValue, key: shortcutsKey) }
+    }
+
+    func setShortcut(_ shortcut: KeyShortcut, for action: ShortcutAction) {
+        var settings = shortcuts
+        settings.set(shortcut, for: action)
+        shortcuts = settings
     }
 
     func addRecent(text: String, appName: String) {

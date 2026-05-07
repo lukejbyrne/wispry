@@ -17,7 +17,20 @@ final class HotKeyManager {
     private var recordingHotKeyRefs: [EventHotKeyRef?] = []
     private let signature = FourCharCode("WSPY")
 
-    func install() {
+    func install(shortcuts: ShortcutSettings) {
+        uninstallHotKeys()
+        ensureHandler()
+        register(shortcut: shortcuts.toggle, id: 1)
+        register(keyCode: UInt32(kVK_F13), modifiers: 0, id: 2)
+        register(shortcut: shortcuts.professional, id: 3)
+        register(shortcut: shortcuts.casual, id: 4)
+        register(shortcut: shortcuts.list, id: 5)
+        register(shortcut: shortcuts.clean, id: 6)
+    }
+
+    private func ensureHandler() {
+        guard handlerRef == nil else { return }
+
         var eventSpec = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
@@ -67,13 +80,15 @@ final class HotKeyManager {
             selfPointer,
             &handlerRef
         )
+    }
 
-        register(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), id: 1)
-        register(keyCode: UInt32(kVK_F13), modifiers: 0, id: 2)
-        register(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(optionKey), id: 3)
-        register(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(optionKey), id: 4)
-        register(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(optionKey), id: 5)
-        register(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(optionKey), id: 6)
+    func uninstallHotKeys() {
+        for ref in hotKeyRefs {
+            if let ref {
+                UnregisterEventHotKey(ref)
+            }
+        }
+        hotKeyRefs.removeAll()
     }
 
     func installRecordingHotKeys() {
@@ -110,6 +125,10 @@ final class HotKeyManager {
                 hotKeyRefs.append(ref)
             }
         }
+    }
+
+    private func register(shortcut: KeyShortcut, id: UInt32) {
+        register(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers, id: id)
     }
 }
 

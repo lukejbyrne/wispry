@@ -22,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var lastFunctionReleaseDate = Date.distantPast
     private var successResetWorkItem: DispatchWorkItem?
+    private var recordingEventTap: CFMachPort?
+    private var recordingEventRunLoopSource: CFRunLoopSource?
     private let bubbleSize = NSSize(width: 46, height: 46)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -53,6 +55,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func requestAccessibilityPrompt() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
+    }
+
+    func reloadHotKeys() {
+        hotKeys.install(shortcuts: store.shortcuts)
     }
 
     private func installMenuBar() {
@@ -90,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installHotKeys() {
         hotKeys.delegate = self
-        hotKeys.install()
+        reloadHotKeys()
     }
 
     private func installEscapeMonitor() {
@@ -133,6 +139,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         functionKeyIsDown = isDown
         if isDown {
             functionReleaseStopWorkItem?.cancel()
+            if isListening && functionKeyLatched {
+                functionKeyLatched = false
+                stopDictation()
+                return
+            }
             let isDoubleTap = Date().timeIntervalSince(lastFunctionReleaseDate) < 0.36
             if isDoubleTap {
                 functionKeyLatched = true
@@ -207,6 +218,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try dictationEngine.start(contextualStrings: store.dictionaryWords)
             isListening = true
             hotKeys.installRecordingHotKeys()
+            installRecordingEventTap()
             setBubbleState(.listening)
         } catch {
             isProcessingDictation = false
@@ -218,6 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isListening else { return }
         isListening = false
         hotKeys.uninstallRecordingHotKeys()
+        removeRecordingEventTap()
         functionKeyLatched = false
         setBubbleState(.processing)
         dictationEngine.stopAndCommit()
@@ -228,6 +241,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
+        removeRecordingEventTap()
         functionKeyLatched = false
         dictationEngine.cancel()
         setBubbleState(.idle)
@@ -238,6 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
+        removeRecordingEventTap()
         functionKeyLatched = false
 
         switch result {
@@ -276,15 +291,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func pasteOrCopy(_ text: String, shouldPressEnter: Bool) {
         copyToClipboard(text)
+        targetApplication?.activate(options: [.activateIgnoringOtherApps])
 
         guard AXIsProcessTrusted() else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                self.sendPasteViaSystemEvents()
+            }
             return
         }
 
-        targetApplication?.activate(options: [.activateIgnoringOtherApps])
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-            self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+            if !self.insertTextIntoFocusedElement(text) {
+                self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+            }
             if shouldPressEnter {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                     self.sendKey(UInt16(kVK_Return))
@@ -332,9 +351,113 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             target?.activate(options: [.activateIgnoringOtherApps])
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+                if !self.insertTextIntoFocusedElement(processed.text) {
+                    self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+                }
             }
         }
+    }
+
+    private func sendPasteViaSystemEvents() {
+        let script = "tell application \"System Events\" to keystroke \"v\" using command down"
+        var errorInfo: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&errorInfo)
+    }
+
+    private func insertTextIntoFocusedElement(_ text: String) -> Bool {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
+              let focusedElement = focusedRef else {
+            return false
+        }
+
+        let element = focusedElement as! AXUIElement
+        if AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef) == .success {
+            return true
+        }
+
+        var valueRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef) == .success,
+              let currentValue = valueRef as? String else {
+            return false
+        }
+
+        var range = CFRange(location: currentValue.count, length: 0)
+        var rangeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
+           let rangeRef {
+            let rangeValue = rangeRef as! AXValue
+            AXValueGetValue(rangeValue, .cfRange, &range)
+        }
+
+        let nsValue = currentValue as NSString
+        guard range.location >= 0, range.location <= nsValue.length, range.length >= 0, range.location + range.length <= nsValue.length else {
+            return false
+        }
+
+        let nextValue = nsValue.replacingCharacters(in: NSRange(location: range.location, length: range.length), with: text)
+        guard AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, nextValue as CFTypeRef) == .success else {
+            return false
+        }
+
+        var nextRange = CFRange(location: range.location + (text as NSString).length, length: 0)
+        if let nextRangeValue = AXValueCreate(.cfRange, &nextRange) {
+            AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, nextRangeValue)
+        }
+        return true
+    }
+
+    private func installRecordingEventTap() {
+        removeRecordingEventTap()
+        guard AXIsProcessTrusted() else { return }
+
+        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+        let callback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard type == .keyDown, let userInfo else { return Unmanaged.passUnretained(event) }
+            let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userInfo).takeUnretainedValue()
+            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+
+            if keyCode == UInt16(kVK_Escape) {
+                DispatchQueue.main.async { appDelegate.cancelDictation() }
+                return nil
+            }
+            if keyCode == UInt16(kVK_Return) || keyCode == UInt16(kVK_ANSI_KeypadEnter) {
+                DispatchQueue.main.async { appDelegate.stopDictation() }
+                return nil
+            }
+
+            return Unmanaged.passUnretained(event)
+        }
+
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        recordingEventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: userInfo
+        )
+
+        guard let recordingEventTap else { return }
+        recordingEventRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, recordingEventTap, 0)
+        if let recordingEventRunLoopSource {
+            CFRunLoopAddSource(CFRunLoopGetMain(), recordingEventRunLoopSource, .commonModes)
+        }
+        CGEvent.tapEnable(tap: recordingEventTap, enable: true)
+    }
+
+    private func removeRecordingEventTap() {
+        if let recordingEventTap {
+            CGEvent.tapEnable(tap: recordingEventTap, enable: false)
+            CFMachPortInvalidate(recordingEventTap)
+        }
+        if let recordingEventRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), recordingEventRunLoopSource, .commonModes)
+        }
+        recordingEventTap = nil
+        recordingEventRunLoopSource = nil
     }
 
     private func currentExternalApplication() -> NSRunningApplication? {
@@ -420,6 +543,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
+        removeRecordingEventTap()
         functionKeyLatched = false
         setBubbleState(.error)
         bubbleWindow?.bubbleView.partialTranscript = ""

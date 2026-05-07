@@ -9,6 +9,7 @@ struct TextPipelineSmoke {
         testListTransform()
         testSelfCorrection()
         testCorrectionChain()
+        testTakeBackCorrection()
         testFillerAndRepetitionCleanup()
         testQuestionPunctuation()
         print("TextPipelineSmoke: OK")
@@ -60,6 +61,11 @@ struct TextPipelineSmoke {
     private static func testCorrectionChain() {
         let result = TextPipeline.process("do this no do that no this actually", style: .clean, snippets: [])
         assert(result.text == "This actually.")
+    }
+
+    private static func testTakeBackCorrection() {
+        let result = TextPipeline.process("please use the green one take that back use the red one", style: .clean, snippets: [])
+        assert(result.text == "Use the red one.")
     }
 
     private static func testFillerAndRepetitionCleanup() {

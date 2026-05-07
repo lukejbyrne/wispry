@@ -134,6 +134,12 @@ enum TextPipeline {
 
     private static func applySelfCorrections(_ input: String) -> String {
         let markers = [
+            " take that back ",
+            " i take that back ",
+            " actually i meant ",
+            " i didn't mean ",
+            " i did not mean ",
+            " what i meant was ",
             " no actually ",
             " no, actually ",
             " actually ",
@@ -156,7 +162,7 @@ enum TextPipeline {
             }
         }
 
-        let discardMarkers = ["scratch that ", "ignore that ", "discard that "]
+        let discardMarkers = ["scratch that ", "ignore that ", "discard that ", "forget that ", "remove that "]
         for marker in discardMarkers {
             guard let range = lowered.range(of: marker, options: .backwards) else { continue }
             let replacement = input[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))

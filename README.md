@@ -33,6 +33,7 @@ macOS will ask for microphone and speech recognition access the first time you d
 - Press `Control+Option+Space` to toggle hands-free dictation.
 - Configure a mouse side button to emit `F13` to use it as a mouse trigger.
 - Select text and press `Option+2/3/4/5` to repolish it as professional, casual, list, or clean text.
+- Open Home > Shortcuts to record different keyboard shortcuts for toggle and rewrite actions.
 - Say `press enter` at the end of a dictation to paste and send.
 - Say `cancel that` to discard the current dictation.
 
@@ -40,7 +41,7 @@ macOS will ask for microphone and speech recognition access the first time you d
 
 - Native always-on-top draggable bubble.
 - Menu bar controls: Home, check for updates, paste/copy last transcript, shortcuts, microphone, help, feedback, and quit.
-- Home hub with controls, scratchpad, history, dictionary, snippets, and style transform.
+- Home hub with sidebar navigation, searchable history, scratchpad, dictionary, snippets, style transform, and editable shortcuts.
 - Minimal recording state on the bubble, without showing transcript text on screen.
 - Apple Speech transcription with personal dictionary context.
 - Snippets for reusable voice shortcuts.
@@ -48,3 +49,4 @@ macOS will ask for microphone and speech recognition access the first time you d
 - App-aware style defaults for Mail, Messages, Slack, Discord, and code editors.
 - Clipboard fallback when Accessibility access is not available.
 - Selected-text repolish shortcuts for quick rewrites without opening the Hub.
+- Local cleanup for fillers, adjacent repetition, and correction phrases like "take that back" or "I didn't mean".

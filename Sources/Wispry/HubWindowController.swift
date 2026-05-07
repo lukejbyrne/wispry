@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 
 final class HubWindowController: NSWindowController {
     init(appDelegate: AppDelegate) {
@@ -39,6 +40,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(wrappingLabelWithString: "")
     private let historyTable = NSTableView()
+    private let historySearchField = NSSearchField()
     private let historyDetailTextView = NSTextView()
     private let scratchpadTextView = NSTextView()
     private let dictionaryTextView = NSTextView()
@@ -51,6 +53,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let bubbleButton = NSButton(checkboxWithTitle: "Show floating bubble", target: nil, action: nil)
     private var sectionButtons: [Section: NSButton] = [:]
     private var historyExpandedAll = false
+    private var historyQuery = ""
+    private var shortcutCaptureAction: ShortcutAction?
+    private var shortcutCaptureMonitor: Any?
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
@@ -64,7 +69,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 760, height: 520))
         view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor(calibratedRed: 0.94, green: 0.95, blue: 0.97, alpha: 1).cgColor
+        view.layer?.backgroundColor = NSColor(calibratedRed: 0.92, green: 0.93, blue: 0.91, alpha: 1).cgColor
 
         let root = NSStackView()
         root.translatesAutoresizingMaskIntoConstraints = false
@@ -79,7 +84,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         sidebar.spacing = 6
         sidebar.edgeInsets = NSEdgeInsets(top: 18, left: 14, bottom: 18, right: 14)
         sidebar.wantsLayer = true
-        sidebar.layer?.backgroundColor = NSColor(calibratedWhite: 0.10, alpha: 1).cgColor
+        sidebar.layer?.backgroundColor = NSColor(calibratedRed: 0.07, green: 0.08, blue: 0.07, alpha: 1).cgColor
 
         let contentShell = NSView()
         contentShell.translatesAutoresizingMaskIntoConstraints = false
@@ -102,7 +107,14 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         ])
 
         buildSidebar()
+        installShortcutCaptureMonitor()
         render(section: .home)
+    }
+
+    deinit {
+        if let shortcutCaptureMonitor {
+            NSEvent.removeMonitor(shortcutCaptureMonitor)
+        }
     }
 
     override func viewWillAppear() {
@@ -113,17 +125,23 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func buildSidebar() {
         let brand = NSTextField(labelWithString: "Wispry")
         brand.font = NSFont.systemFont(ofSize: 18, weight: .bold)
-        brand.textColor = NSColor(calibratedWhite: 0.96, alpha: 1)
+        brand.textColor = NSColor(calibratedRed: 0.95, green: 0.97, blue: 0.90, alpha: 1)
         sidebar.addArrangedSubview(brand)
 
+        let tagline = NSTextField(labelWithString: "fast local speech")
+        tagline.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        tagline.textColor = NSColor(calibratedWhite: 0.62, alpha: 1)
+        sidebar.addArrangedSubview(tagline)
+
         let spacer = NSView()
-        spacer.heightAnchor.constraint(equalToConstant: 10).isActive = true
+        spacer.heightAnchor.constraint(equalToConstant: 12).isActive = true
         sidebar.addArrangedSubview(spacer)
 
         for section in Section.allCases {
             let button = NSButton(title: section.rawValue, target: self, action: #selector(sectionSelected(_:)))
-            button.bezelStyle = .texturedRounded
+            button.bezelStyle = .shadowlessSquare
             button.alignment = .left
+            button.isBordered = false
             button.tag = Section.allCases.firstIndex(of: section) ?? 0
             button.widthAnchor.constraint(equalToConstant: 122).isActive = true
             sectionButtons[section] = button
@@ -175,7 +193,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func subtitle(for section: Section) -> String {
         switch section {
         case .home:
-            return "Fast dictation controls and paste behavior."
+            return "Start quickly, keep paste predictable, tune the cleanup."
         case .history:
             return "Recent dictations by time, with a short summary and full text."
         case .scratchpad:
@@ -185,7 +203,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         case .snippets:
             return "Spoken phrases that expand into reusable text."
         case .shortcuts:
-            return "Keyboard and mouse controls."
+            return "Record your own key combos. Fn remains the push-to-talk modifier."
         }
     }
 
@@ -230,10 +248,15 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(autoPasteButton)
         stack.addArrangedSubview(bubbleButton)
         stack.addArrangedSubview(buttons)
-        return panel(stack, height: 180)
+        return panel(stack, height: 168)
     }
 
     private func historyView() -> NSView {
+        historySearchField.placeholderString = "Search history"
+        historySearchField.target = self
+        historySearchField.action = #selector(historySearchChanged)
+        historySearchField.widthAnchor.constraint(equalToConstant: 540).isActive = true
+
         historyTable.headerView = nil
         historyTable.dataSource = self
         historyTable.delegate = self
@@ -257,7 +280,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         buttons.orientation = .horizontal
         buttons.spacing = 8
 
-        let stack = NSStackView(views: [tableScroll, detail, buttons])
+        let stack = NSStackView(views: [historySearchField, tableScroll, detail, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
@@ -317,27 +340,26 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func shortcutsView() -> NSView {
-        let shortcuts = [
-            "Click bubble: start or stop dictation",
-            "Return while recording: stop, clean up, paste",
-            "Escape while recording: cancel",
-            "Hold Fn: push to talk, release to stop",
-            "Double-tap Fn: latch recording",
-            "Control+Option+Space: toggle",
-            "F13: mouse trigger",
-            "Option+2/3/4/5: repolish selected text"
-        ].joined(separator: "\n")
-        let text = NSTextView()
-        text.string = shortcuts
-        return scrollableText(text, height: 280)
+        let stack = panelStack()
+        for action in ShortcutAction.allCases {
+            stack.addArrangedSubview(shortcutRow(for: action))
+        }
+
+        let fixed = NSTextField(wrappingLabelWithString: "Fixed while recording: Return commits, Escape cancels. Fn hold is push-to-talk; double-tap Fn latches, pressing Fn again commits. Mouse trigger: F13.")
+        fixed.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        fixed.textColor = NSColor(calibratedWhite: 0.35, alpha: 1)
+        fixed.maximumNumberOfLines = 3
+        stack.addArrangedSubview(fixed)
+        return panel(stack, height: 310)
     }
 
     private func refresh() {
         stylePopup.selectItem(withTitle: store.transformStyle.rawValue)
         autoPasteButton.state = store.autoPaste ? .on : .off
         bubbleButton.state = store.bubbleVisible ? .on : .off
+        historySearchField.stringValue = historyQuery
         historyTable.reloadData()
-        if historyTable.selectedRow < 0 && !store.recent.isEmpty {
+        if historyTable.selectedRow < 0 && !filteredHistory.isEmpty {
             historyTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         }
         updateHistoryDetail()
@@ -348,6 +370,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func updateSidebarSelection() {
         for (section, button) in sectionButtons {
             button.state = section == selectedSection ? .on : .off
+            button.contentTintColor = section == selectedSection
+                ? NSColor(calibratedRed: 0.90, green: 0.98, blue: 0.62, alpha: 1)
+                : NSColor(calibratedWhite: 0.78, alpha: 1)
         }
     }
 
@@ -362,9 +387,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func panel(_ content: NSView, height: CGFloat? = nil) -> NSView {
         let wrapper = NSView()
         wrapper.wantsLayer = true
-        wrapper.layer?.backgroundColor = NSColor(calibratedWhite: 0.985, alpha: 1).cgColor
+        wrapper.layer?.backgroundColor = NSColor(calibratedRed: 0.975, green: 0.968, blue: 0.945, alpha: 1).cgColor
         wrapper.layer?.cornerRadius = 8
-        wrapper.layer?.borderColor = NSColor(calibratedWhite: 0.82, alpha: 1).cgColor
+        wrapper.layer?.borderColor = NSColor(calibratedRed: 0.80, green: 0.79, blue: 0.72, alpha: 1).cgColor
         wrapper.layer?.borderWidth = 1
         content.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(content)
@@ -399,9 +424,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         scroll.documentView = document
         scroll.hasVerticalScroller = true
         scroll.wantsLayer = true
-        scroll.layer?.backgroundColor = NSColor(calibratedWhite: 0.985, alpha: 1).cgColor
+        scroll.layer?.backgroundColor = NSColor(calibratedRed: 0.985, green: 0.982, blue: 0.960, alpha: 1).cgColor
         scroll.layer?.cornerRadius = 8
-        scroll.layer?.borderColor = NSColor(calibratedWhite: 0.82, alpha: 1).cgColor
+        scroll.layer?.borderColor = NSColor(calibratedRed: 0.80, green: 0.79, blue: 0.72, alpha: 1).cgColor
         scroll.layer?.borderWidth = 1
         scroll.widthAnchor.constraint(equalToConstant: 540).isActive = true
         scroll.heightAnchor.constraint(equalToConstant: height).isActive = true
@@ -418,9 +443,61 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         return scrollView(document: textView, height: height)
     }
 
+    private func shortcutRow(for action: ShortcutAction) -> NSView {
+        let title = NSTextField(labelWithString: action.title)
+        title.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        title.textColor = NSColor(calibratedWhite: 0.12, alpha: 1)
+        title.widthAnchor.constraint(equalToConstant: 180).isActive = true
+
+        let shortcut = NSTextField(labelWithString: shortcutCaptureAction == action ? "Press new shortcut..." : store.shortcuts.shortcut(for: action).display)
+        shortcut.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        shortcut.textColor = shortcutCaptureAction == action
+            ? NSColor(calibratedRed: 0.42, green: 0.32, blue: 0.05, alpha: 1)
+            : NSColor(calibratedWhite: 0.28, alpha: 1)
+        shortcut.widthAnchor.constraint(equalToConstant: 175).isActive = true
+
+        let record = NSButton(title: "Record", target: self, action: #selector(recordShortcut(_:)))
+        record.tag = ShortcutAction.allCases.firstIndex(of: action) ?? 0
+        let reset = NSButton(title: "Reset", target: self, action: #selector(resetShortcut(_:)))
+        reset.tag = record.tag
+
+        let row = NSStackView(views: [title, shortcut, record, reset])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        return row
+    }
+
     @objc private func styleChanged() {
         guard let title = stylePopup.selectedItem?.title, let style = TransformStyle(rawValue: title) else { return }
         store.transformStyle = style
+    }
+
+    @objc private func historySearchChanged() {
+        historyQuery = historySearchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        historyTable.deselectAll(nil)
+        historyTable.reloadData()
+        if !filteredHistory.isEmpty {
+            historyTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        }
+        updateHistoryDetail()
+    }
+
+    @objc private func recordShortcut(_ sender: NSButton) {
+        let actions = ShortcutAction.allCases
+        guard sender.tag >= 0 && sender.tag < actions.count else { return }
+        shortcutCaptureAction = actions[sender.tag]
+        render(section: .shortcuts)
+    }
+
+    @objc private func resetShortcut(_ sender: NSButton) {
+        let actions = ShortcutAction.allCases
+        guard sender.tag >= 0 && sender.tag < actions.count else { return }
+        let action = actions[sender.tag]
+        let defaults = ShortcutSettings.defaults
+        store.setShortcut(defaults.shortcut(for: action), for: action)
+        appDelegate?.reloadHotKeys()
+        render(section: .shortcuts)
     }
 
     @objc private func autoPasteChanged() {
@@ -463,11 +540,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     @objc private func copySelectedHistory() {
         let selected = historyTable.selectedRow
+        let items = filteredHistory
         let text: String
         if historyExpandedAll {
             text = expandedHistoryText()
-        } else if selected >= 0 && selected < store.recent.count {
-            text = store.recent[selected].text
+        } else if selected >= 0 && selected < items.count {
+            text = items[selected].text
         } else {
             text = historyDetailTextView.string
         }
@@ -482,12 +560,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
-        store.recent.count
+        filteredHistory.count
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard row < store.recent.count, let tableColumn else { return nil }
-        let item = store.recent[row]
+        let items = filteredHistory
+        guard row < items.count, let tableColumn else { return nil }
+        let item = items[row]
         let text = tableColumn.identifier.rawValue == "time" ? dateFormatter.string(from: item.date) : summary(for: item.text)
         let cell = NSTableCellView()
         let field = NSTextField(labelWithString: text)
@@ -515,8 +594,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return
         }
         let selected = historyTable.selectedRow
-        if selected >= 0 && selected < store.recent.count {
-            let item = store.recent[selected]
+        let items = filteredHistory
+        if selected >= 0 && selected < items.count {
+            let item = items[selected]
             historyDetailTextView.string = "\(dateFormatter.string(from: item.date))  \(item.appName)\n\n\(item.text)"
         } else {
             historyDetailTextView.string = store.recent.isEmpty ? "No dictations yet." : ""
@@ -524,7 +604,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func expandedHistoryText() -> String {
-        store.recent.map { "\(dateFormatter.string(from: $0.date))  \($0.appName)\n\($0.text)" }.joined(separator: "\n\n")
+        filteredHistory.map { "\(dateFormatter.string(from: $0.date))  \($0.appName)\n\($0.text)" }.joined(separator: "\n\n")
     }
 
     private func summary(for text: String) -> String {
@@ -537,6 +617,104 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM HH:mm"
         return formatter
+    }
+
+    private var filteredHistory: [RecentDictation] {
+        guard !historyQuery.isEmpty else { return store.recent }
+        let needle = historyQuery.lowercased()
+        return store.recent.filter {
+            $0.text.lowercased().contains(needle)
+                || $0.appName.lowercased().contains(needle)
+                || summary(for: $0.text).lowercased().contains(needle)
+        }
+    }
+
+    private func installShortcutCaptureMonitor() {
+        guard shortcutCaptureMonitor == nil else { return }
+        shortcutCaptureMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, let action = self.shortcutCaptureAction else { return event }
+            guard let shortcut = self.shortcut(from: event) else { return nil }
+            self.store.setShortcut(shortcut, for: action)
+            self.appDelegate?.reloadHotKeys()
+            self.shortcutCaptureAction = nil
+            self.render(section: .shortcuts)
+            return nil
+        }
+    }
+
+    private func shortcut(from event: NSEvent) -> KeyShortcut? {
+        let modifiers = carbonModifiers(from: event.modifierFlags)
+        guard modifiers != 0 else { return nil }
+        return KeyShortcut(
+            keyCode: UInt32(event.keyCode),
+            modifiers: modifiers,
+            display: shortcutDisplay(keyCode: event.keyCode, flags: event.modifierFlags)
+        )
+    }
+
+    private func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.command) { result |= UInt32(cmdKey) }
+        if flags.contains(.option) { result |= UInt32(optionKey) }
+        if flags.contains(.control) { result |= UInt32(controlKey) }
+        if flags.contains(.shift) { result |= UInt32(shiftKey) }
+        return result
+    }
+
+    private func shortcutDisplay(keyCode: UInt16, flags: NSEvent.ModifierFlags) -> String {
+        var parts: [String] = []
+        if flags.contains(.control) { parts.append("Control") }
+        if flags.contains(.option) { parts.append("Option") }
+        if flags.contains(.shift) { parts.append("Shift") }
+        if flags.contains(.command) { parts.append("Command") }
+        parts.append(keyName(for: keyCode))
+        return parts.joined(separator: "+")
+    }
+
+    private func keyName(for keyCode: UInt16) -> String {
+        let names: [UInt16: String] = [
+            UInt16(kVK_Space): "Space",
+            UInt16(kVK_Return): "Return",
+            UInt16(kVK_Escape): "Escape",
+            UInt16(kVK_Tab): "Tab",
+            UInt16(kVK_ANSI_0): "0",
+            UInt16(kVK_ANSI_1): "1",
+            UInt16(kVK_ANSI_2): "2",
+            UInt16(kVK_ANSI_3): "3",
+            UInt16(kVK_ANSI_4): "4",
+            UInt16(kVK_ANSI_5): "5",
+            UInt16(kVK_ANSI_6): "6",
+            UInt16(kVK_ANSI_7): "7",
+            UInt16(kVK_ANSI_8): "8",
+            UInt16(kVK_ANSI_9): "9",
+            UInt16(kVK_ANSI_A): "A",
+            UInt16(kVK_ANSI_B): "B",
+            UInt16(kVK_ANSI_C): "C",
+            UInt16(kVK_ANSI_D): "D",
+            UInt16(kVK_ANSI_E): "E",
+            UInt16(kVK_ANSI_F): "F",
+            UInt16(kVK_ANSI_G): "G",
+            UInt16(kVK_ANSI_H): "H",
+            UInt16(kVK_ANSI_I): "I",
+            UInt16(kVK_ANSI_J): "J",
+            UInt16(kVK_ANSI_K): "K",
+            UInt16(kVK_ANSI_L): "L",
+            UInt16(kVK_ANSI_M): "M",
+            UInt16(kVK_ANSI_N): "N",
+            UInt16(kVK_ANSI_O): "O",
+            UInt16(kVK_ANSI_P): "P",
+            UInt16(kVK_ANSI_Q): "Q",
+            UInt16(kVK_ANSI_R): "R",
+            UInt16(kVK_ANSI_S): "S",
+            UInt16(kVK_ANSI_T): "T",
+            UInt16(kVK_ANSI_U): "U",
+            UInt16(kVK_ANSI_V): "V",
+            UInt16(kVK_ANSI_W): "W",
+            UInt16(kVK_ANSI_X): "X",
+            UInt16(kVK_ANSI_Y): "Y",
+            UInt16(kVK_ANSI_Z): "Z"
+        ]
+        return names[keyCode] ?? "Key \(keyCode)"
     }
 
     @objc private func addDictionaryWord() {
