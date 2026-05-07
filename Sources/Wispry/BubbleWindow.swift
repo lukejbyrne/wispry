@@ -10,6 +10,8 @@ enum BubbleState {
 
 protocol BubbleViewDelegate: AnyObject {
     func bubbleDidRequestToggle()
+    func bubbleDidRequestCommit()
+    func bubbleDidRequestCancel()
     func bubbleDidMove(to frame: NSRect)
 }
 
@@ -133,13 +135,20 @@ final class BubbleView: NSView {
             return
         }
 
-        delegate?.bubbleDidRequestToggle()
+        let point = convert(event.locationInWindow, from: nil)
+        if state == .listening && cancelButtonRect.contains(point) {
+            delegate?.bubbleDidRequestCancel()
+        } else if state == .listening && commitButtonRect.contains(point) {
+            delegate?.bubbleDidRequestCommit()
+        } else {
+            delegate?.bubbleDidRequestToggle()
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        let bubbleRect = bounds.insetBy(dx: 7, dy: 7)
+        let bubbleRect = centerBubbleRect
         drawGlow(around: bubbleRect)
         drawBubble(in: bubbleRect)
 
@@ -155,6 +164,29 @@ final class BubbleView: NSView {
         case .error:
             drawErrorIcon(in: bubbleRect)
         }
+
+        if state == .listening {
+            drawSideButton(in: cancelButtonRect, symbol: .cancel)
+            drawSideButton(in: commitButtonRect, symbol: .commit)
+        }
+    }
+
+    private var centerBubbleRect: NSRect {
+        let diameter = min(bounds.height - 8, 38)
+        return NSRect(
+            x: bounds.midX - diameter / 2,
+            y: bounds.midY - diameter / 2,
+            width: diameter,
+            height: diameter
+        )
+    }
+
+    private var cancelButtonRect: NSRect {
+        NSRect(x: 6, y: bounds.midY - 11, width: 22, height: 22)
+    }
+
+    private var commitButtonRect: NSRect {
+        NSRect(x: bounds.maxX - 28, y: bounds.midY - 11, width: 22, height: 22)
     }
 
     private func drawGlow(around rect: NSRect) {
@@ -205,12 +237,6 @@ final class BubbleView: NSView {
         path.lineWidth = 0.8
         path.stroke()
 
-        if state == .listening {
-            NSColor(calibratedWhite: 1.0, alpha: 0.20).setStroke()
-            let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 4, dy: 4))
-            ring.lineWidth = 1.3
-            ring.stroke()
-        }
     }
 
     private func drawStaticSoundIcon(in rect: NSRect) {
@@ -278,6 +304,40 @@ final class BubbleView: NSView {
         }
 
         NSGraphicsContext.current?.restoreGraphicsState()
+    }
+
+    private enum SideButtonSymbol {
+        case cancel
+        case commit
+    }
+
+    private func drawSideButton(in rect: NSRect, symbol: SideButtonSymbol) {
+        let background = NSBezierPath(ovalIn: rect)
+        NSColor(calibratedWhite: 0.02, alpha: 0.78).setFill()
+        background.fill()
+        NSColor(calibratedWhite: 1.0, alpha: 0.18).setStroke()
+        background.lineWidth = 0.8
+        background.stroke()
+
+        NSColor(calibratedWhite: 1.0, alpha: 0.88).setStroke()
+        let glyph = NSBezierPath()
+        glyph.lineCapStyle = .round
+        glyph.lineJoinStyle = .round
+        glyph.lineWidth = 1.8
+
+        switch symbol {
+        case .cancel:
+            glyph.move(to: NSPoint(x: rect.midX - 4.5, y: rect.midY - 4.5))
+            glyph.line(to: NSPoint(x: rect.midX + 4.5, y: rect.midY + 4.5))
+            glyph.move(to: NSPoint(x: rect.midX + 4.5, y: rect.midY - 4.5))
+            glyph.line(to: NSPoint(x: rect.midX - 4.5, y: rect.midY + 4.5))
+        case .commit:
+            glyph.move(to: NSPoint(x: rect.midX - 5, y: rect.midY + 1))
+            glyph.line(to: NSPoint(x: rect.midX - 1, y: rect.midY + 5))
+            glyph.line(to: NSPoint(x: rect.midX + 6, y: rect.midY - 5))
+        }
+
+        glyph.stroke()
     }
 
     private func drawProcessingIcon(in rect: NSRect) {

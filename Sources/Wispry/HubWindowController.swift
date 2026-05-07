@@ -20,11 +20,12 @@ final class HubWindowController: NSWindowController {
     }
 }
 
-final class HubViewController: NSViewController {
+final class HubViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
     private weak var appDelegate: AppDelegate?
     private let store = SettingsStore.shared
 
-    private let recentTextView = NSTextView()
+    private let historyTable = NSTableView()
+    private let historyDetailTextView = NSTextView()
     private let dictionaryTextView = NSTextView()
     private let snippetsTextView = NSTextView()
     private let scratchpadTextView = NSTextView()
@@ -34,6 +35,7 @@ final class HubViewController: NSViewController {
     private let stylePopup = NSPopUpButton()
     private let autoPasteButton = NSButton(checkboxWithTitle: "Paste into the active app when dictation ends", target: nil, action: nil)
     private let bubbleButton = NSButton(checkboxWithTitle: "Show floating bubble", target: nil, action: nil)
+    private var historyExpandedAll = false
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
@@ -93,7 +95,8 @@ final class HubViewController: NSViewController {
         stack.addArrangedSubview(scrollableText(scratchpadTextView, height: 130, editable: true))
 
         stack.addArrangedSubview(sectionTitle("History"))
-        stack.addArrangedSubview(scrollableText(recentTextView, height: 130))
+        stack.addArrangedSubview(historyPanel())
+        stack.addArrangedSubview(scrollableText(historyDetailTextView, height: 120))
 
         stack.addArrangedSubview(sectionTitle("Personal Dictionary"))
         stack.addArrangedSubview(dictionaryPanel())
@@ -162,6 +165,46 @@ final class HubViewController: NSViewController {
         row.orientation = .horizontal
         row.spacing = 8
         return panel(row)
+    }
+
+    private func historyPanel() -> NSView {
+        let tableScroll = NSScrollView()
+        tableScroll.translatesAutoresizingMaskIntoConstraints = false
+        tableScroll.hasVerticalScroller = true
+        tableScroll.wantsLayer = true
+        tableScroll.layer?.backgroundColor = NSColor(calibratedWhite: 0.995, alpha: 0.92).cgColor
+        tableScroll.layer?.cornerRadius = 8
+        tableScroll.layer?.borderColor = NSColor(calibratedRed: 0.82, green: 0.85, blue: 0.90, alpha: 1).cgColor
+        tableScroll.layer?.borderWidth = 1
+
+        historyTable.headerView = nil
+        historyTable.dataSource = self
+        historyTable.delegate = self
+        historyTable.rowHeight = 30
+        historyTable.intercellSpacing = NSSize(width: 8, height: 4)
+        historyTable.selectionHighlightStyle = .regular
+
+        let timeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("time"))
+        timeColumn.width = 142
+        let summaryColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("summary"))
+        summaryColumn.width = 410
+        historyTable.addTableColumn(timeColumn)
+        historyTable.addTableColumn(summaryColumn)
+        tableScroll.documentView = historyTable
+
+        let copy = NSButton(title: "Copy selected", target: self, action: #selector(copySelectedHistory))
+        let expand = NSButton(title: "Expand all", target: self, action: #selector(toggleExpandHistory))
+        let buttons = NSStackView(views: [copy, expand])
+        buttons.orientation = .horizontal
+        buttons.spacing = 8
+
+        let stack = NSStackView(views: [tableScroll, buttons])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        tableScroll.widthAnchor.constraint(equalToConstant: 572).isActive = true
+        tableScroll.heightAnchor.constraint(equalToConstant: 170).isActive = true
+        return stack
     }
 
     private func dictionaryPanel() -> NSView {
@@ -263,11 +306,11 @@ final class HubViewController: NSViewController {
         autoPasteButton.state = store.autoPaste ? .on : .off
         bubbleButton.state = store.bubbleVisible ? .on : .off
 
-        let formatter = RelativeDateTimeFormatter()
-        recentTextView.string = store.recent.map { item in
-            let time = formatter.localizedString(for: item.date, relativeTo: Date())
-            return "[\(time), \(item.appName)]\n\(item.text)"
-        }.joined(separator: "\n\n")
+        historyTable.reloadData()
+        if historyTable.selectedRow < 0 && !store.recent.isEmpty {
+            historyTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        }
+        updateHistoryDetail()
 
         dictionaryTextView.string = store.dictionaryWords.isEmpty
             ? "No dictionary words yet. Wispry also auto-learns likely capitalized terms from accepted dictations."
@@ -330,6 +373,98 @@ final class HubViewController: NSViewController {
         if !processed.cancelled {
             scratchpadTextView.string = processed.text
         }
+    }
+
+    @objc private func copySelectedHistory() {
+        let selected = historyTable.selectedRow
+        let text: String
+        if historyExpandedAll {
+            text = expandedHistoryText()
+        } else if selected >= 0 && selected < store.recent.count {
+            text = store.recent[selected].text
+        } else {
+            text = historyDetailTextView.string
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    @objc private func toggleExpandHistory(_ sender: NSButton) {
+        historyExpandedAll.toggle()
+        sender.title = historyExpandedAll ? "Collapse" : "Expand all"
+        updateHistoryDetail()
+    }
+
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        store.recent.count
+    }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        guard row < store.recent.count, let tableColumn else { return nil }
+        let identifier = tableColumn.identifier
+        let item = store.recent[row]
+        let text = identifier.rawValue == "time"
+            ? dateTimeFormatter.string(from: item.date)
+            : summary(for: item.text)
+
+        let cell = NSTableCellView()
+        let field = NSTextField(labelWithString: text)
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.lineBreakMode = .byTruncatingTail
+        field.font = identifier.rawValue == "time"
+            ? NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+            : NSFont.systemFont(ofSize: 13, weight: .medium)
+        field.textColor = identifier.rawValue == "time"
+            ? NSColor(calibratedRed: 0.36, green: 0.39, blue: 0.45, alpha: 1)
+            : NSColor(calibratedRed: 0.10, green: 0.13, blue: 0.18, alpha: 1)
+        cell.addSubview(field)
+        NSLayoutConstraint.activate([
+            field.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
+            field.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+            field.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+        ])
+        return cell
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        historyExpandedAll = false
+        updateHistoryDetail()
+    }
+
+    private func updateHistoryDetail() {
+        if historyExpandedAll {
+            historyDetailTextView.string = expandedHistoryText()
+            return
+        }
+
+        let selected = historyTable.selectedRow
+        if selected >= 0 && selected < store.recent.count {
+            let item = store.recent[selected]
+            historyDetailTextView.string = "\(dateTimeFormatter.string(from: item.date))  \(item.appName)\n\n\(item.text)"
+        } else {
+            historyDetailTextView.string = store.recent.isEmpty ? "No dictations yet." : ""
+        }
+    }
+
+    private func expandedHistoryText() -> String {
+        store.recent.map { item in
+            "\(dateTimeFormatter.string(from: item.date))  \(item.appName)\n\(item.text)"
+        }.joined(separator: "\n\n")
+    }
+
+    private func summary(for text: String) -> String {
+        let words = text
+            .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+            .prefix(8)
+            .joined(separator: " ")
+        if words.isEmpty { return "Empty dictation" }
+        return text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count > 8 ? words + "..." : words
+    }
+
+    private var dateTimeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM HH:mm"
+        return formatter
     }
 
     @objc private func addDictionaryWord() {

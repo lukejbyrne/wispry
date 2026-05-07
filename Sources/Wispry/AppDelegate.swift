@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var lastFunctionReleaseDate = Date.distantPast
     private var successResetWorkItem: DispatchWorkItem?
-    private let bubbleSize = NSSize(width: 46, height: 46)
+    private let bubbleSize = NSSize(width: 94, height: 46)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMenuBar()
@@ -98,7 +98,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self, self.isListening else { return }
             if event.keyCode == UInt16(kVK_Escape) {
                 self.cancelDictation()
+            } else if event.keyCode == UInt16(kVK_Return) || event.keyCode == UInt16(kVK_ANSI_KeypadEnter) {
+                self.stopDictation()
             }
+        }
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.isListening else { return event }
+            if event.keyCode == UInt16(kVK_Escape) {
+                self.cancelDictation()
+                return nil
+            }
+            if event.keyCode == UInt16(kVK_Return) || event.keyCode == UInt16(kVK_ANSI_KeypadEnter) {
+                self.stopDictation()
+                return nil
+            }
+            return event
         }
     }
 
@@ -494,6 +508,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: BubbleViewDelegate {
     func bubbleDidRequestToggle() {
         toggleDictation()
+    }
+
+    func bubbleDidRequestCommit() {
+        stopDictation()
+    }
+
+    func bubbleDidRequestCancel() {
+        cancelDictation()
     }
 
     func bubbleDidMove(to frame: NSRect) {
