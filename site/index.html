@@ -421,27 +421,11 @@
       transform: scaleY(0.62);
     }
 
-    .hero-visual:hover .speech-strip::after {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .speech-strip::after {
-      content: "send it thursday morning";
-      position: absolute;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 900;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 180ms ease, transform 180ms ease;
-    }
-
     .bubble-cursor {
-      position: absolute;
-      left: 58%;
-      top: 70%;
-      z-index: 5;
+      position: fixed;
+      left: 62vw;
+      top: 58vh;
+      z-index: 80;
       width: 48px;
       height: 48px;
       display: grid;
@@ -453,48 +437,81 @@
       color: var(--text);
       pointer-events: none;
       transform: translate(-50%, -50%);
-      transition: left 220ms ease-out, top 220ms ease-out;
+      transition: transform 120ms ease-out;
     }
 
-    .bubble-cursor::before,
-    .bubble-cursor::after {
-      content: "";
-      position: absolute;
-      width: 16px;
-      height: 3px;
+    .sound-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .sound-mark i {
+      width: 3px;
       border-radius: 999px;
       background: var(--text);
     }
 
-    .bubble-cursor::before {
-      transform: translateY(-5px);
+    .sound-mark i:nth-child(1) {
+      height: 7px;
     }
 
-    .bubble-cursor::after {
-      transform: translateY(5px);
-      opacity: 0.72;
+    .sound-mark i:nth-child(2) {
+      height: 13px;
     }
 
-    .trail-piece {
-      position: absolute;
-      z-index: 4;
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 900;
+    .sound-mark i:nth-child(3) {
+      height: 9px;
+    }
+
+    .wave-tail {
+      position: fixed;
+      z-index: 79;
+      display: flex;
+      align-items: center;
+      gap: 3px;
       pointer-events: none;
-      transform: translate(-50%, -50%);
-      animation: trailFade 780ms ease-out forwards;
-      white-space: nowrap;
+      transform: translate(-50%, -50%) rotate(var(--angle));
+      animation: waveTailFade 820ms ease-out forwards;
     }
 
-    @keyframes trailFade {
+    .wave-tail i {
+      width: 3px;
+      border-radius: 999px;
+      background: rgba(49, 94, 29, 0.78);
+    }
+
+    .wave-tail i:nth-child(1) {
+      height: 7px;
+      opacity: 0.62;
+    }
+
+    .wave-tail i:nth-child(2) {
+      height: 15px;
+      opacity: 0.9;
+    }
+
+    .wave-tail i:nth-child(3) {
+      height: 10px;
+      opacity: 0.74;
+    }
+
+    .wave-tail i:nth-child(4) {
+      height: 18px;
+      opacity: 0.54;
+    }
+
+    @keyframes waveTailFade {
       from {
         opacity: 0.95;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) rotate(var(--angle)) scale(1);
       }
       to {
         opacity: 0;
-        transform: translate(-50%, -90%) scale(0.88);
+        transform: translate(calc(-50% - var(--drift-x)), calc(-50% - var(--drift-y))) rotate(var(--angle)) scale(0.72);
       }
     }
 
@@ -840,6 +857,11 @@
         bottom: 24px;
       }
 
+      .bubble-cursor,
+      .wave-tail {
+        display: none;
+      }
+
       .workflow,
       .video-strip,
       .cleanup-grid,
@@ -909,7 +931,6 @@
           <div class="compose-foot"><span>Copied to clipboard</span><b>Pasted into Mail</b></div>
         </div>
         <div class="speech-strip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="bubble-cursor" aria-hidden="true"></div>
       </aside>
     </div>
   </header>
@@ -1017,42 +1038,55 @@
     </div>
   </footer>
 
+  <div class="bubble-cursor" aria-hidden="true"><span class="sound-mark"><i></i><i></i><i></i></span></div>
+
   <script>
-    const heroVisual = document.querySelector(".hero-visual");
     const bubble = document.querySelector(".bubble-cursor");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const trailText = ["cleaned", "no, actually", "thursday", "paste", "cmd+v", "warmer"];
+    const pointer = { x: window.innerWidth * 0.62, y: window.innerHeight * 0.58 };
+    const smooth = { x: pointer.x, y: pointer.y };
     let lastTrail = 0;
+    let lastX = pointer.x;
+    let lastY = pointer.y;
+    let raf = null;
 
-    function setBubblePosition(event) {
-      const rect = heroVisual.getBoundingClientRect();
-      const x = Math.min(Math.max(event.clientX - rect.left, 28), rect.width - 28);
-      const y = Math.min(Math.max(event.clientY - rect.top, 28), rect.height - 28);
-      bubble.style.left = `${x}px`;
-      bubble.style.top = `${y}px`;
-
+    function movePointer(event) {
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
       const now = performance.now();
-      if (!reducedMotion && now - lastTrail > 80) {
+      if (!reducedMotion && now - lastTrail > 56) {
         lastTrail = now;
-        addTrail(x, y);
+        addWaveTail(pointer.x, pointer.y, pointer.x - lastX, pointer.y - lastY);
       }
+      lastX = pointer.x;
+      lastY = pointer.y;
     }
 
-    function addTrail(x, y) {
-      const piece = document.createElement("span");
-      piece.className = "trail-piece";
-      piece.textContent = Math.random() > 0.5
-        ? trailText[Math.floor(Math.random() * trailText.length)]
-        : "|||";
-      piece.style.left = `${x}px`;
-      piece.style.top = `${y}px`;
-      heroVisual.appendChild(piece);
-      piece.addEventListener("animationend", () => piece.remove(), { once: true });
+    function renderBubble() {
+      smooth.x += (pointer.x - smooth.x) * 0.18;
+      smooth.y += (pointer.y - smooth.y) * 0.18;
+      bubble.style.left = `${smooth.x}px`;
+      bubble.style.top = `${smooth.y}px`;
+      raf = requestAnimationFrame(renderBubble);
     }
 
-    if (heroVisual && bubble) {
-      heroVisual.addEventListener("pointermove", setBubblePosition, { passive: true });
-      heroVisual.addEventListener("pointerenter", setBubblePosition, { passive: true });
+    function addWaveTail(x, y, dx, dy) {
+      const tail = document.createElement("span");
+      const angle = Math.atan2(dy || 1, dx || 1) * 180 / Math.PI + 90;
+      tail.className = "wave-tail";
+      tail.style.left = `${x}px`;
+      tail.style.top = `${y}px`;
+      tail.style.setProperty("--angle", `${angle}deg`);
+      tail.style.setProperty("--drift-x", `${Math.max(-22, Math.min(22, dx * 2))}px`);
+      tail.style.setProperty("--drift-y", `${Math.max(-22, Math.min(22, dy * 2))}px`);
+      tail.innerHTML = "<i></i><i></i><i></i><i></i>";
+      document.body.appendChild(tail);
+      tail.addEventListener("animationend", () => tail.remove(), { once: true });
+    }
+
+    if (bubble && !reducedMotion && window.matchMedia("(pointer: fine)").matches) {
+      window.addEventListener("pointermove", movePointer, { passive: true });
+      raf = requestAnimationFrame(renderBubble);
     }
   </script>
 </body>
