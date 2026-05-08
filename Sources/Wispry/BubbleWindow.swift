@@ -238,6 +238,53 @@ final class BubbleView: NSView {
         }
     }
 
+    private func drawLogoMark(in rect: NSRect, active: Bool) {
+        let insetRect = rect.insetBy(dx: 2.2, dy: 2.2)
+        let pulse = active ? 0.78 + ((sin(phase) + 1) / 2) * 0.20 : (hover ? 0.96 : 0.82)
+        let waveColor = NSColor(calibratedRed: 171 / 255, green: 213 / 255, blue: 107 / 255, alpha: pulse)
+        let cursorColor = NSColor(calibratedRed: 246 / 255, green: 241 / 255, blue: 229 / 255, alpha: active ? 0.96 : 0.86)
+        let lineWidth: CGFloat = active ? 2.9 : 2.65
+
+        func point(_ x: CGFloat, _ y: CGFloat) -> NSPoint {
+            NSPoint(
+                x: insetRect.minX + x / 64 * insetRect.width,
+                y: insetRect.minY + y / 64 * insetRect.height
+            )
+        }
+
+        let wave = NSBezierPath()
+        wave.move(to: point(12, 35))
+        wave.line(to: point(17, 35))
+        wave.line(to: point(20, 23))
+        wave.line(to: point(26, 48))
+        wave.line(to: point(32, 16))
+        wave.line(to: point(38, 35))
+        wave.line(to: point(52, 35))
+        wave.lineWidth = lineWidth
+        wave.lineCapStyle = .round
+        wave.lineJoinStyle = .round
+        waveColor.setStroke()
+        wave.stroke()
+
+        let cursor = NSBezierPath()
+        cursor.move(to: point(44, 18))
+        cursor.line(to: point(44, 46))
+        cursor.lineWidth = lineWidth
+        cursor.lineCapStyle = .round
+        cursorColor.setStroke()
+        cursor.stroke()
+
+        cursorColor.setFill()
+        NSBezierPath(
+            ovalIn: NSRect(
+                x: point(44, 13).x - lineWidth * 0.55,
+                y: point(44, 13).y - lineWidth * 0.55,
+                width: lineWidth * 1.1,
+                height: lineWidth * 1.1
+            )
+        ).fill()
+    }
+
     private func drawMicrophoneIcon(in rect: NSRect) {
         NSColor(calibratedWhite: 1.0, alpha: hover ? 0.92 : 0.72).setStroke()
         let centerX = rect.midX

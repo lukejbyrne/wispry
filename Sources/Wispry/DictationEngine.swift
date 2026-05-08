@@ -27,6 +27,7 @@ final class DictationEngine {
     private var audioEngine: AVAudioEngine?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var transcriptAccumulator = TranscriptAccumulator()
     private var lastPartialText = ""
     private var didFinish = false
     private var shouldCommitOnFinish = true
@@ -63,11 +64,9 @@ final class DictationEngine {
         let audioEngine = AVAudioEngine()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        request.taskHint = .dictation
         if #available(macOS 13.0, *) {
             request.addsPunctuation = true
-        }
-        if #available(macOS 10.15, *), recognizer.supportsOnDeviceRecognition {
-            request.requiresOnDeviceRecognition = true
         }
         request.contextualStrings = contextualStrings
 
@@ -82,6 +81,7 @@ final class DictationEngine {
             request.append(buffer)
         }
 
+        transcriptAccumulator.reset()
         lastPartialText = ""
         didFinish = false
         shouldCommitOnFinish = true
@@ -92,7 +92,11 @@ final class DictationEngine {
             guard let self else { return }
 
             if let result {
-                let text = result.bestTranscription.formattedString
+                let transcription = result.bestTranscription
+                let text = self.transcriptAccumulator.ingest(
+                    transcription.formattedString,
+                    firstSegmentTimestamp: transcription.segments.first?.timestamp
+                )
                 self.lastPartialText = text
                 DispatchQueue.main.async { self.onPartial?(text) }
 
@@ -126,7 +130,7 @@ final class DictationEngine {
         audioEngine?.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             guard let self, !self.didFinish else { return }
             self.finish(.success(self.lastPartialText.isEmpty ? snapshot : self.lastPartialText))
         }
@@ -158,6 +162,7 @@ final class DictationEngine {
         audioEngine = nil
         recognitionRequest = nil
         recognitionTask = nil
+        transcriptAccumulator.reset()
 
         if !keepCallbacks {
             onPartial = nil

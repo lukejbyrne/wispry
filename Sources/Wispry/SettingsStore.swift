@@ -214,9 +214,6 @@ final class SettingsStore {
         if haystack.contains("messages") || haystack.contains("slack") || haystack.contains("discord") {
             return .casual
         }
-        if haystack.contains("xcode") || haystack.contains("code") || haystack.contains("terminal") || haystack.contains("cursor") {
-            return .verbatim
-        }
         return transformStyle
     }
 

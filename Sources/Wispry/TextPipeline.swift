@@ -105,40 +105,87 @@ enum TextPipeline {
 
     private static func replaceDictationPhrases(_ input: String) -> String {
         var text = input
-        let replacements: [(String, String)] = [
-            ("new paragraph", "\n\n"),
-            ("new line", "\n"),
-            ("open quote", "\""),
-            ("close quote", "\""),
-            ("quote", "\""),
-            ("single quote", "'"),
-            ("open parenthesis", "("),
-            ("close parenthesis", ")"),
-            ("open bracket", "["),
-            ("close bracket", "]"),
-            ("question mark", "?"),
-            ("exclamation mark", "!"),
-            ("exclamation point", "!"),
-            ("comma", ","),
-            ("period", "."),
-            ("full stop", "."),
-            ("colon", ":"),
-            ("semicolon", ";"),
-            ("dash", "-"),
-            ("slash", "/"),
-            ("at sign", "@")
+        let replacements: [(phrase: String, replacement: String, allowedAtStart: Bool, blockedNextWords: Set<String>)] = [
+            ("new paragraph", "\n\n", true, []),
+            ("new line", "\n", true, []),
+            ("open quote", "\"", true, []),
+            ("close quote", "\"", true, []),
+            ("quote", "\"", false, ["unquote", "mark", "marks"]),
+            ("single quote", "'", true, []),
+            ("open parenthesis", "(", true, []),
+            ("close parenthesis", ")", true, []),
+            ("open bracket", "[", true, []),
+            ("close bracket", "]", true, []),
+            ("question mark", "?", false, ["icon", "symbol"]),
+            ("exclamation mark", "!", false, ["icon", "symbol"]),
+            ("exclamation point", "!", false, ["icon", "symbol"]),
+            ("comma", ",", false, ["separated", "delimited", "splice", "operator"]),
+            ("period", ".", false, ["of", "piece", "pain", "drama", "costume", "tracking"]),
+            ("full stop", ".", false, []),
+            ("colon", ":", false, ["cancer", "health", "screening"]),
+            ("semicolon", ";", false, ["insertion"]),
+            ("dash", "-", false, ["board", "cam", "camera", "lane"]),
+            ("slash", "/", false, ["command", "commands", "fiction", "mark"]),
+            ("at sign", "@", true, [])
         ]
 
-        for (phrase, replacement) in replacements {
-            let escaped = NSRegularExpression.escapedPattern(for: phrase)
-            let pattern = #"(?i)(^|\s)"# + escaped + #"(?=\s|$|[.,!?;:])"#
-            text = text.replacingOccurrences(
-                of: pattern,
-                with: "$1\(replacement)",
-                options: .regularExpression
+        for replacement in replacements {
+            text = replaceCommandPhrase(
+                in: text,
+                phrase: replacement.phrase,
+                with: replacement.replacement,
+                allowedAtStart: replacement.allowedAtStart,
+                blockedNextWords: replacement.blockedNextWords
             )
         }
         return text
+    }
+
+    private static func replaceCommandPhrase(
+        in input: String,
+        phrase: String,
+        with replacement: String,
+        allowedAtStart: Bool,
+        blockedNextWords: Set<String>
+    ) -> String {
+        let escaped = NSRegularExpression.escapedPattern(for: phrase)
+        let pattern = #"(?i)(^|\s)"# + escaped + #"(?=\s|$|[.,!?;:])"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return input }
+
+        var output = input
+        let nsInput = input as NSString
+        let matches = regex.matches(in: input, range: NSRange(location: 0, length: nsInput.length))
+        for match in matches.reversed() {
+            let leadingRange = match.range(at: 1)
+            let phraseStart = match.range.location + leadingRange.length
+            let phraseLength = match.range.length - leadingRange.length
+            let previousText = nsInput.substring(to: phraseStart).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !allowedAtStart && previousText.isEmpty {
+                continue
+            }
+            if let next = nextWord(after: phraseStart + phraseLength, in: input),
+               blockedNextWords.contains(next.lowercased()) {
+                continue
+            }
+
+            output = (output as NSString).replacingCharacters(
+                in: NSRange(location: phraseStart, length: phraseLength),
+                with: replacement
+            )
+        }
+        return output
+    }
+
+    private static func nextWord(after location: Int, in input: String) -> String? {
+        let nsInput = input as NSString
+        guard location < nsInput.length else { return nil }
+        let rest = nsInput.substring(from: location)
+        guard let regex = try? NSRegularExpression(pattern: #"^\s*([A-Za-z]+)"#),
+              let match = regex.firstMatch(in: rest, range: NSRange(location: 0, length: (rest as NSString).length)),
+              match.range(at: 1).location != NSNotFound else {
+            return nil
+        }
+        return (rest as NSString).substring(with: match.range(at: 1))
     }
 
     private static func normalizeSpeechArtifacts(_ input: String) -> String {
@@ -158,45 +205,43 @@ enum TextPipeline {
     }
 
     private static func applySelfCorrections(_ input: String) -> String {
-        let markers = [
-            " take that back ",
-            " i take that back ",
-            " actually i meant ",
-            " i didn't mean ",
-            " i did not mean ",
-            " what i meant was ",
-            " no actually ",
-            " no, actually ",
-            " actually ",
-            " no this actually ",
-            " no, this actually ",
-            " no i mean ",
-            " no, i mean ",
-            " sorry i mean ",
-            " sorry, i mean ",
-            " i mean ",
-            " no "
+        let strongPatterns = [
+            #"(?i)\b(?:take that back|i take that back|scratch that|ignore that|discard that|forget that|remove that)\b[,:;\-\s]*"#,
+            #"(?i)\b(?:actually i meant|i didn't mean|i did not mean|what i meant was|no[, ]+i mean|sorry[, ]+i mean|no[, ]+actually)\b[,:;\-\s]*"#
         ]
 
-        let lowered = input.lowercased()
-        for marker in markers {
-            guard let range = lowered.range(of: marker, options: .backwards) else { continue }
-            let replacement = input[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
-            if replacement.count > 1 {
+        for pattern in strongPatterns {
+            if let replacement = textAfterLastMatch(pattern: pattern, in: input, requirePriorText: false) {
                 return replacement
             }
         }
 
-        let discardMarkers = ["scratch that ", "ignore that ", "discard that ", "forget that ", "remove that "]
-        for marker in discardMarkers {
-            guard let range = lowered.range(of: marker, options: .backwards) else { continue }
-            let replacement = input[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
-            if replacement.count > 1 {
-                return replacement
-            }
+        if let replacement = textAfterLastMatch(
+            pattern: #"(?i)\bi mean\b[,:;\-\s]*"#,
+            in: input,
+            requirePriorText: true
+        ) {
+            return replacement
         }
 
         return input
+    }
+
+    private static func textAfterLastMatch(pattern: String, in input: String, requirePriorText: Bool) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let nsInput = input as NSString
+        let matches = regex.matches(in: input, range: NSRange(location: 0, length: nsInput.length))
+        guard let match = matches.last else { return nil }
+
+        let prefix = nsInput.substring(to: match.range.location).trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        if requirePriorText && prefix.isEmpty {
+            return nil
+        }
+
+        let start = match.range.location + match.range.length
+        guard start < nsInput.length else { return nil }
+        let replacement = nsInput.substring(from: start).trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        return replacement.count > 1 ? replacement : nil
     }
 
     private static func removeFillers(_ input: String) -> String {

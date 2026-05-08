@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Carbon
+import Darwin
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore.shared
@@ -11,22 +12,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var bubbleWindow: BubbleWindow?
     private var hubWindowController: HubWindowController?
     private var targetApplication: NSRunningApplication?
+    private var targetTextSnapshot: FocusedTextSnapshot?
+    private var menuOpenTextSnapshot: FocusedTextSnapshot?
+    private var menuOpenTargetApplication: NSRunningApplication?
     private var lastExternalApplication: NSRunningApplication?
     private var targetAppName = "Active App"
     private var lastTranscript = ""
+    private var currentPartialTranscript = ""
+    private var lastOutputStatus = "No dictation pasted yet."
     private var copyButtonWorkItem: DispatchWorkItem?
+    private var hasRequestedAccessibilityThisSession = false
+    private var hasRequestedPostEventThisSession = false
+    private var isShortcutCaptureActive = false
     private var isListening = false
     private var isProcessingDictation = false
     private var functionKeyIsDown = false
     private var functionKeyLatched = false
     private var functionReleaseStopWorkItem: DispatchWorkItem?
+    private var pendingFunctionReleaseStop = false
     private var lastFunctionReleaseDate = Date.distantPast
     private var successResetWorkItem: DispatchWorkItem?
+    private var dictationCompletionWatchdog: DispatchWorkItem?
     private var recordingEventTap: CFMachPort?
     private var recordingEventRunLoopSource: CFRunLoopSource?
     private var functionEventTap: CFMachPort?
     private var functionEventRunLoopSource: CFRunLoopSource?
     private let bubbleSize = NSSize(width: 46, height: 46)
+
+    private enum PasteOutcome {
+        case keyboardConfirmed
+        case accessibilityInserted
+        case keyboardSent
+        case clipboardOnly
+        case accessibilityRequired
+        case inputControlRequired
+        case noTarget
+
+        func message(targetName: String) -> String {
+            switch self {
+            case .keyboardConfirmed:
+                return "Pasted into \(targetName)."
+            case .accessibilityInserted:
+                return "Inserted into \(targetName) with Accessibility fallback."
+            case .keyboardSent:
+                return "Paste shortcut sent to \(targetName)."
+            case .clipboardOnly:
+                return "Copied to clipboard."
+            case .accessibilityRequired:
+                return "Copied. Accessibility is not trusted for this build; re-add Wispry if it is already enabled."
+            case .inputControlRequired:
+                return "Copied. Allow Wispry to control your computer so it can paste automatically."
+            case .noTarget:
+                return "Copied to clipboard. No target app was available to paste into."
+            }
+        }
+    }
+
+    private struct FocusedTextSnapshot {
+        let element: AXUIElement
+        let value: String
+        let selectedRange: CFRange?
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMenuBar()
@@ -35,10 +81,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installEscapeMonitor()
         installFunctionKeyMonitor()
         installApplicationTracking()
+        logDiagnostic(
+            "launch bundle=\(Bundle.main.bundleIdentifier ?? "unknown") path=\(Bundle.main.bundlePath) axTrusted=\(AXIsProcessTrusted()) postEvent=\(CGPreflightPostEventAccess()) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            self?.requestAccessibilityPromptIfNeeded()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         dictationEngine.cancel()
+        removeRecordingEventTap()
         removeFunctionEventTap()
     }
 
@@ -56,18 +109,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func requestAccessibilityPrompt() {
+        showAccessibilityPrompt(force: true)
+    }
+
+    private func requestAccessibilityPromptIfNeeded() {
+        showAccessibilityPrompt(force: false)
+    }
+
+    private func showAccessibilityPrompt(force: Bool) {
+        guard force || !hasRequestedAccessibilityThisSession else { return }
+        guard !AXIsProcessTrusted() else { return }
+        hasRequestedAccessibilityThisSession = true
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
+    private func requestPostEventAccessIfNeeded() -> Bool {
+        if CGPreflightPostEventAccess() {
+            return true
+        }
+        guard !hasRequestedPostEventThisSession else {
+            return false
+        }
+        hasRequestedPostEventThisSession = true
+        return CGRequestPostEventAccess()
+    }
+
     func reloadHotKeys() {
+        guard !isShortcutCaptureActive else {
+            hotKeys.uninstallHotKeys()
+            return
+        }
         hotKeys.install(shortcuts: store.shortcuts)
+    }
+
+    func setShortcutCaptureActive(_ active: Bool) {
+        guard isShortcutCaptureActive != active else { return }
+        isShortcutCaptureActive = active
+        if active {
+            hotKeys.uninstallHotKeys()
+            logDiagnostic("shortcut capture started; global hotkeys disabled")
+        } else {
+            logDiagnostic("shortcut capture ended; global hotkeys reloading")
+            reloadHotKeys()
+        }
+    }
+
+    func outputStatusText() -> String {
+        lastOutputStatus
+    }
+
+    func shortcutStatusText() -> String {
+        hotKeys.registrationFailures.isEmpty
+            ? "All shortcuts registered"
+            : hotKeys.registrationFailures.joined(separator: " ")
     }
 
     private func installMenuBar() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Wispry")
+        item.button?.image = WispryIcon.statusImage(for: .idle)
         item.button?.imagePosition = .imageOnly
+        item.button?.toolTip = "Wispry"
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
@@ -126,9 +228,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installFunctionKeyMonitor() {
-        if installFunctionEventTap() {
-            return
-        }
+        let tapInstalled = installFunctionEventTap()
+        logDiagnostic("function monitor installed eventTap=\(tapInstalled)")
 
         NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFunctionModifierChange(event)
@@ -147,35 +248,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isDown != functionKeyIsDown else { return }
 
         functionKeyIsDown = isDown
+        logDiagnostic("fn \(isDown ? "down" : "up") listening=\(isListening) processing=\(isProcessingDictation) latched=\(functionKeyLatched)")
         if isDown {
             functionReleaseStopWorkItem?.cancel()
-            if isListening && functionKeyLatched {
-                functionKeyLatched = false
-                stopDictation()
+            pendingFunctionReleaseStop = false
+
+            let isDoubleTap = Date().timeIntervalSince(lastFunctionReleaseDate) < 0.42
+
+            if isListening {
+                if functionKeyLatched {
+                    functionKeyLatched = false
+                    stopDictation()
+                } else if isDoubleTap {
+                    functionKeyLatched = true
+                    logDiagnostic("fn latch enabled while listening")
+                }
                 return
             }
-            let isDoubleTap = Date().timeIntervalSince(lastFunctionReleaseDate) < 0.36
-            if isDoubleTap {
-                functionKeyLatched = true
-                if !isListening && !isProcessingDictation {
-                    startDictation()
+
+            if isProcessingDictation {
+                if isDoubleTap {
+                    functionKeyLatched = true
+                    logDiagnostic("fn latch pending while starting")
                 }
-            } else {
-                functionKeyLatched = false
-                if !isListening && !isProcessingDictation {
-                    startDictation()
-                }
+                return
+            }
+
+            functionKeyLatched = isDoubleTap
+            if functionKeyLatched {
+                logDiagnostic("fn latch start")
+            }
+            if !isProcessingDictation {
+                startDictation()
             }
         } else {
             lastFunctionReleaseDate = Date()
-            guard isListening, !functionKeyLatched else { return }
-            let item = DispatchWorkItem { [weak self] in
-                guard let self, !self.functionKeyIsDown, self.isListening, !self.functionKeyLatched else { return }
-                self.stopDictation()
+            if isListening && !functionKeyLatched {
+                scheduleFunctionReleaseStop(after: 0.28)
+            } else if isProcessingDictation && !functionKeyLatched {
+                pendingFunctionReleaseStop = true
             }
-            functionReleaseStopWorkItem = item
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32, execute: item)
         }
+    }
+
+    private func scheduleFunctionReleaseStop(after delay: TimeInterval) {
+        functionReleaseStopWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, !self.functionKeyIsDown, self.isListening else { return }
+            self.stopDictation()
+        }
+        functionReleaseStopWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
     }
 
     private func installFunctionEventTap() -> Bool {
@@ -243,8 +366,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startDictation() {
         guard !isProcessingDictation else { return }
         isProcessingDictation = true
-        targetApplication = currentExternalApplication() ?? lastExternalApplication
+        targetTextSnapshot = focusedTextSnapshot()
+        currentPartialTranscript = ""
+        dictationCompletionWatchdog?.cancel()
+        targetApplication = preferredDictationTarget(snapshot: targetTextSnapshot)
         targetAppName = targetApplication?.localizedName ?? "Active App"
+        logDiagnostic(
+            "record start requested target=\(targetAppName) bundle=\(targetApplication?.bundleIdentifier ?? "unknown") startSnapshot=\(targetTextSnapshot != nil) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+        lastOutputStatus = "Preparing to listen in \(targetAppName)."
         setBubbleState(.processing)
         bubbleWindow?.bubbleView.partialTranscript = ""
         bubbleWindow?.bubbleView.showCopyButton = false
@@ -263,7 +393,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func beginRecording() {
         do {
             dictationEngine.onPartial = { [weak self] text in
-                self?.bubbleWindow?.bubbleView.partialTranscript = text
+                guard let self else { return }
+                self.currentPartialTranscript = text
+                self.bubbleWindow?.bubbleView.partialTranscript = text
             }
             dictationEngine.onComplete = { [weak self] result in
                 self?.completeDictation(result)
@@ -272,7 +404,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             isListening = true
             hotKeys.installRecordingHotKeys()
             installRecordingEventTap()
+            lastOutputStatus = "Listening for \(targetAppName)."
             setBubbleState(.listening)
+            FeedbackSound.shared.playStart()
+            if pendingFunctionReleaseStop && !functionKeyLatched {
+                pendingFunctionReleaseStop = false
+                scheduleFunctionReleaseStop(after: 0.08)
+            }
         } catch {
             isProcessingDictation = false
             presentError(error.localizedDescription)
@@ -281,12 +419,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func stopDictation() {
         guard isListening else { return }
+        logDiagnostic("record stop requested target=\(targetAppName)")
         isListening = false
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        pendingFunctionReleaseStop = false
         setBubbleState(.processing)
+        FeedbackSound.shared.playStop()
         dictationEngine.stopAndCommit()
+        installDictationCompletionWatchdog()
     }
 
     private func cancelDictation() {
@@ -296,22 +438,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        pendingFunctionReleaseStop = false
+        targetTextSnapshot = nil
+        currentPartialTranscript = ""
+        dictationCompletionWatchdog?.cancel()
         dictationEngine.cancel()
         setBubbleState(.idle)
+        FeedbackSound.shared.playCancel()
         bubbleWindow?.bubbleView.partialTranscript = ""
     }
 
     private func completeDictation(_ result: Result<String, Error>) {
+        dictationCompletionWatchdog?.cancel()
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        pendingFunctionReleaseStop = false
 
         switch result {
         case .success(let rawText):
-            let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = (rawText.isEmpty ? currentPartialTranscript : rawText).trimmingCharacters(in: .whitespacesAndNewlines)
+            logDiagnostic("record complete chars=\(text.count) autoPaste=\(store.autoPaste) target=\(targetAppName)")
             guard !text.isEmpty else {
+                lastOutputStatus = "Nothing was captured."
+                targetTextSnapshot = nil
+                currentPartialTranscript = ""
                 setBubbleState(.idle)
                 return
             }
@@ -322,42 +475,78 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             let processed = TextPipeline.process(text, style: style, snippets: store.snippets)
             if processed.cancelled || processed.text.isEmpty {
+                lastOutputStatus = "Dictation cancelled."
+                targetTextSnapshot = nil
                 setBubbleState(.idle)
                 return
             }
 
             lastTranscript = processed.text
+            currentPartialTranscript = ""
             store.addRecent(text: processed.text, appName: targetAppName)
             store.learnLikelyTerms(from: processed.text)
-            showSuccessTick()
+            let startSnapshot = targetTextSnapshot
+            targetTextSnapshot = nil
 
             if store.autoPaste {
-                pasteOrCopy(processed.text, shouldPressEnter: processed.shouldPressEnter)
+                pasteOrCopy(processed.text, shouldPressEnter: processed.shouldPressEnter, preferredSnapshot: startSnapshot)
             } else {
                 copyToClipboard(processed.text)
+                lastOutputStatus = "Copied to clipboard. Auto paste is off."
+                showSuccessTick()
             }
 
         case .failure(let error):
-            presentError(error.localizedDescription)
+            let fallback = currentPartialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+            logDiagnostic("record failure error=\(error.localizedDescription) partialChars=\(fallback.count)")
+            if !fallback.isEmpty {
+                completeDictation(.success(fallback))
+            } else {
+                targetTextSnapshot = nil
+                currentPartialTranscript = ""
+                presentError(error.localizedDescription)
+            }
         }
     }
 
-    private func pasteOrCopy(_ text: String, shouldPressEnter: Bool) {
+    private func installDictationCompletionWatchdog() {
+        dictationCompletionWatchdog?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, self.isProcessingDictation, !self.isListening else { return }
+            let fallback = self.currentPartialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.logDiagnostic("record watchdog fired partialChars=\(fallback.count) target=\(self.targetAppName)")
+            self.completeDictation(.success(fallback))
+        }
+        dictationCompletionWatchdog = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2, execute: item)
+    }
+
+    private func pasteOrCopy(_ text: String, shouldPressEnter: Bool, preferredSnapshot: FocusedTextSnapshot? = nil) {
         copyToClipboard(text)
-        let target = targetApplication ?? lastExternalApplication
-        target?.activate(options: [.activateIgnoringOtherApps])
+        let target = resolvedPasteTarget()
+        let targetName = target?.localizedName ?? "the target app"
+        targetApplication = target
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
-            target?.activate(options: [.activateIgnoringOtherApps])
-            if AXIsProcessTrusted() {
-                self.sendPasteShortcut(to: target)
-            } else {
-                self.sendPasteViaSystemEvents(target: target)
-            }
+        guard let target else {
+            lastOutputStatus = PasteOutcome.noTarget.message(targetName: targetName)
+            logDiagnostic("paste no-target chars=\(text.count)")
+            return
+        }
 
-            if shouldPressEnter {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                    self.sendKey(UInt16(kVK_Return))
+        lastOutputStatus = "Copied. Returning focus to \(targetName)."
+        logDiagnostic(
+            "paste start target=\(targetName) bundle=\(target.bundleIdentifier ?? "unknown") pid=\(target.processIdentifier) chars=\(text.count) axTrusted=\(AXIsProcessTrusted()) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+        activateTarget(target) {
+            self.deliverPaste(text, to: target, preferredSnapshot: preferredSnapshot) { outcome in
+                self.lastOutputStatus = outcome.message(targetName: targetName)
+                self.logDiagnostic("paste outcome=\(outcome) target=\(targetName) pid=\(target.processIdentifier)")
+                self.applyPasteOutcomeState(outcome)
+
+                if shouldPressEnter {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        self.sendKey(UInt16(kVK_Return), pid: target.processIdentifier)
+                    }
                 }
             }
         }
@@ -368,9 +557,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    private func applyPasteOutcomeState(_ outcome: PasteOutcome) {
+        switch outcome {
+        case .keyboardConfirmed, .accessibilityInserted, .keyboardSent:
+            showSuccessTick()
+        case .accessibilityRequired, .inputControlRequired, .clipboardOnly, .noTarget:
+            setBubbleState(.error)
+            showCopyButtonTemporarily()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+                guard let self, self.bubbleWindow?.bubbleView.state == .error else { return }
+                self.setBubbleState(.idle)
+            }
+        }
+    }
+
+    private func logDiagnostic(_ message: String) {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let line = "[\(timestamp)] \(message)\n"
+        NSLog("Wispry %@", message)
+
+        do {
+            let logsDirectory = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library")
+                .appendingPathComponent("Logs")
+            try FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
+            let logURL = logsDirectory.appendingPathComponent("Wispry.log")
+
+            if FileManager.default.fileExists(atPath: logURL.path),
+               let handle = try? FileHandle(forWritingTo: logURL) {
+                try handle.seekToEnd()
+                if let data = line.data(using: .utf8) {
+                    try handle.write(contentsOf: data)
+                }
+                try handle.close()
+            } else {
+                try line.write(to: logURL, atomically: true, encoding: .utf8)
+            }
+        } catch {
+            NSLog("Wispry could not write diagnostics: %@", error.localizedDescription)
+        }
+    }
+
     private func repolishSelection(style: TransformStyle) {
         guard AXIsProcessTrusted() else {
-            copyToClipboard("Wispry needs Accessibility access before it can repolish selected text. Open Wispry > Accessibility Access from the menu.")
+            lastOutputStatus = "Repolish needs Accessibility access before Wispry can read selected text."
+            requestAccessibilityPromptIfNeeded()
             return
         }
 
@@ -389,6 +620,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     pasteboard.clearContents()
                     pasteboard.setString(previousString, forType: .string)
                 }
+                self.lastOutputStatus = "No selected text found to repolish."
                 return
             }
 
@@ -399,71 +631,258 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.store.addRecent(text: processed.text, appName: target?.localizedName ?? "Selected Text")
             pasteboard.clearContents()
             pasteboard.setString(processed.text, forType: .string)
-            target?.activate(options: [.activateIgnoringOtherApps])
+            target?.activate(options: [])
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 if !self.insertTextIntoFocusedElement(processed.text) {
                     self.sendKey(UInt16(kVK_ANSI_V), flags: .maskCommand)
+                    self.lastOutputStatus = "Repolished text pasted with clipboard fallback."
+                } else {
+                    self.lastOutputStatus = "Repolished selected text in place."
                 }
             }
         }
     }
 
-    private func sendPasteShortcut(to target: NSRunningApplication?) {
-        target?.activate(options: [.activateIgnoringOtherApps])
-        sendCommandShortcut(UInt16(kVK_ANSI_V))
+    private func resolvedPasteTarget() -> NSRunningApplication? {
+        for application in [targetApplication, currentExternalApplication(), lastExternalApplication] {
+            guard let application, !application.isTerminated, isExternalApplication(application) else {
+                continue
+            }
+            return application
+        }
+        return nil
     }
 
-    private func sendPasteViaSystemEvents(target: NSRunningApplication? = nil) {
-        let activateLine: String
-        if let bundleIdentifier = target?.bundleIdentifier {
-            activateLine = "tell application id \"\(bundleIdentifier)\" to activate\n"
-        } else {
-            activateLine = ""
+    private func preferredDictationTarget(snapshot: FocusedTextSnapshot?) -> NSRunningApplication? {
+        if let snapshot,
+           let focusedOwner = applicationOwning(snapshot.element),
+           isExternalApplication(focusedOwner) {
+            return focusedOwner
         }
-        let script = "\(activateLine)delay 0.05\ntell application \"System Events\" to keystroke \"v\" using command down"
-        var errorInfo: NSDictionary?
-        NSAppleScript(source: script)?.executeAndReturnError(&errorInfo)
+        if let focusedOwner = focusedElementOwnerApplication(),
+           isExternalApplication(focusedOwner) {
+            return focusedOwner
+        }
+        return currentExternalApplication() ?? lastExternalApplication
+    }
+
+    private func activateTarget(_ target: NSRunningApplication?, attempts: Int = 7, completion: @escaping () -> Void) {
+        guard let target, !target.isTerminated else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: completion)
+            return
+        }
+
+        target.activate(options: [])
+
+        func retry(_ remaining: Int) {
+            if frontmostApplicationMatches(target) || remaining <= 0 {
+                logDiagnostic(
+                    "paste activation target=\(target.localizedName ?? "unknown") matched=\(frontmostApplicationMatches(target)) remaining=\(remaining) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+                )
+                completion()
+                return
+            }
+
+            target.activate(options: [])
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                retry(remaining - 1)
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            retry(attempts)
+        }
+    }
+
+    private func deliverPaste(
+        _ text: String,
+        to target: NSRunningApplication,
+        preferredSnapshot: FocusedTextSnapshot?,
+        completion: @escaping (PasteOutcome) -> Void
+    ) {
+        let isAccessibilityTrusted = AXIsProcessTrusted()
+        let hasPostEventAccess = requestPostEventAccessIfNeeded()
+        if !isAccessibilityTrusted {
+            requestAccessibilityPrompt()
+            logDiagnostic("paste axTrusted=false; attempting keyboard fallback anyway")
+        }
+
+        let canInspectFocusedText = frontmostApplicationMatches(target)
+        let snapshot = preferredSnapshot ?? (isAccessibilityTrusted && canInspectFocusedText ? focusedTextSnapshot() : nil)
+        logDiagnostic("paste deliver axTrusted=\(isAccessibilityTrusted) postEvent=\(hasPostEventAccess) canInspect=\(canInspectFocusedText) startSnapshot=\(preferredSnapshot != nil) snapshot=\(snapshot != nil)")
+
+        let sentShortcut = hasPostEventAccess && sendPasteShortcut(to: target)
+        logDiagnostic("paste shortcutSent=\(sentShortcut) pid=\(target.processIdentifier)")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
+            if let snapshot,
+               let afterValue = self.focusedTextValue(for: snapshot.element) {
+                if self.valueReflectsInsertedText(before: snapshot, after: afterValue, inserted: text) {
+                    completion(.keyboardConfirmed)
+                    return
+                }
+            }
+
+            if sentShortcut {
+                completion(isAccessibilityTrusted ? .keyboardSent : .accessibilityRequired)
+            } else if let snapshot, self.insertText(text, into: snapshot) {
+                if let afterValue = self.focusedTextValue(for: snapshot.element),
+                   self.valueReflectsInsertedText(before: snapshot, after: afterValue, inserted: text) {
+                    self.logDiagnostic("paste directInsert=verified")
+                    completion(.accessibilityInserted)
+                } else {
+                    self.logDiagnostic("paste directInsert=unverified")
+                    completion(.clipboardOnly)
+                }
+            } else if !hasPostEventAccess {
+                completion(.inputControlRequired)
+            } else {
+                completion(.clipboardOnly)
+            }
+        }
+    }
+
+    @discardableResult
+    private func sendPasteShortcut(to target: NSRunningApplication?) -> Bool {
+        target?.activate(options: [])
+        return sendCommandShortcut(UInt16(kVK_ANSI_V))
     }
 
     private func insertTextIntoFocusedElement(_ text: String) -> Bool {
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
-              let focusedElement = focusedRef else {
+        guard let snapshot = focusedTextSnapshot() else {
             return false
         }
+        return insertText(text, into: snapshot)
+    }
 
-        let element = focusedElement as! AXUIElement
-        var valueRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef) == .success,
-              let currentValue = valueRef as? String else {
-            return false
-        }
-
-        var range = CFRange(location: currentValue.count, length: 0)
-        var rangeRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
-           let rangeRef {
-            let rangeValue = rangeRef as! AXValue
-            AXValueGetValue(rangeValue, .cfRange, &range)
-        }
-
+    private func insertText(_ text: String, into snapshot: FocusedTextSnapshot) -> Bool {
+        let currentValue = focusedTextValue(for: snapshot.element) ?? snapshot.value
         let nsValue = currentValue as NSString
-        guard range.location >= 0, range.location <= nsValue.length, range.length >= 0, range.location + range.length <= nsValue.length else {
+        let range = selectedTextRange(for: snapshot.element)
+            ?? snapshot.selectedRange
+            ?? CFRange(location: nsValue.length, length: 0)
+
+        guard range.location >= 0,
+              range.location <= nsValue.length,
+              range.length >= 0,
+              range.location + range.length <= nsValue.length else {
             return false
         }
 
-        let nextValue = nsValue.replacingCharacters(in: NSRange(location: range.location, length: range.length), with: text)
-        guard AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, nextValue as CFTypeRef) == .success else {
+        let nextValue = nsValue.replacingCharacters(
+            in: NSRange(location: range.location, length: range.length),
+            with: text
+        )
+        guard AXUIElementSetAttributeValue(snapshot.element, kAXValueAttribute as CFString, nextValue as CFTypeRef) == .success else {
             return false
         }
 
         var nextRange = CFRange(location: range.location + (text as NSString).length, length: 0)
         if let nextRangeValue = AXValueCreate(.cfRange, &nextRange) {
-            AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, nextRangeValue)
+            AXUIElementSetAttributeValue(snapshot.element, kAXSelectedTextRangeAttribute as CFString, nextRangeValue)
         }
         return true
+    }
+
+    private func focusedTextSnapshot() -> FocusedTextSnapshot? {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
+              let focusedElement = focusedRef else {
+            return nil
+        }
+
+        guard CFGetTypeID(focusedElement) == AXUIElementGetTypeID() else {
+            return nil
+        }
+        let element = focusedElement as! AXUIElement
+        guard let value = focusedTextValue(for: element) else {
+            return nil
+        }
+
+        return FocusedTextSnapshot(
+            element: element,
+            value: value,
+            selectedRange: selectedTextRange(for: element)
+        )
+    }
+
+    private func focusedElementOwnerApplication() -> NSRunningApplication? {
+        guard AXIsProcessTrusted() else { return nil }
+
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
+              let focusedElement = focusedRef,
+              CFGetTypeID(focusedElement) == AXUIElementGetTypeID() else {
+            return nil
+        }
+
+        return applicationOwning(focusedElement as! AXUIElement)
+    }
+
+    private func applicationOwning(_ element: AXUIElement) -> NSRunningApplication? {
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success,
+              pid > 0 else {
+            return nil
+        }
+
+        return NSRunningApplication(processIdentifier: pid)
+    }
+
+    private func focusedTextValue(for element: AXUIElement) -> String? {
+        var valueRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef) == .success,
+              let currentValue = valueRef as? String else {
+            return nil
+        }
+        return currentValue
+    }
+
+    private func selectedTextRange(for element: AXUIElement) -> CFRange? {
+        var rangeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
+           let rangeRef {
+            guard CFGetTypeID(rangeRef) == AXValueGetTypeID() else {
+                return nil
+            }
+            let rangeValue = rangeRef as! AXValue
+            var range = CFRange(location: 0, length: 0)
+            AXValueGetValue(rangeValue, .cfRange, &range)
+            return range
+        }
+        return nil
+    }
+
+    private func valueReflectsInsertedText(before snapshot: FocusedTextSnapshot, after afterValue: String, inserted text: String) -> Bool {
+        guard afterValue != snapshot.value else {
+            return false
+        }
+
+        if let range = snapshot.selectedRange {
+            let nsValue = snapshot.value as NSString
+            if range.location >= 0,
+               range.location <= nsValue.length,
+               range.length >= 0,
+               range.location + range.length <= nsValue.length {
+                let expected = nsValue.replacingCharacters(
+                    in: NSRange(location: range.location, length: range.length),
+                    with: text
+                )
+                if afterValue == expected {
+                    return true
+                }
+            }
+        }
+
+        return afterValue.contains(text)
+    }
+
+    private func frontmostApplicationMatches(_ target: NSRunningApplication?) -> Bool {
+        guard let target else { return true }
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier
     }
 
     private func installRecordingEventTap() {
@@ -555,36 +974,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return NSRect(origin: origin, size: size)
     }
 
-    private func sendKey(_ keyCode: UInt16, flags: CGEventFlags = [], pid: pid_t? = nil) {
+    @discardableResult
+    private func sendKey(_ keyCode: UInt16, flags: CGEventFlags = [], pid: pid_t? = nil) -> Bool {
         let source = CGEventSource(stateID: .hidSystemState)
-        let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true)
-        down?.flags = flags
-
-        let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false)
-        up?.flags = flags
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false) else {
+            return false
+        }
+        down.flags = flags
+        up.flags = flags
 
         post(down, pid: pid)
+        usleep(12_000)
         post(up, pid: pid)
+        return true
     }
 
-    private func sendCommandShortcut(_ keyCode: UInt16, pid: pid_t? = nil) {
+    @discardableResult
+    private func sendCommandShortcut(_ keyCode: UInt16, pid: pid_t? = nil) -> Bool {
         let source = CGEventSource(stateID: .hidSystemState)
-        let commandDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: true)
-        commandDown?.flags = .maskCommand
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true)
-        keyDown?.flags = .maskCommand
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false)
-        keyUp?.flags = .maskCommand
-        let commandUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: false)
+        guard let commandDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: true),
+              let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false),
+              let commandUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Command), keyDown: false) else {
+            return false
+        }
+        commandDown.flags = .maskCommand
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
 
         post(commandDown, pid: pid)
+        usleep(12_000)
         post(keyDown, pid: pid)
+        usleep(12_000)
         post(keyUp, pid: pid)
+        usleep(12_000)
         post(commandUp, pid: pid)
+        return true
     }
 
-    private func post(_ event: CGEvent?, pid: pid_t?) {
-        guard let event else { return }
+    private func post(_ event: CGEvent, pid: pid_t?) {
         if let pid {
             event.postToPid(pid)
         } else {
@@ -619,30 +1048,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateStatusImage(_ state: BubbleState) {
-        let symbol: String
-        switch state {
-        case .idle:
-            symbol = "waveform.circle"
-        case .listening:
-            symbol = "mic.circle.fill"
-        case .processing:
-            symbol = "sparkles"
-        case .success:
-            symbol = "checkmark.circle.fill"
-        case .error:
-            symbol = "exclamationmark.circle"
-        }
-        statusItem?.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Wispry")
+        statusItem?.button?.image = WispryIcon.statusImage(for: state)
     }
 
     private func presentError(_ message: String) {
+        logDiagnostic("present error=\(message)")
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        pendingFunctionReleaseStop = false
+        targetTextSnapshot = nil
+        currentPartialTranscript = ""
+        dictationCompletionWatchdog?.cancel()
         setBubbleState(.error)
         bubbleWindow?.bubbleView.partialTranscript = ""
+        lastOutputStatus = message
 
         let alert = NSAlert()
         alert.messageText = "Wispry could not dictate"
@@ -665,8 +1087,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuPasteLast() {
         guard !lastTranscript.isEmpty else { return }
-        targetApplication = currentExternalApplication() ?? lastExternalApplication
-        pasteOrCopy(lastTranscript, shouldPressEnter: false)
+        let snapshot = menuOpenTextSnapshot
+        targetApplication = menuOpenTargetApplication ?? preferredDictationTarget(snapshot: snapshot)
+        pasteOrCopy(lastTranscript, shouldPressEnter: false, preferredSnapshot: snapshot)
+    }
+
+    @objc private func menuTestAutoPaste() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        let text = "Wispry auto paste test \(formatter.string(from: Date()))"
+        lastTranscript = text
+        let snapshot = menuOpenTextSnapshot
+        targetApplication = menuOpenTargetApplication ?? preferredDictationTarget(snapshot: snapshot)
+        pasteOrCopy(text, shouldPressEnter: false, preferredSnapshot: snapshot)
     }
 
     @objc private func menuRepolishProfessional() {
@@ -699,8 +1132,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuCheckForUpdates() {
         let alert = NSAlert()
-        alert.messageText = "Wispry is up to date"
-        alert.informativeText = "This local build does not have an update server yet. Rebuild with ./build.sh after code changes."
+        alert.messageText = "Wispry local beta"
+        alert.informativeText = "Version 0.1.0 is packaged by ./build.sh. Signed, notarized updates should be added before paid release."
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
@@ -717,7 +1150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuHelp() {
         let alert = NSAlert()
         alert.messageText = "Wispry shortcuts"
-        alert.informativeText = "Click bubble: toggle dictation\nHold Fn: push to talk\nDouble-tap Fn: latch dictation\nEscape: cancel\nControl+Option+Space: toggle\nF13: mouse trigger\nOption+2/3/4/5: repolish selected text"
+        alert.informativeText = "Click bubble: toggle dictation\nHold Fn: push to talk\nDouble-tap Fn: latch dictation\nRelease Fn: stop and paste\nEscape: cancel\nControl+Option+Space: toggle\nF13: mouse trigger\nOption+2/3/4/5: repolish selected text"
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
@@ -768,11 +1201,29 @@ extension AppDelegate: HotKeyManagerDelegate {
 }
 
 extension AppDelegate: NSMenuDelegate {
+    func menuWillOpen(_ menu: NSMenu) {
+        menuOpenTextSnapshot = focusedTextSnapshot()
+        menuOpenTargetApplication = preferredDictationTarget(snapshot: menuOpenTextSnapshot)
+        logDiagnostic(
+            "menu open target=\(menuOpenTargetApplication?.localizedName ?? "none") snapshot=\(menuOpenTextSnapshot != nil) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuOpenTextSnapshot = nil
+        menuOpenTargetApplication = nil
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
+        if menuOpenTextSnapshot == nil && menuOpenTargetApplication == nil {
+            menuOpenTextSnapshot = focusedTextSnapshot()
+            menuOpenTargetApplication = preferredDictationTarget(snapshot: menuOpenTextSnapshot)
+        }
+
         menu.removeAllItems()
 
         menu.addItem(NSMenuItem(title: "Home", action: #selector(menuOpenHub), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Check for Updates", action: #selector(menuCheckForUpdates), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Build Info", action: #selector(menuCheckForUpdates), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
 
         menu.addItem(NSMenuItem(
@@ -784,6 +1235,8 @@ extension AppDelegate: NSMenuDelegate {
         let paste = NSMenuItem(title: "Paste Last Transcript", action: #selector(menuPasteLast), keyEquivalent: "")
         paste.isEnabled = !lastTranscript.isEmpty
         menu.addItem(paste)
+
+        menu.addItem(NSMenuItem(title: "Test Auto Paste", action: #selector(menuTestAutoPaste), keyEquivalent: ""))
 
         let copy = NSMenuItem(title: "Copy Last Transcript", action: #selector(menuCopyLast), keyEquivalent: "")
         copy.isEnabled = !lastTranscript.isEmpty

@@ -6,6 +6,8 @@
   <string>en</string>
   <key>CFBundleExecutable</key>
   <string>Wispry</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>local.wispry.dictation</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -22,8 +24,6 @@
   <string>13.0</string>
   <key>LSUIElement</key>
   <true/>
-  <key>NSAppleEventsUsageDescription</key>
-  <string>Wispry uses automation access only to return focus to the app you were dictating into.</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>Wispry records your voice so it can turn speech into text.</string>
   <key>NSSpeechRecognitionUsageDescription</key>

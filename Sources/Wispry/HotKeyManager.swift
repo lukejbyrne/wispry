@@ -16,16 +16,18 @@ final class HotKeyManager {
     private var hotKeyRefs: [EventHotKeyRef?] = []
     private var recordingHotKeyRefs: [EventHotKeyRef?] = []
     private let signature = FourCharCode("WSPY")
+    private(set) var registrationFailures: [String] = []
 
     func install(shortcuts: ShortcutSettings) {
         uninstallHotKeys()
+        registrationFailures.removeAll()
         ensureHandler()
-        register(shortcut: shortcuts.toggle, id: 1)
-        register(keyCode: UInt32(kVK_F13), modifiers: 0, id: 2)
-        register(shortcut: shortcuts.professional, id: 3)
-        register(shortcut: shortcuts.casual, id: 4)
-        register(shortcut: shortcuts.list, id: 5)
-        register(shortcut: shortcuts.clean, id: 6)
+        register(shortcut: shortcuts.toggle, id: 1, label: "Toggle dictation")
+        register(keyCode: UInt32(kVK_F13), modifiers: 0, id: 2, label: "Mouse trigger")
+        register(shortcut: shortcuts.professional, id: 3, label: "Professional rewrite")
+        register(shortcut: shortcuts.casual, id: 4, label: "Casual rewrite")
+        register(shortcut: shortcuts.list, id: 5, label: "List rewrite")
+        register(shortcut: shortcuts.clean, id: 6, label: "Clean rewrite")
     }
 
     private func ensureHandler() {
@@ -93,9 +95,9 @@ final class HotKeyManager {
 
     func installRecordingHotKeys() {
         uninstallRecordingHotKeys()
-        register(keyCode: UInt32(kVK_Escape), modifiers: 0, id: 7, recordingOnly: true)
-        register(keyCode: UInt32(kVK_Return), modifiers: 0, id: 8, recordingOnly: true)
-        register(keyCode: UInt32(kVK_ANSI_KeypadEnter), modifiers: 0, id: 9, recordingOnly: true)
+        register(keyCode: UInt32(kVK_Escape), modifiers: 0, id: 7, label: "Cancel recording", recordingOnly: true)
+        register(keyCode: UInt32(kVK_Return), modifiers: 0, id: 8, label: "Commit recording", recordingOnly: true)
+        register(keyCode: UInt32(kVK_ANSI_KeypadEnter), modifiers: 0, id: 9, label: "Commit recording", recordingOnly: true)
     }
 
     func uninstallRecordingHotKeys() {
@@ -107,7 +109,7 @@ final class HotKeyManager {
         recordingHotKeyRefs.removeAll()
     }
 
-    private func register(keyCode: UInt32, modifiers: UInt32, id: UInt32, recordingOnly: Bool = false) {
+    private func register(keyCode: UInt32, modifiers: UInt32, id: UInt32, label: String, recordingOnly: Bool = false) {
         var ref: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: signature, id: id)
         let status = RegisterEventHotKey(
@@ -124,11 +126,13 @@ final class HotKeyManager {
             } else {
                 hotKeyRefs.append(ref)
             }
+        } else if !recordingOnly {
+            registrationFailures.append("\(label) could not register. Choose a different shortcut.")
         }
     }
 
-    private func register(shortcut: KeyShortcut, id: UInt32) {
-        register(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers, id: id)
+    private func register(shortcut: KeyShortcut, id: UInt32, label: String) {
+        register(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers, id: id, label: label)
     }
 }
 

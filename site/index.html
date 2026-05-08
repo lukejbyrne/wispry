@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wispry | Speak once, paste clean text anywhere</title>
-  <meta name="description" content="Wispry is a macOS dictation utility that turns messy speech into clean text and pastes it back into the app you started from.">
+  <title>Wispry | Private Mac dictation that pastes clean text in place</title>
+  <meta name="description" content="Wispry is a native macOS dictation utility for short bursts of speech, conservative cleanup, and reliable paste back into the app you started from.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     :root {
       --ink: #101510;
@@ -83,13 +84,9 @@
     .brand-mark {
       width: 23px;
       height: 23px;
-      display: inline-grid;
-      place-items: center;
-      border-radius: 50%;
-      background: var(--text);
-      color: var(--ink);
-      font-size: 13px;
-      font-weight: 950;
+      display: block;
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px rgba(246, 241, 229, 0.18);
     }
 
     .nav-links {
@@ -117,7 +114,7 @@
 
     .hero {
       position: relative;
-      min-height: 94svh;
+      min-height: min(94svh, 980px);
       overflow: hidden;
       color: var(--paper-text);
       border-bottom: 1px solid var(--line);
@@ -144,7 +141,7 @@
       position: relative;
       z-index: 3;
       width: min(1120px, calc(100% - 44px));
-      min-height: 94svh;
+      min-height: min(94svh, 980px);
       display: grid;
       grid-template-columns: minmax(0, 0.84fr) minmax(460px, 1fr);
       align-items: center;
@@ -181,11 +178,11 @@
     }
 
     h1 {
-      max-width: 560px;
-      margin-bottom: 20px;
+      max-width: 500px;
+      margin-bottom: 18px;
       color: var(--paper-text);
-      font-size: clamp(68px, 9vw, 132px);
-      line-height: 0.86;
+      font-size: clamp(52px, 6vw, 92px);
+      line-height: 0.94;
       letter-spacing: 0;
     }
 
@@ -242,8 +239,9 @@
     }
 
     .proof-line {
-      display: flex;
-      flex-wrap: wrap;
+      max-width: 580px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       margin-top: 44px;
       color: rgba(23, 24, 19, 0.56);
@@ -261,7 +259,7 @@
     .hero-visual {
       position: relative;
       min-width: 0;
-      min-height: 590px;
+      min-height: 430px;
       padding: 24px;
       border: 1px solid rgba(23, 24, 19, 0.16);
       border-radius: 18px;
@@ -297,16 +295,41 @@
       white-space: nowrap;
     }
 
+    .window-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .window-dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(246, 241, 229, 0.26);
+    }
+
+    .window-bars {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .window-bars i {
+      width: 42px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(246, 241, 229, 0.18);
+    }
+
     .menu-dot {
       width: 7px;
       height: 7px;
       display: inline-block;
       border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 18px rgba(171, 213, 107, 0.58);
     }
 
-    .compose-window {
+    .conversion-window {
       position: relative;
       min-width: 0;
       margin-top: 22px;
@@ -318,258 +341,318 @@
       box-shadow: 0 26px 72px rgba(0, 0, 0, 0.32);
     }
 
-    .compose-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(23, 24, 19, 0.12);
-      background: #fbf4e2;
-      font-size: 13px;
-      font-weight: 850;
-    }
-
-    .compose-top span {
-      color: rgba(23, 24, 19, 0.52);
-      font-size: 12px;
-      font-weight: 750;
-    }
-
-    .compose-body {
+    .conversion-body {
       display: grid;
-      gap: 14px;
       padding: 18px;
     }
 
-    .raw-note,
-    .clean-note {
+    .conversion-map {
+      position: relative;
       display: grid;
-      gap: 8px;
-      min-height: 112px;
+      grid-template-columns: minmax(0, 0.94fr) 46px minmax(0, 1.06fr);
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .handoff-beam {
+      position: absolute;
+      left: calc(50% - 62px);
+      right: calc(50% - 62px);
+      top: 50%;
+      z-index: 3;
+      height: 2px;
+      overflow: hidden;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%);
+      animation: beamCycle 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+    }
+
+    .handoff-beam::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: translateX(-100%);
+      animation: beamSweep 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+    }
+
+    .signal-panel,
+    .text-panel {
+      min-width: 0;
+      min-height: 252px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
       padding: 16px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.48;
+      border-radius: 8px;
     }
 
-    .raw-note {
-      color: rgba(23, 24, 19, 0.52);
-      background: rgba(23, 24, 19, 0.055);
+    .signal-panel {
+      color: rgba(246, 241, 229, 0.82);
+      background:
+        linear-gradient(90deg, rgba(246, 241, 229, 0.08), transparent 1px),
+        linear-gradient(0deg, rgba(246, 241, 229, 0.06), transparent 1px),
+        #101810;
+      background-size: 24px 24px;
+      border: 1px solid rgba(246, 241, 229, 0.1);
     }
 
-    .raw-note span {
-      text-decoration: line-through;
-      text-decoration-thickness: 1px;
-      text-decoration-color: rgba(201, 69, 54, 0.66);
+    .text-panel {
+      color: var(--paper-text);
+      background: #fff9e9;
+      border: 1px solid rgba(23, 24, 19, 0.12);
     }
 
-    .clean-note {
-      color: #182017;
-      background: #e6f0cd;
-      border: 1px solid rgba(49, 94, 29, 0.18);
-      font-size: 18px;
-      font-weight: 850;
-    }
-
-    .raw-note small,
-    .clean-note small {
-      color: rgba(23, 24, 19, 0.54);
+    .stage-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
       font-size: 11px;
       font-weight: 950;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      text-decoration: none;
     }
 
-    .clean-note small {
-      color: #315e1d;
-    }
-
-    .compose-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 0 18px 22px;
-      color: rgba(23, 24, 19, 0.54);
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .compose-foot b {
-      color: #315e1d;
-    }
-
-    .speech-strip {
-      position: relative;
-      margin: 36px 18px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      min-height: 92px;
-      padding: 0 22px;
-      border: 1px solid rgba(246, 241, 229, 0.12);
-      border-radius: 999px;
-      background: rgba(246, 241, 229, 0.06);
-      color: var(--text);
-    }
-
-    .voice-badge,
-    .paste-badge {
-      flex: 0 0 auto;
-      color: rgba(246, 241, 229, 0.72);
-      font-size: 12px;
-      font-weight: 950;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .paste-badge {
+    .signal-panel .stage-label {
       color: var(--accent);
     }
 
-    .speech-bars {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      min-width: 104px;
+    .text-panel .stage-label {
+      color: #315e1d;
     }
 
-    .speech-strip i {
-      width: 7px;
-      border-radius: 999px;
-      background: rgba(246, 241, 229, 0.8);
-      transform-origin: center;
-      transition: transform 180ms ease, background 180ms ease;
-    }
-
-    .speech-strip i:nth-child(1) { height: 24px; }
-    .speech-strip i:nth-child(2) { height: 48px; }
-    .speech-strip i:nth-child(3) { height: 32px; }
-    .speech-strip i:nth-child(4) { height: 62px; }
-    .speech-strip i:nth-child(5) { height: 36px; }
-    .speech-strip i:nth-child(6) { height: 54px; }
-    .speech-strip i:nth-child(7) { height: 28px; }
-
-    .flow-line {
-      position: relative;
-      flex: 1 1 auto;
-      height: 1px;
-      min-width: 74px;
-      background: linear-gradient(90deg, rgba(246, 241, 229, 0.16), rgba(171, 213, 107, 0.68));
-    }
-
-    .flow-line::after {
-      content: "";
-      position: absolute;
-      top: -4px;
-      right: -1px;
+    .recording-dot {
       width: 9px;
       height: 9px;
-      border-top: 1px solid rgba(171, 213, 107, 0.78);
-      border-right: 1px solid rgba(171, 213, 107, 0.78);
-      transform: rotate(45deg);
-    }
-
-    .hero-visual:hover .speech-strip i {
-      background: var(--accent);
-      transform: scaleY(0.62);
-    }
-
-    .bubble-cursor {
-      position: fixed;
-      left: calc(100vw - 82px);
-      top: 76vh;
-      z-index: 80;
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(246, 241, 229, 0.36);
+      flex: 0 0 auto;
+      border: 3px solid rgba(171, 213, 107, 0.18);
       border-radius: 50%;
-      background: rgba(13, 19, 13, 0.88);
-      box-shadow: 0 0 0 9px rgba(171, 213, 107, 0.09), 0 20px 40px rgba(0, 0, 0, 0.28);
-      color: var(--text);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      transition: transform 120ms ease-out;
+      background: var(--accent);
+      animation: recordDot 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
     }
 
-    .sound-mark {
+    .waveform {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      width: 20px;
-      height: 20px;
+      gap: 7px;
+      min-height: 92px;
     }
 
-    .sound-mark i {
-      width: 3px;
+    .waveform i {
+      width: 7px;
       border-radius: 999px;
-      background: var(--text);
+      background: var(--accent);
+      animation: voicePulse 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+      transform-origin: center;
     }
 
-    .sound-mark i:nth-child(1) {
-      height: 7px;
+    .waveform i:nth-child(1) { height: 30px; animation-delay: -120ms; }
+    .waveform i:nth-child(2) { height: 62px; animation-delay: -340ms; }
+    .waveform i:nth-child(3) { height: 42px; animation-delay: -60ms; }
+    .waveform i:nth-child(4) { height: 78px; animation-delay: -520ms; }
+    .waveform i:nth-child(5) { height: 48px; animation-delay: -220ms; }
+    .waveform i:nth-child(6) { height: 68px; animation-delay: -440ms; }
+    .waveform i:nth-child(7) { height: 34px; animation-delay: -160ms; }
+
+    @keyframes voicePulse {
+      0%, 8%, 55%, 100% {
+        transform: scaleY(0.62);
+        opacity: 0.62;
+      }
+      16%, 24%, 34% {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+      20%, 29% {
+        transform: scaleY(0.42);
+        opacity: 0.72;
+      }
     }
 
-    .sound-mark i:nth-child(2) {
-      height: 13px;
+    @keyframes recordDot {
+      0%, 55%, 100% {
+        opacity: 0.5;
+        transform: scale(0.84);
+      }
+      12%, 36% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
-    .sound-mark i:nth-child(3) {
-      height: 9px;
+    .spoken-text {
+      margin: 0;
+      color: rgba(246, 241, 229, 0.75);
+      font-size: 15px;
+      line-height: 1.45;
     }
 
-    .wave-tail {
-      position: fixed;
-      z-index: 79;
+    .spoken-text mark {
+      padding: 0 2px;
+      border-radius: 4px;
+      background: rgba(201, 69, 54, 0.16);
+      color: rgba(246, 241, 229, 0.62);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+      text-decoration-color: rgba(201, 69, 54, 0.7);
+      animation: rejectWord 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+    }
+
+    .conversion-arrow {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 3px;
-      pointer-events: none;
-      transform: translate(-50%, -50%) rotate(var(--angle));
-      animation: waveTailFade 820ms ease-out forwards;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 950;
     }
 
-    .wave-tail i {
-      width: 3px;
-      border-radius: 999px;
-      background: rgba(49, 94, 29, 0.78);
+    .conversion-arrow::before {
+      content: "";
+      position: absolute;
+      top: 22px;
+      bottom: 22px;
+      left: 50%;
+      width: 1px;
+      background: linear-gradient(180deg, rgba(23, 24, 19, 0.12), rgba(171, 213, 107, 0.84), rgba(23, 24, 19, 0.12));
+      transform: translateX(-50%);
     }
 
-    .wave-tail i:nth-child(1) {
-      height: 7px;
-      opacity: 0.62;
+    .conversion-arrow span {
+      position: relative;
+      z-index: 1;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #152015;
+      border: 1px solid rgba(171, 213, 107, 0.32);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+      animation: arrowCycle 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
     }
 
-    .wave-tail i:nth-child(2) {
-      height: 15px;
-      opacity: 0.9;
+    .editor-shell {
+      display: grid;
+      gap: 14px;
     }
 
-    .wave-tail i:nth-child(3) {
+    .editor-row {
       height: 10px;
-      opacity: 0.74;
+      border-radius: 999px;
+      background: rgba(23, 24, 19, 0.12);
     }
 
-    .wave-tail i:nth-child(4) {
-      height: 18px;
-      opacity: 0.54;
+    .editor-row.short {
+      width: 58%;
     }
 
-    @keyframes waveTailFade {
-      from {
-        opacity: 0.95;
-        transform: translate(-50%, -50%) rotate(var(--angle)) scale(1);
-      }
-      to {
+    .clean-output {
+      margin: 0;
+      padding-top: 6px;
+      color: #182017;
+      font-size: 20px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .typed-text {
+      display: inline-block;
+      overflow: hidden;
+      max-width: 100%;
+      white-space: normal;
+      vertical-align: bottom;
+      animation: revealCleanText 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+    }
+
+    .typing-caret {
+      width: 2px;
+      height: 1em;
+      display: inline-block;
+      margin-left: 3px;
+      background: #315e1d;
+      vertical-align: -0.12em;
+      animation: caretBlink 920ms steps(1, end) infinite, caretCycle 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
+    }
+
+    .recording-dot,
+    .spoken-text mark,
+    .conversion-arrow span,
+    .typed-text,
+    .typing-caret,
+    .handoff-beam,
+    .handoff-beam::before {
+      animation-delay: -3200ms;
+    }
+
+    @keyframes caretBlink {
+      50% {
         opacity: 0;
-        transform: translate(calc(-50% - var(--drift-x)), calc(-50% - var(--drift-y))) rotate(var(--angle)) scale(0.72);
+      }
+    }
+
+    @keyframes rejectWord {
+      0%, 8% {
+        background: rgba(201, 69, 54, 0);
+        color: rgba(246, 241, 229, 0.78);
+        text-decoration-color: rgba(201, 69, 54, 0);
+      }
+      18%, 100% {
+        background: rgba(201, 69, 54, 0.16);
+        color: rgba(246, 241, 229, 0.62);
+        text-decoration-color: rgba(201, 69, 54, 0.7);
+      }
+    }
+
+    @keyframes beamCycle {
+      0%, 20%, 46%, 100% {
+        opacity: 0;
+      }
+      28%, 38% {
+        opacity: 0.78;
+      }
+    }
+
+    @keyframes beamSweep {
+      0%, 21% {
+        transform: translateX(-100%);
+      }
+      43%, 100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes arrowCycle {
+      0%, 20%, 48%, 100% {
+        background: #152015;
+        border-color: rgba(171, 213, 107, 0.32);
+      }
+      32% {
+        background: #1d2b1b;
+        border-color: rgba(171, 213, 107, 0.56);
+      }
+    }
+
+    @keyframes revealCleanText {
+      0%, 26% {
+        clip-path: inset(0 100% 0 0);
+      }
+      52%, 100% {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+
+    @keyframes caretCycle {
+      0%, 26% {
+        transform: translateX(-10px);
+      }
+      52%, 100% {
+        transform: translateX(0);
       }
     }
 
@@ -683,6 +766,9 @@
 
     .fake-player {
       min-height: 210px;
+      display: grid;
+      gap: 14px;
+      align-content: center;
       border: 1px solid rgba(246, 241, 229, 0.12);
       border-radius: 9px;
       background:
@@ -693,49 +779,65 @@
       background-size: 32px 32px, 32px 32px, auto, auto;
       position: relative;
       overflow: hidden;
+      padding: 22px;
     }
 
-    .fake-player::before,
-    .fake-player::after {
-      content: "";
-      position: absolute;
-      left: 24px;
-      right: 24px;
-      height: 9px;
-      border-radius: 999px;
-      background: rgba(246, 241, 229, 0.14);
+    .proof-step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 12px;
+      align-items: start;
+      color: var(--text);
     }
 
-    .fake-player::before {
-      top: 42px;
-      width: 58%;
-    }
-
-    .fake-player::after {
-      top: 68px;
-      width: 78%;
-    }
-
-    .play-dot {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 64px;
-      height: 64px;
-      border: 1px solid rgba(246, 241, 229, 0.22);
+    .proof-step span {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(171, 213, 107, 0.32);
       border-radius: 50%;
-      background: rgba(246, 241, 229, 0.1);
-      transform: translate(-50%, -50%);
+      color: var(--accent);
+      background: rgba(171, 213, 107, 0.1);
+      font-size: 12px;
+      font-weight: 950;
     }
 
-    .play-dot::before {
-      content: "";
-      position: absolute;
-      left: 25px;
-      top: 20px;
-      border-left: 18px solid var(--text);
-      border-top: 12px solid transparent;
-      border-bottom: 12px solid transparent;
+    .proof-step b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .proof-step p,
+    .proof-result p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .proof-result {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid rgba(171, 213, 107, 0.24);
+      border-radius: 9px;
+      background: rgba(171, 213, 107, 0.1);
+    }
+
+    .proof-result small {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .proof-result strong {
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.35;
     }
 
     .privacy-grid {
@@ -948,7 +1050,12 @@
         margin-right: 22px;
         min-height: auto;
         grid-template-columns: 1fr;
-        padding: 104px 0 48px;
+        padding: 96px 0 44px;
+      }
+
+      h1 {
+        font-size: clamp(42px, 12.4vw, 52px);
+        line-height: 0.96;
       }
 
       .hero-copy {
@@ -957,54 +1064,76 @@
 
       .hero-visual {
         width: min(346px, calc(100vw - 44px));
-        min-height: 526px;
+        min-height: auto;
         padding: 14px;
         overflow: hidden;
       }
 
-      .desktop-menu span:last-child,
-      .compose-top span {
-        display: none;
-      }
-
-      .raw-note,
-      .clean-note {
-        min-height: auto;
-        overflow-wrap: anywhere;
-      }
-
-      .clean-note {
-        font-size: 16px;
-      }
-
-      .speech-strip {
-        margin: 24px 0 0;
-        min-height: 74px;
+      .proof-line {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-        padding: 0 14px;
+        margin-top: 30px;
+        font-size: 11px;
+        line-height: 1.22;
       }
 
-      .voice-badge,
-      .paste-badge {
-        font-size: 10px;
+      .proof-line strong {
+        font-size: 14px;
       }
 
-      .speech-bars {
-        min-width: 74px;
-        gap: 6px;
-      }
-
-      .speech-strip i {
-        width: 5px;
-      }
-
-      .flow-line {
-        min-width: 28px;
-      }
-
-      .bubble-cursor,
-      .wave-tail {
+      .desktop-menu span:last-child {
         display: none;
+      }
+
+      .conversion-body {
+        padding: 14px;
+      }
+
+      .conversion-map {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .signal-panel,
+      .text-panel {
+        min-height: 148px;
+        padding: 14px;
+      }
+
+      .waveform {
+        min-height: 54px;
+      }
+
+      .spoken-text {
+        font-size: 14px;
+      }
+
+      .conversion-arrow {
+        min-height: 42px;
+        font-size: 21px;
+      }
+
+      .conversion-arrow span {
+        transform: rotate(90deg);
+      }
+
+      .handoff-beam {
+        display: none;
+      }
+
+      .conversion-arrow::before {
+        left: 0;
+        right: 0;
+        top: 50%;
+        bottom: auto;
+        width: auto;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(23, 24, 19, 0.12), rgba(171, 213, 107, 0.84), rgba(23, 24, 19, 0.12));
+        transform: translateY(-50%);
+      }
+
+      .clean-output {
+        font-size: 17px;
       }
 
       .workflow,
@@ -1032,15 +1161,30 @@
       .button {
         transition: none;
       }
+
+      .waveform i,
+      .recording-dot,
+      .spoken-text mark,
+      .conversion-arrow span,
+      .typed-text,
+      .typing-caret,
+      .handoff-beam,
+      .handoff-beam::before {
+        animation: none;
+      }
+
+      .typed-text {
+        clip-path: none;
+      }
     }
   </style>
 </head>
 <body>
   <nav class="site-nav" aria-label="Primary navigation">
-    <a class="brand" href="#"><span class="brand-mark">W</span> Wispry</a>
+    <a class="brand" href="#top"><img class="brand-mark" src="favicon.svg" alt="" width="23" height="23"> Wispry</a>
     <div class="nav-links">
       <a href="#workflow">Workflow</a>
-      <a href="#watch">Watch</a>
+      <a href="#watch">Proof</a>
       <a href="#privacy">Privacy</a>
       <a href="#pricing">Pricing</a>
     </div>
@@ -1051,37 +1195,45 @@
     <div class="hero-inner">
       <div>
         <span class="eyebrow">Private dictation for Mac</span>
-        <h1>Wispry</h1>
-        <p class="hero-copy">Talk through the messy version. Wispry keeps the final thought and pastes it back where you were typing.</p>
+        <h1>Voice to text.</h1>
+        <p class="hero-copy">Cleaned and pasted where your cursor was.</p>
         <div class="hero-actions">
-          <a class="button" href="#download">Download for Mac</a>
-          <a class="button secondary" href="#watch">Watch it work</a>
+          <a class="button" href="downloads/Wispry-0.1.0.dmg" download>Download Mac beta</a>
+          <a class="button secondary" href="#watch">See it work</a>
         </div>
         <div class="proof-line" aria-label="Product highlights">
-          <div><strong>Double Fn</strong>Hold or latch recording</div>
-          <div><strong>Takebacks</strong>Handles "no, actually"</div>
-          <div><strong>Paste path</strong>Clipboard first, Cmd+V after</div>
+          <div><strong>Voice</strong></div>
+          <div><strong>Clean</strong></div>
+          <div><strong>Paste</strong></div>
         </div>
       </div>
 
-      <aside class="hero-visual" aria-label="Wispry desktop preview">
+      <aside class="hero-visual" aria-label="Voice converted into clean text by Wispry">
         <div class="desktop-menu">
-          <span><b>Finder</b> File Edit View Go Window Help</span>
-          <span><i class="menu-dot"></i> Wispry listening</span>
+          <span class="window-dots"><i></i><i></i><i></i></span>
+          <span class="window-bars"><i></i><i></i><i></i></span>
+          <span><i class="menu-dot"></i></span>
         </div>
-        <div class="compose-window">
-          <div class="compose-top"><b>Mail draft</b><span>Cursor stayed here</span></div>
-          <div class="compose-body">
-            <div class="raw-note"><small>Messy voice</small><span>Send it Friday. No, actually say Thursday morning and make it sound less blunt.</span></div>
-            <div class="clean-note"><small>Clean paste</small><span>Send it Thursday morning, and keep the tone warm.</span></div>
+        <div class="conversion-window">
+          <div class="conversion-body">
+            <div class="conversion-map">
+              <span class="handoff-beam" aria-hidden="true"></span>
+              <div class="signal-panel">
+                <div class="stage-label"><span>Voice</span><span class="recording-dot" aria-hidden="true"></span></div>
+                <div class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <p class="spoken-text"><mark>Friday.</mark> Take that back: Thursday, less blunt.</p>
+              </div>
+              <div class="conversion-arrow" aria-hidden="true"><span>&rarr;</span></div>
+              <div class="text-panel">
+                <div class="stage-label"><span>Text</span><span>Mail</span></div>
+                <div class="editor-shell" aria-hidden="true">
+                  <span class="editor-row short"></span>
+                  <span class="editor-row"></span>
+                </div>
+                <p class="clean-output"><span class="typed-text">Thursday morning. Warm tone.</span><span class="typing-caret" aria-hidden="true"></span></p>
+              </div>
+            </div>
           </div>
-          <div class="compose-foot"><span>Copied to clipboard</span><b>Pasted into Mail</b></div>
-        </div>
-        <div class="speech-strip" aria-hidden="true">
-          <span class="voice-badge">Voice in</span>
-          <span class="speech-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="flow-line"></span>
-          <span class="paste-badge">Clean paste</span>
         </div>
       </aside>
     </div>
@@ -1090,23 +1242,22 @@
   <main>
     <section class="section light" id="workflow">
       <div class="section-inner">
-        <h2>A tiny control surface for text you do not want to type.</h2>
-        <p>Hold Function, double tap Function, or click the floating bubble. Wispry captures the thought, cleans the mess, and gets out of the way.</p>
+        <h2>Speak. Clean. Paste.</h2>
         <div class="workflow">
           <article>
             <span>01</span>
             <h3>Listen</h3>
-            <p>Use push-to-talk for quick lines or latch recording when you need a longer thought.</p>
+            <p>Fn key or floating bubble.</p>
           </article>
           <article>
             <span>02</span>
             <h3>Polish</h3>
-            <p>Fillers, repeated words, spoken punctuation, and takebacks are cleaned before the text leaves Wispry.</p>
+            <p>Fillers, punctuation, clear takebacks.</p>
           </article>
           <article>
             <span>03</span>
             <h3>Paste</h3>
-            <p>The result is copied first, then pasted into the app you were using.</p>
+            <p>Clipboard first. Active app next.</p>
           </article>
         </div>
       </div>
@@ -1114,17 +1265,29 @@
 
     <section class="section dark" id="watch">
       <div class="section-inner">
-        <span class="eyebrow">Show, don't explain</span>
-        <h2>Built for short screen recordings.</h2>
-        <p>The page is ready for quick product clips: one showing the bubble, one showing speech turning into a clean paste. Until those clips exist, the slots behave like quiet product frames instead of stock mockups.</p>
+        <span class="eyebrow">Proof</span>
+        <h2>Rough speech in. Clean text out.</h2>
         <div class="video-strip">
           <article class="video-tile large">
-            <div class="video-label"><b>Dictate in place</b><span>12 sec clip</span></div>
-            <div class="fake-player"><span class="play-dot" aria-hidden="true"></span></div>
+            <div class="video-label"><b>Dictate in place</b><span>3 steps</span></div>
+            <div class="fake-player">
+              <div class="proof-step"><span>1</span><p><b>Target app</b>Keep your cursor there.</p></div>
+              <div class="proof-step"><span>2</span><p><b>Voice</b>Speak the rough version.</p></div>
+              <div class="proof-step"><span>3</span><p><b>Paste</b>Clean text lands back.</p></div>
+            </div>
           </article>
           <article class="video-tile">
-            <div class="video-label"><b>Clean a correction</b><span>8 sec clip</span></div>
-            <div class="fake-player"><span class="play-dot" aria-hidden="true"></span></div>
+            <div class="video-label"><b>Clean a correction</b><span>example</span></div>
+            <div class="fake-player">
+              <div class="proof-result">
+                <small>Raw speech</small>
+                <p>Use the green one. Take that back, use the red one.</p>
+              </div>
+              <div class="proof-result">
+                <small>Clean paste</small>
+                <strong>Use the red one.</strong>
+              </div>
+            </div>
           </article>
         </div>
       </div>
@@ -1132,21 +1295,21 @@
 
     <section class="section light" id="privacy">
       <div class="section-inner">
-        <span class="eyebrow">Privacy first</span>
-        <h2>Your dictation tool should not feel creepy.</h2>
-        <p>Wispry is built local-first: your cleanup rules, snippets, dictionary terms, and history live on your Mac, and the text polish happens inside the app before anything is pasted.</p>
+        <span class="eyebrow">Privacy</span>
+        <h2>Clear boundaries.</h2>
+        <p>Local settings. Apple Speech. Explicit clipboard fallback.</p>
         <div class="privacy-grid">
           <article class="privacy-card">
             <small>On your Mac</small>
-            <h3>History and cleanup stay local.</h3>
-            <p>Recent dictations, reusable snippets, dictionary hints, and cleanup preferences are stored in local app settings. Wispry does not need an account to remember them.</p>
+            <h3>History stays local.</h3>
+            <p>Dictations, snippets, dictionary hints, and cleanup preferences live in local app settings.</p>
           </article>
           <article class="privacy-card dark-card">
             <small>Speech recognition</small>
             <ul class="privacy-list">
-              <li><b>Mac permission gate</b>Microphone and Speech Recognition access are requested by macOS.</li>
-              <li><b>On-device when available</b>Wispry asks Apple Speech for local recognition when your Mac and language support it.</li>
-              <li><b>No live transcript wall</b>The floating bubble stays minimal while you speak.</li>
+              <li><b>macOS prompts</b>Microphone, Speech Recognition, Accessibility.</li>
+              <li><b>Apple Speech</b>Recognition behavior depends on macOS language and availability.</li>
+              <li><b>Clipboard first</b>The cleaned text is recoverable before paste.</li>
             </ul>
           </article>
         </div>
@@ -1155,17 +1318,17 @@
 
     <section class="section dark" id="cleanup">
       <div class="section-inner">
-        <h2>Made for people who correct themselves while speaking.</h2>
+        <h2>Corrections need intent.</h2>
         <div class="cleanup-grid">
           <div class="quote-box">
             <small>Raw speech</small>
             <p>Use the green one. Take that back, use the red one.</p>
-            <output>Wispry notices the correction and removes the abandoned instruction.</output>
+            <output>Only explicit takebacks rewrite text.</output>
           </div>
           <div class="quote-box">
             <small>Clean result</small>
             <p>Use the red one.</p>
-            <output>Short enough for chat, clean enough for work, still in your voice.</output>
+            <output>"No" and "actually" stay words.</output>
           </div>
         </div>
       </div>
@@ -1174,13 +1337,13 @@
     <section class="section light" id="download">
       <div class="section-inner">
         <span class="eyebrow" id="pricing">Founding access</span>
-        <h2>Free for the community, cheap enough to own.</h2>
-        <p>Free for Skool members while the product is improving. A one-time founding license for everyone else.</p>
+        <h2>Mac beta now. Paid build later.</h2>
+        <p>No checkout until signing and updates are real.</p>
         <div class="pricing">
           <article class="price-card">
-            <small>Skool members</small>
+            <small>Beta access</small>
             <div class="price">Free</div>
-            <p>Use it, pressure test it, and shape the product while the workflow is being hardened.</p>
+            <p>Pressure test paste reliability and cleanup.</p>
             <ul class="price-list">
               <li>Mac menu bar app</li>
               <li>Dictation history</li>
@@ -1188,18 +1351,18 @@
             </ul>
           </article>
           <article class="price-card featured">
-            <small>Founding license</small>
+            <small>Release target</small>
             <div class="price">$9.99 lifetime</div>
-            <p>A simple one-time purchase for people who want the app without another monthly subscription.</p>
+            <p>One-time purchase, once release plumbing exists.</p>
             <ul class="price-list">
-              <li>Lifetime access to the local Mac build</li>
+              <li>Signed and notarized download</li>
               <li>No recurring subscription</li>
-              <li>Early buyer pricing while Wispry is young</li>
+              <li>Update path and support terms published before payment</li>
             </ul>
           </article>
         </div>
         <div class="hero-actions">
-          <a class="button" href="#">Download local build</a>
+          <a class="button" href="downloads/Wispry-0.1.0.dmg" download>Download Mac beta</a>
         </div>
       </div>
     </section>
@@ -1208,60 +1371,9 @@
   <footer class="footer">
     <div class="footer-inner">
       <span>Wispry</span>
-      <span>Speak, polish, paste.</span>
+      <span>Speak. Clean. Paste.</span>
     </div>
   </footer>
 
-  <div class="bubble-cursor" aria-hidden="true"><span class="sound-mark"><i></i><i></i><i></i></span></div>
-
-  <script>
-    const bubble = document.querySelector(".bubble-cursor");
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pointer = { x: window.innerWidth - 82, y: window.innerHeight * 0.76 };
-    const smooth = { x: pointer.x, y: pointer.y };
-    let lastTrail = 0;
-    let lastX = pointer.x;
-    let lastY = pointer.y;
-    let raf = null;
-
-    function movePointer(event) {
-      pointer.x = event.clientX;
-      pointer.y = event.clientY;
-      const now = performance.now();
-      if (!reducedMotion && now - lastTrail > 56) {
-        lastTrail = now;
-        addWaveTail(pointer.x, pointer.y, pointer.x - lastX, pointer.y - lastY);
-      }
-      lastX = pointer.x;
-      lastY = pointer.y;
-    }
-
-    function renderBubble() {
-      smooth.x += (pointer.x - smooth.x) * 0.18;
-      smooth.y += (pointer.y - smooth.y) * 0.18;
-      bubble.style.left = `${smooth.x}px`;
-      bubble.style.top = `${smooth.y}px`;
-      raf = requestAnimationFrame(renderBubble);
-    }
-
-    function addWaveTail(x, y, dx, dy) {
-      const tail = document.createElement("span");
-      const angle = Math.atan2(dy || 1, dx || 1) * 180 / Math.PI + 90;
-      tail.className = "wave-tail";
-      tail.style.left = `${x}px`;
-      tail.style.top = `${y}px`;
-      tail.style.setProperty("--angle", `${angle}deg`);
-      tail.style.setProperty("--drift-x", `${Math.max(-22, Math.min(22, dx * 2))}px`);
-      tail.style.setProperty("--drift-y", `${Math.max(-22, Math.min(22, dy * 2))}px`);
-      tail.innerHTML = "<i></i><i></i><i></i><i></i>";
-      document.body.appendChild(tail);
-      tail.addEventListener("animationend", () => tail.remove(), { once: true });
-    }
-
-    if (bubble && !reducedMotion && window.matchMedia("(pointer: fine)").matches) {
-      window.addEventListener("pointermove", movePointer, { passive: true });
-      raf = requestAnimationFrame(renderBubble);
-    }
-  </script>
 </body>
 </html>

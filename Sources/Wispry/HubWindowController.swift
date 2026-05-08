@@ -1,5 +1,8 @@
 import AppKit
+import ApplicationServices
+import AVFoundation
 import Carbon
+import Speech
 
 private enum HubPalette {
     static let signalSurface = NSColor(calibratedRed: 0.062, green: 0.080, blue: 0.062, alpha: 1)
@@ -76,7 +79,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private var historyExpandedAll = false
     private var historyQuery = ""
     private var shortcutCaptureAction: ShortcutAction?
-    private var shortcutCaptureMonitor: Any?
+    private var shortcutCaptureMonitors: [Any] = []
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
@@ -136,9 +139,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     deinit {
-        if let shortcutCaptureMonitor {
-            NSEvent.removeMonitor(shortcutCaptureMonitor)
+        for monitor in shortcutCaptureMonitors {
+            NSEvent.removeMonitor(monitor)
         }
+        appDelegate?.setShortcutCaptureActive(false)
     }
 
     override func viewWillAppear() {
@@ -147,10 +151,24 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func buildSidebar() {
+        let brandRow = NSStackView()
+        brandRow.orientation = .horizontal
+        brandRow.alignment = .centerY
+        brandRow.spacing = 9
+
+        let mark = NSImageView(image: WispryIcon.appMark(size: 26))
+        mark.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            mark.widthAnchor.constraint(equalToConstant: 26),
+            mark.heightAnchor.constraint(equalToConstant: 26)
+        ])
+        brandRow.addArrangedSubview(mark)
+
         let brand = NSTextField(labelWithString: "Wispry")
         brand.font = NSFont.systemFont(ofSize: 20, weight: .bold)
         brand.textColor = HubPalette.signalText
-        sidebar.addArrangedSubview(brand)
+        brandRow.addArrangedSubview(brand)
+        sidebar.addArrangedSubview(brandRow)
 
         let tagline = NSTextField(labelWithString: "voice in, text out")
         tagline.font = NSFont.systemFont(ofSize: 11, weight: .medium)
@@ -307,13 +325,14 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(topLine)
         stack.addArrangedSubview(meter)
         stack.addArrangedSubview(buttons)
+        stack.addArrangedSubview(permissionChecklist())
         stack.addArrangedSubview(signalSeparator())
         stack.addArrangedSubview(signalStatusLine(label: "Target", value: "Frontmost app"))
         stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: homeStylePicker()))
-        stack.addArrangedSubview(signalStatusLine(label: "Shortcut", value: "Double Fn or click bubble"))
-        stack.addArrangedSubview(signalStatusLine(label: "Output", value: store.autoPaste ? "Automatic paste" : "Clipboard only"))
+        stack.addArrangedSubview(signalStatusLine(label: "Shortcuts", value: appDelegate?.shortcutStatusText() ?? "All shortcuts registered"))
+        stack.addArrangedSubview(signalStatusLine(label: "Paste", value: appDelegate?.outputStatusText() ?? "No dictation pasted yet."))
         stack.addArrangedSubview(toggles)
-        return signalPanel(stack, height: 424)
+        return signalPanel(stack, height: 520)
     }
 
     private func historyView() -> NSView {
@@ -414,13 +433,19 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             stack.addArrangedSubview(shortcutRow(for: action))
         }
 
-        let fixed = NSTextField(wrappingLabelWithString: "Fixed while recording: Return commits, Escape cancels. Fn hold is push-to-talk; double-tap Fn latches, pressing Fn again commits. Mouse trigger: F13.")
+        let fixed = NSTextField(wrappingLabelWithString: "Fixed while recording: Return commits, Escape cancels. Fn hold is push-to-talk; double-tap Fn latches dictation. Mouse trigger: F13.")
         fixed.font = NSFont.systemFont(ofSize: 12, weight: .regular)
         fixed.textColor = HubPalette.muted
         fixed.maximumNumberOfLines = 3
         fixed.widthAnchor.constraint(equalToConstant: 560).isActive = true
         stack.addArrangedSubview(fixed)
-        return signalPanel(stack, height: 326)
+        let status = NSTextField(wrappingLabelWithString: appDelegate?.shortcutStatusText() ?? "All shortcuts registered")
+        status.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        status.textColor = (appDelegate?.shortcutStatusText() ?? "").contains("could not register") ? HubPalette.signalRed : HubPalette.muted
+        status.maximumNumberOfLines = 3
+        status.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        stack.addArrangedSubview(status)
+        return signalPanel(stack, height: 356)
     }
 
     private func refresh() {
@@ -495,10 +520,117 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func signalStatusLine(label: String, value: String) -> NSView {
-        let valueLabel = NSTextField(labelWithString: value)
+        let valueLabel = NSTextField(wrappingLabelWithString: value)
         valueLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         valueLabel.textColor = HubPalette.signalText
+        valueLabel.maximumNumberOfLines = 2
+        valueLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 420).isActive = true
         return signalControlLine(label: label, control: valueLabel)
+    }
+
+    private func permissionChecklist() -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 7
+        stack.widthAnchor.constraint(equalToConstant: 560).isActive = true
+
+        stack.addArrangedSubview(permissionRow(
+            title: "Microphone",
+            status: microphoneStatus.title,
+            detail: microphoneStatus.detail,
+            ready: microphoneStatus.ready
+        ))
+        stack.addArrangedSubview(permissionRow(
+            title: "Speech",
+            status: speechStatus.title,
+            detail: speechStatus.detail,
+            ready: speechStatus.ready
+        ))
+        stack.addArrangedSubview(permissionRow(
+            title: "Accessibility",
+            status: accessibilityStatus.title,
+            detail: accessibilityStatus.detail,
+            ready: accessibilityStatus.ready
+        ))
+        return stack
+    }
+
+    private func permissionRow(title: String, status: String, detail: String, ready: Bool) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.textColor = HubPalette.signalText
+        titleLabel.widthAnchor.constraint(equalToConstant: 92).isActive = true
+
+        let chip = NSTextField(labelWithString: status)
+        chip.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        chip.textColor = ready ? HubPalette.signalAccent : HubPalette.signalText
+        chip.alignment = .center
+        let chipWrap = NSView()
+        chipWrap.wantsLayer = true
+        chipWrap.layer?.backgroundColor = ready
+            ? HubPalette.signalAccent.withAlphaComponent(0.12).cgColor
+            : HubPalette.signalRed.withAlphaComponent(0.16).cgColor
+        chipWrap.layer?.borderColor = ready
+            ? HubPalette.signalAccent.withAlphaComponent(0.25).cgColor
+            : HubPalette.signalRed.withAlphaComponent(0.35).cgColor
+        chipWrap.layer?.borderWidth = 1
+        chipWrap.layer?.cornerRadius = 7
+        chipWrap.addSubview(chip)
+        chip.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            chip.topAnchor.constraint(equalTo: chipWrap.topAnchor, constant: 4),
+            chip.leadingAnchor.constraint(equalTo: chipWrap.leadingAnchor, constant: 8),
+            chip.trailingAnchor.constraint(equalTo: chipWrap.trailingAnchor, constant: -8),
+            chip.bottomAnchor.constraint(equalTo: chipWrap.bottomAnchor, constant: -4),
+            chipWrap.widthAnchor.constraint(equalToConstant: 116)
+        ])
+
+        let detailLabel = NSTextField(wrappingLabelWithString: detail)
+        detailLabel.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        detailLabel.textColor = HubPalette.signalMuted
+        detailLabel.maximumNumberOfLines = 2
+        detailLabel.widthAnchor.constraint(equalToConstant: 320).isActive = true
+
+        let row = NSStackView(views: [titleLabel, chipWrap, detailLabel])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        row.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        return row
+    }
+
+    private var microphoneStatus: (title: String, detail: String, ready: Bool) {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return ("Ready", "Microphone access is available.", true)
+        case .notDetermined:
+            return ("First use", "macOS will ask when you start dictation.", true)
+        case .denied, .restricted:
+            return ("Blocked", "Open System Settings to allow microphone access.", false)
+        @unknown default:
+            return ("Check", "macOS returned an unknown microphone state.", false)
+        }
+    }
+
+    private var speechStatus: (title: String, detail: String, ready: Bool) {
+        switch SFSpeechRecognizer.authorizationStatus() {
+        case .authorized:
+            return ("Ready", "Speech Recognition access is available.", true)
+        case .notDetermined:
+            return ("First use", "macOS will ask when you start dictation.", true)
+        case .denied, .restricted:
+            return ("Blocked", "Open System Settings to allow Speech Recognition.", false)
+        @unknown default:
+            return ("Check", "macOS returned an unknown speech state.", false)
+        }
+    }
+
+    private var accessibilityStatus: (title: String, detail: String, ready: Bool) {
+        if AXIsProcessTrusted() {
+            return ("Ready", "Wispry can paste and repolish selected text.", true)
+        }
+        return ("Needed", "Required for reliable paste and selected-text rewrite.", false)
     }
 
     private func signalControlLine(label: String, control: NSView) -> NSView {
@@ -732,7 +864,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             : HubPalette.muted
         shortcut.widthAnchor.constraint(equalToConstant: 175).isActive = true
 
-        let record = NSButton(title: "Record", target: self, action: #selector(recordShortcut(_:)))
+        let recordTitle = shortcutCaptureAction == action ? "Cancel" : "Record"
+        let record = NSButton(title: recordTitle, target: self, action: #selector(recordShortcut(_:)))
         record.tag = ShortcutAction.allCases.firstIndex(of: action) ?? 0
         styleSignalSmallButton(record, width: 72)
         let reset = NSButton(title: "Reset", target: self, action: #selector(resetShortcut(_:)))
@@ -768,11 +901,16 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func recordShortcut(_ sender: NSButton) {
         let actions = ShortcutAction.allCases
         guard sender.tag >= 0 && sender.tag < actions.count else { return }
-        shortcutCaptureAction = actions[sender.tag]
-        render(section: .shortcuts)
+        let action = actions[sender.tag]
+        if shortcutCaptureAction == action {
+            cancelShortcutCapture()
+        } else {
+            beginShortcutCapture(action)
+        }
     }
 
     @objc private func resetShortcut(_ sender: NSButton) {
+        cancelShortcutCapture()
         let actions = ShortcutAction.allCases
         guard sender.tag >= 0 && sender.tag < actions.count else { return }
         let action = actions[sender.tag]
@@ -893,16 +1031,57 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func installShortcutCaptureMonitor() {
-        guard shortcutCaptureMonitor == nil else { return }
-        shortcutCaptureMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, let action = self.shortcutCaptureAction else { return event }
-            guard let shortcut = self.shortcut(from: event) else { return nil }
-            self.store.setShortcut(shortcut, for: action)
-            self.appDelegate?.reloadHotKeys()
-            self.shortcutCaptureAction = nil
-            self.render(section: .shortcuts)
-            return nil
+        guard shortcutCaptureMonitors.isEmpty else { return }
+        let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleShortcutCapture(event) == true ? nil : event
         }
+        if let local {
+            shortcutCaptureMonitors.append(local)
+        }
+
+        let global = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            _ = self?.handleShortcutCapture(event)
+        }
+        if let global {
+            shortcutCaptureMonitors.append(global)
+        }
+    }
+
+    private func beginShortcutCapture(_ action: ShortcutAction) {
+        shortcutCaptureAction = action
+        appDelegate?.setShortcutCaptureActive(true)
+        render(section: .shortcuts)
+    }
+
+    private func finishShortcutCapture(_ shortcut: KeyShortcut, for action: ShortcutAction) {
+        store.setShortcut(shortcut, for: action)
+        shortcutCaptureAction = nil
+        appDelegate?.setShortcutCaptureActive(false)
+        render(section: .shortcuts)
+    }
+
+    private func cancelShortcutCapture() {
+        guard shortcutCaptureAction != nil else { return }
+        shortcutCaptureAction = nil
+        appDelegate?.setShortcutCaptureActive(false)
+        render(section: .shortcuts)
+    }
+
+    private func handleShortcutCapture(_ event: NSEvent) -> Bool {
+        guard let action = shortcutCaptureAction else { return false }
+
+        if event.keyCode == UInt16(kVK_Escape) {
+            cancelShortcutCapture()
+            return true
+        }
+
+        guard let shortcut = shortcut(from: event) else {
+            NSSound.beep()
+            return true
+        }
+
+        finishShortcutCapture(shortcut, for: action)
+        return true
     }
 
     private func shortcut(from event: NSEvent) -> KeyShortcut? {
