@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skool member access | i don't type</title>
+  <meta name="description" content="Claim i don't type as a free Skool member perk.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script defer data-domain="idonttype.com" src="https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js"></script>
+  <style>
+    :root {
+      --ink: #0d0d0c;
+      --paper: #f2f1ec;
+      --panel: #171716;
+      --muted: rgba(242, 241, 236, 0.68);
+      --line: rgba(242, 241, 236, 0.16);
+      --accent: oklch(66% 0.08 62);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background:
+        radial-gradient(circle at 80% 0%, oklch(66% 0.08 62 / 0.22), transparent 30%),
+        var(--ink);
+      color: var(--paper);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(960px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+
+    a { color: inherit; }
+
+    .back {
+      display: inline-flex;
+      margin-bottom: 46px;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 0;
+      font-size: clamp(48px, 8vw, 92px);
+      line-height: 0.92;
+      letter-spacing: -0.07em;
+    }
+
+    .lede {
+      max-width: 620px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 20px;
+    }
+
+    .panel {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(242, 241, 236, 0.055);
+    }
+
+    .steps {
+      display: grid;
+      gap: 1px;
+      margin: 34px 0 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      gap: 18px;
+      padding: 22px;
+      background: rgba(242, 241, 236, 0.04);
+    }
+
+    .step strong {
+      color: var(--accent);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .step h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .button {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid var(--paper);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .button.secondary {
+      background: transparent;
+      color: var(--paper);
+      border-color: var(--line);
+    }
+
+    .note {
+      margin-top: 20px;
+      color: rgba(242, 241, 236, 0.52);
+      font-size: 14px;
+    }
+
+    @media (max-width: 780px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="index.html">Back to i don't type</a>
+    <div class="hero">
+      <section>
+        <h1>Free for Skool members.</h1>
+        <p class="lede">i don't type is included as a member perk. Join the Skool for the courses and community, then use the member post to claim the Mac beta.</p>
+      </section>
+      <aside class="panel">
+        <p>Not a member yet? The Skool page gives the full context before you join. If you only want the app, use the $19 lifetime option on the main page instead.</p>
+        <div class="actions">
+          <a class="button plausible-event-name=Skool+Join" href="https://www.skool.com/luke">Open Skool</a>
+          <a class="button secondary plausible-event-name=Member+Download" href="downloads/IDontType-0.1.0.dmg" download>Download beta</a>
+        </div>
+        <p class="note">Apple verification is still being finalized, so the current DMG may show Apple's warning until notarization is complete.</p>
+      </aside>
+    </div>
+
+    <div class="steps" aria-label="Skool access steps">
+      <article class="step">
+        <strong>01</strong>
+        <div>
+          <h2>Join or open Skool</h2>
+          <p>Use the Skool page to see the courses, community, and member benefits. i don't type is one of those member perks.</p>
+        </div>
+      </article>
+      <article class="step">
+        <strong>02</strong>
+        <div>
+          <h2>Use the member post</h2>
+          <p>The pinned member post is the claim point for beta access and activation details. This avoids a public promo code getting passed around.</p>
+        </div>
+      </article>
+      <article class="step">
+        <strong>03</strong>
+        <div>
+          <h2>Install the Mac beta</h2>
+          <p>Download the beta, keep the app updated from Home, and send feedback from the menu while the launch build is being tightened.</p>
+        </div>
+      </article>
+    </div>
+  </main>
+</body>
+</html>

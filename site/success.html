@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Purchase complete | i don't type</title>
+  <meta name="description" content="Next steps after buying i don't type founding lifetime access.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script defer data-domain="idonttype.com" src="https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js"></script>
+  <style>
+    :root {
+      --ink: #0d0d0c;
+      --paper: #f2f1ec;
+      --muted: rgba(242, 241, 236, 0.68);
+      --line: rgba(242, 241, 236, 0.16);
+      --accent: oklch(66% 0.08 62);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--ink);
+      color: var(--paper);
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(760px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 76px 0;
+    }
+
+    a { color: inherit; }
+
+    .back {
+      display: inline-flex;
+      margin-bottom: 46px;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .panel {
+      padding: clamp(28px, 6vw, 48px);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 100% 0%, oklch(66% 0.08 62 / 0.18), transparent 30%),
+        rgba(242, 241, 236, 0.055);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(46px, 8vw, 84px);
+      line-height: 0.94;
+      letter-spacing: -0.07em;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .button {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid var(--paper);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .button.secondary {
+      background: transparent;
+      color: var(--paper);
+      border-color: var(--line);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="index.html">Back to i don't type</a>
+    <section class="panel">
+      <h1>You are in.</h1>
+      <p>Stripe has handled the payment and receipt. During this founding beta, activation details are being issued through the launch flow while the Apple-notarized build is finalized.</p>
+      <p>If you need access immediately, download the current beta below. It may show Apple's verification warning until Developer Program enrollment and notarization are complete.</p>
+      <div class="actions">
+        <a class="button plausible-event-name=Success+Download" href="downloads/IDontType-0.1.0.dmg" download>Download current beta</a>
+        <a class="button secondary plausible-event-name=Success+Support" href="mailto:lukebyrnee97@gmail.com?subject=i don't type%20purchase">Need help?</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

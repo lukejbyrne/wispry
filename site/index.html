@@ -6,6 +6,7 @@
   <title>i don't type | Private speech to text for Mac</title>
   <meta name="description" content="i don't type is private Mac speech to text. Click a text field, speak, and paste clean text with local history, no account, no i don't type server, and no hosted audio.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script defer data-domain="idonttype.com" src="https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js"></script>
   <style>
     :root {
       --ink: #0d0d0c;
@@ -1243,6 +1244,33 @@
       color: var(--ink);
     }
 
+    .launch-note {
+      max-width: 1080px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      margin-top: 18px;
+      padding: 18px 20px;
+      border: 1px solid rgba(23, 24, 19, 0.14);
+      border-radius: 12px;
+      background: rgba(23, 24, 19, 0.045);
+      color: rgba(23, 24, 19, 0.68);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .launch-note strong {
+      color: var(--paper-text);
+    }
+
+    .launch-note a {
+      color: var(--paper-text);
+      font-weight: 900;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     .footer {
       padding: 34px 32px;
       border-top: 1px solid var(--line);
@@ -1394,6 +1422,10 @@
         grid-template-columns: 1fr;
       }
 
+      .launch-note {
+        grid-template-columns: 1fr;
+      }
+
       .proof-strip {
         padding: 34px 0;
       }
@@ -1494,7 +1526,7 @@
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
     </div>
-    <a class="nav-action" href="#download">Stop typing</a>
+    <a class="nav-action plausible-event-name=Nav+Stop+Typing" href="#download">Stop typing</a>
   </nav>
 
   <header class="hero" id="top">
@@ -1512,7 +1544,7 @@
           </video>
         </div>
         <div class="hero-actions">
-          <a class="button" href="downloads/IDontType-0.1.0.dmg" download>Download Mac beta</a>
+          <a class="button plausible-event-name=Hero+Get+Access" href="#download">Get launch access</a>
         </div>
       </div>
     </div>
@@ -1602,35 +1634,39 @@
     <section class="section light" id="download">
       <div class="section-inner">
         <span class="eyebrow" id="pricing">Pricing</span>
-        <h2>Get it free when you join my Skool.</h2>
-        <p>i don't type is included as a free member perk. The Skool page has the full context: courses, community, updates, and the Mac beta.</p>
+        <h2>Free for Skool members, $19 if you just want the app.</h2>
+        <p>Join the Skool and get i don't type included with the courses and community. If you only want the Mac app, grab the founding lifetime while it is cheap.</p>
         <div class="pricing">
           <article class="price-card">
             <small>Skool member perk</small>
             <div class="price">Free</div>
-            <p>Join my Skool and get the Mac beta included alongside the courses and community.</p>
+            <p>Already paying for the Skool? Do not pay again. Claim the Mac beta from the member access page.</p>
             <ul class="price-list">
               <li>Private Mac dictation</li>
-              <li>Dictation history</li>
-              <li>Feedback and roadmap votes in Skool</li>
+              <li>Included for Skool members</li>
+              <li>Courses, community, and roadmap feedback</li>
             </ul>
             <div class="price-action">
-              <a class="button" href="https://www.skool.com/luke">Join Skool</a>
+              <a class="button plausible-event-name=Skool+Member+Access" href="skool.html">Skool member access</a>
             </div>
           </article>
           <article class="price-card featured">
             <small>Founding lifetime</small>
             <div class="price">$19</div>
-            <p>A deliberately aggressive early price for people who want to back the app.</p>
+            <p>One-time founding price for people who want the app without joining Skool.</p>
             <ul class="price-list">
-              <li>Unlimited local dictation on Mac</li>
-              <li>Beta updates while the offer is open</li>
-              <li>Founding price while the beta is open</li>
+              <li>Lifetime Mac app access for this founding offer</li>
+              <li>Local Whisper dictation and beta updates</li>
+              <li>Activation details issued through the launch flow</li>
             </ul>
             <div class="price-action">
-              <a class="button" href="downloads/IDontType-0.1.0.dmg" download>Download Mac beta</a>
+              <a class="button plausible-event-name=Buy+Lifetime" href="https://buy.stripe.com/aFa14n5f9dhy9DpejIbjW00">Buy lifetime $19</a>
             </div>
           </article>
+        </div>
+        <div class="launch-note">
+          <span><strong>Launch note:</strong> Apple verification is in progress. The app is built, but the public DMG will stop showing Apple's warning after Developer Program enrollment and notarization are complete.</span>
+          <a class="plausible-event-name=Download+Beta+Fallback" href="downloads/IDontType-0.1.0.dmg" download>Download current beta</a>
         </div>
 	      </div>
 	    </section>
@@ -1662,7 +1698,15 @@
           </details>
           <details class="faq-item">
             <summary>Why so cheap?</summary>
-            <p>The first goal is distribution through Skool. i don't type is free for Skool members, and the Skool page explains the membership, courses, and community.</p>
+            <p>The first goal is distribution. Skool members get it as part of membership, and the $19 lifetime is the early founding price for people who only want the app.</p>
+          </details>
+          <details class="faq-item">
+            <summary>How do Skool members get access?</summary>
+            <p>Use the Skool member access page. It sends members to the Skool context first, then points them to the current beta and activation flow.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What happens after I buy lifetime?</summary>
+            <p>Stripe handles checkout and receipts. During the launch beta, activation details are issued through the launch flow while the signed public build is being finalized.</p>
           </details>
           <details class="faq-item">
             <summary>Do you store transcripts?</summary>
@@ -1681,6 +1725,7 @@
     <div class="footer-inner">
       <span>i don't type</span>
       <div class="footer-links">
+        <a href="skool.html">Skool access</a>
         <a href="privacy.html">Privacy</a>
         <a href="terms.html">Terms</a>
         <a href="mailto:lukebyrnee97@gmail.com?subject=i don't type%20support">Support</a>
