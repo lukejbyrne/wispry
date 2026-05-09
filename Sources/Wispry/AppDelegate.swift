@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore.shared
     private let dictationEngine = DictationEngine()
     private let hotKeys = HotKeyManager()
+    private let updateChecker = UpdateChecker()
 
     private var statusItem: NSStatusItem?
     private var bubbleWindow: BubbleWindow?
@@ -63,9 +64,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .clipboardOnly:
                 return "Copied to clipboard."
             case .accessibilityRequired:
-                return "Copied. Accessibility is not trusted for this build; re-add TypeLocal if it is already enabled."
+                return "Copied. Accessibility is not trusted for this build; re-add i don't type if it is already enabled."
             case .inputControlRequired:
-                return "Copied. Allow TypeLocal to control your computer so it can paste automatically."
+                return "Copied. Allow i don't type to control your computer so it can paste automatically."
             case .noTarget:
                 return "Copied to clipboard. No target app was available to paste into."
             }
@@ -110,6 +111,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopDictation()
         } else if !isProcessingDictation {
             startDictation()
+        }
+    }
+
+    func checkForUpdates() {
+        updateChecker.check { [weak self] result in
+            self?.presentUpdateResult(result)
         }
     }
 
@@ -222,7 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = WispryIcon.statusImage(for: .idle)
         item.button?.imagePosition = .imageOnly
-        item.button?.toolTip = "TypeLocal"
+        item.button?.toolTip = "i don't type"
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
@@ -721,14 +728,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func logDiagnostic(_ message: String) {
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let line = "[\(timestamp)] \(message)\n"
-        NSLog("TypeLocal %@", message)
+        NSLog("i don't type %@", message)
 
         do {
             let logsDirectory = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library")
                 .appendingPathComponent("Logs")
             try FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
-            let logURL = logsDirectory.appendingPathComponent("TypeLocal.log")
+            let logURL = logsDirectory.appendingPathComponent("i don't type.log")
 
             if FileManager.default.fileExists(atPath: logURL.path),
                let handle = try? FileHandle(forWritingTo: logURL) {
@@ -741,13 +748,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try line.write(to: logURL, atomically: true, encoding: .utf8)
             }
         } catch {
-            NSLog("TypeLocal could not write diagnostics: %@", error.localizedDescription)
+            NSLog("i don't type could not write diagnostics: %@", error.localizedDescription)
         }
     }
 
     private func repolishSelection(style: TransformStyle) {
         guard AXIsProcessTrusted() else {
-            lastOutputStatus = "Repolish needs Accessibility access before TypeLocal can read selected text."
+            lastOutputStatus = "Repolish needs Accessibility access before i don't type can read selected text."
             requestAccessibilityPromptIfNeeded()
             return
         }
@@ -1247,7 +1254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuTestAutoPaste() {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
-        let text = "TypeLocal auto paste test \(formatter.string(from: Date()))"
+        let text = "i don't type auto paste test \(formatter.string(from: Date()))"
         lastTranscript = text
         let snapshot = menuOpenTextSnapshot
         targetApplication = menuOpenTargetApplication ?? preferredDictationTarget(snapshot: snapshot)
@@ -1283,11 +1290,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func menuCheckForUpdates() {
+        checkForUpdates()
+    }
+
+    private func presentUpdateResult(_ result: AppUpdateResult) {
         let alert = NSAlert()
-        alert.messageText = "TypeLocal local beta"
-        alert.informativeText = "Version 0.1.0 is packaged by ./build.sh. Signed, notarized updates should be added before paid release."
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+        switch result {
+        case .available(let manifest):
+            alert.messageText = "Update available"
+            alert.informativeText = "i don't type \(manifest.version) is ready.\n\n\(manifest.releaseNotes)"
+            alert.addButton(withTitle: "Download")
+            alert.addButton(withTitle: "Later")
+            if alert.runModal() == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(manifest.downloadURL)
+            }
+        case .current(let version):
+            alert.messageText = "You're up to date"
+            alert.informativeText = "i don't type \(version) is the latest version."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        case .failed(let message):
+            alert.messageText = "Could not check for updates"
+            alert.informativeText = message
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
     }
 
     @objc private func menuOpenShortcuts() {
@@ -1301,15 +1328,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuHelp() {
         let alert = NSAlert()
-        alert.messageText = "TypeLocal triggers"
+        alert.messageText = "i don't type triggers"
         alert.informativeText = "Hold trigger: record while held, release to paste\nPress trigger: press once to start, press again to stop\nEscape: cancel\nReturn: stop and paste"
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
 
     @objc private func menuSendFeedback() {
-        let subject = "TypeLocal feedback"
-        let urlString = "mailto:lukebyrnee97@gmail.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "TypeLocal%20feedback")"
+        let subject = "i don't type feedback"
+        let urlString = "mailto:lukebyrnee97@gmail.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "i don't type%20feedback")"
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
@@ -1380,6 +1407,7 @@ extension AppDelegate: NSMenuDelegate {
             action: #selector(menuToggleBubble),
             keyEquivalent: ""
         ))
+        menu.addItem(NSMenuItem(title: "Check for Updates...", action: #selector(menuCheckForUpdates), keyEquivalent: ""))
 
         menu.addItem(NSMenuItem.separator())
         let recent = store.recent.prefix(4)
@@ -1400,6 +1428,6 @@ extension AppDelegate: NSMenuDelegate {
         }
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit TypeLocal", action: #selector(menuQuit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit i don't type", action: #selector(menuQuit), keyEquivalent: "q"))
     }
 }

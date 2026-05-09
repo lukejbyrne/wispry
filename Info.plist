@@ -5,15 +5,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>TypeLocal</string>
+  <string>IDontType</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
-  <string>app.typelocal.mac</string>
+  <string>com.idonttype.mac</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>TypeLocal</string>
+  <string>i don't type</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -25,10 +25,10 @@
   <key>LSUIElement</key>
   <true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>TypeLocal records your voice so it can turn speech into text.</string>
+  <string>i don't type records your voice so it can turn speech into text.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>TypeLocal uses speech recognition to transcribe dictation.</string>
+  <string>i don't type uses speech recognition to transcribe dictation.</string>
   <key>NSHumanReadableCopyright</key>
-  <string>TypeLocal Mac utility app</string>
+  <string>i don't type Mac utility app</string>
 </dict>
 </plist>

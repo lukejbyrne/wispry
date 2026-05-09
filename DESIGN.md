@@ -1,4 +1,4 @@
-# TypeLocal Design Context
+# i don't type Design Context
 
 ## Brand Surface
 The landing page should feel like a trustworthy Mac utility with a small craft edge: warm paper, black-and-white control surfaces, restrained accent color, clear privacy proof, and no generic SaaS gloss. The product preview should carry the story more than abstract claims.
