@@ -5,14 +5,14 @@ import Carbon
 import Speech
 
 private enum HubPalette {
-    static let signalSurface = NSColor(calibratedRed: 0.062, green: 0.080, blue: 0.062, alpha: 1)
-    static let signalPanel = NSColor(calibratedRed: 0.088, green: 0.114, blue: 0.088, alpha: 1)
-    static let signalField = NSColor(calibratedRed: 0.050, green: 0.065, blue: 0.050, alpha: 1)
+    static let signalSurface = NSColor(calibratedWhite: 0.050, alpha: 1)
+    static let signalPanel = NSColor(calibratedWhite: 0.085, alpha: 1)
+    static let signalField = NSColor(calibratedWhite: 0.035, alpha: 1)
     static let signalText = NSColor(calibratedRed: 0.965, green: 0.946, blue: 0.895, alpha: 1)
-    static let signalMuted = NSColor(calibratedRed: 0.680, green: 0.692, blue: 0.642, alpha: 1)
+    static let signalMuted = NSColor(calibratedWhite: 0.680, alpha: 1)
     static let signalBorder = NSColor(calibratedRed: 0.965, green: 0.946, blue: 0.895, alpha: 0.18)
-    static let signalAccent = NSColor(calibratedRed: 0.655, green: 0.815, blue: 0.420, alpha: 1)
-    static let signalRed = NSColor(calibratedRed: 0.790, green: 0.270, blue: 0.210, alpha: 1)
+    static let signalAccent = signalText
+    static let signalRed = NSColor(calibratedWhite: 0.760, alpha: 1)
     static let window = signalSurface
     static let sidebar = signalSurface
     static let panel = signalPanel
@@ -20,23 +20,25 @@ private enum HubPalette {
     static let text = signalText
     static let muted = signalMuted
     static let border = signalBorder
-    static let selected = signalAccent.withAlphaComponent(0.14)
+    static let selected = signalText.withAlphaComponent(0.12)
     static let accent = signalAccent
 }
 
 final class HubWindowController: NSWindowController {
     init(appDelegate: AppDelegate) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 860, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Wispry"
-        window.minSize = NSSize(width: 820, height: 560)
+        window.title = "TypeLocal"
+        window.minSize = NSSize(width: 880, height: 680)
         window.center()
         window.isReleasedWhenClosed = false
-        window.contentViewController = HubViewController(appDelegate: appDelegate)
+        let viewController = HubViewController(appDelegate: appDelegate)
+        window.contentViewController = viewController
+        window.delegate = viewController
         super.init(window: window)
     }
 
@@ -49,17 +51,45 @@ final class HubWindowController: NSWindowController {
     }
 }
 
-final class HubViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
+final class HubViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSWindowDelegate {
     private enum Section: String, CaseIterable {
         case home = "Home"
         case history = "History"
         case dictionary = "Dictionary"
         case snippets = "Snippets"
         case shortcuts = "Shortcuts"
+
+        static let visible: [Section] = [.home, .history, .dictionary]
+    }
+
+    private enum TriggerRole: Int {
+        case hold
+        case press
+    }
+
+    private struct HomeDraft: Equatable {
+        var speechModel: SpeechModel
+        var speechLanguageIdentifier: String
+        var microphoneUniqueID: String?
+        var cleanupEnabled: Bool
+        var storageMode: StorageMode
+        var holdTrigger: TriggerShortcut
+        var pressTrigger: TriggerShortcut
+
+        init(store: SettingsStore) {
+            speechModel = store.speechModel
+            speechLanguageIdentifier = store.speechLanguageIdentifier
+            microphoneUniqueID = store.microphoneUniqueID
+            cleanupEnabled = store.cleanupEnabled
+            storageMode = store.storageMode
+            holdTrigger = store.holdTrigger
+            pressTrigger = store.pressTrigger
+        }
     }
 
     private weak var appDelegate: AppDelegate?
     private let store = SettingsStore.shared
+    private var homeDraft: HomeDraft
     private var selectedSection: Section = .home
 
     private let sidebar = NSStackView()
@@ -75,6 +105,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let snippetPhraseField = NSTextField()
     private let snippetExpansionField = NSTextField()
     private var homeStyleButtons: [TransformStyle: NSButton] = [:]
+    private var triggerCaptureRole: TriggerRole?
     private var sectionButtons: [Section: NSButton] = [:]
     private var historyExpandedAll = false
     private var historyQuery = ""
@@ -83,6 +114,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
+        self.homeDraft = HomeDraft(store: SettingsStore.shared)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -91,7 +123,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 860, height: 620))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 720))
         view.wantsLayer = true
         view.layer?.backgroundColor = HubPalette.window.cgColor
 
@@ -145,6 +177,30 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         appDelegate?.setShortcutCaptureActive(false)
     }
 
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard hasUnsavedHomeChanges else { return true }
+
+        let alert = NSAlert()
+        alert.messageText = "Save Home changes?"
+        alert.informativeText = "You changed TypeLocal settings on Home. Save them before closing, discard them, or keep editing."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Discard")
+        alert.addButton(withTitle: "Cancel")
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            saveHomeDraft()
+            return true
+        case .alertSecondButtonReturn:
+            homeDraft = HomeDraft(store: store)
+            performActionFeedback()
+            return true
+        default:
+            return false
+        }
+    }
+
     override func viewWillAppear() {
         super.viewWillAppear()
         refresh()
@@ -164,7 +220,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         ])
         brandRow.addArrangedSubview(mark)
 
-        let brand = NSTextField(labelWithString: "Wispry")
+        let brand = NSTextField(labelWithString: "TypeLocal")
         brand.font = NSFont.systemFont(ofSize: 20, weight: .bold)
         brand.textColor = HubPalette.signalText
         brandRow.addArrangedSubview(brand)
@@ -179,14 +235,14 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         spacer.heightAnchor.constraint(equalToConstant: 12).isActive = true
         sidebar.addArrangedSubview(spacer)
 
-        for section in Section.allCases {
+        for section in Section.visible {
             let button = NSButton(title: section.rawValue, target: self, action: #selector(sectionSelected(_:)))
             button.bezelStyle = .shadowlessSquare
             button.alignment = .left
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 7
-            button.tag = Section.allCases.firstIndex(of: section) ?? 0
+            button.tag = Section.visible.firstIndex(of: section) ?? 0
             button.widthAnchor.constraint(equalToConstant: 128).isActive = true
             button.heightAnchor.constraint(equalToConstant: 30).isActive = true
             sectionButtons[section] = button
@@ -201,8 +257,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     @objc private func sectionSelected(_ sender: NSButton) {
-        let sections = Section.allCases
+        let sections = Section.visible
         guard sender.tag >= 0 && sender.tag < sections.count else { return }
+        performActionFeedback()
         render(section: sections[sender.tag])
     }
 
@@ -253,7 +310,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         case .history:
             return "Recent dictations by time, with a short summary and full text."
         case .dictionary:
-            return "Words and phrases Wispry should bias recognition toward on the next dictation."
+            return "Words and phrases TypeLocal should bias recognition toward on the next dictation."
         case .snippets:
             return "Spoken phrases that expand into reusable text."
         case .shortcuts:
@@ -277,74 +334,43 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func homeView() -> NSView {
-        let start = NSButton(title: "Start dictation", target: self, action: #selector(startDictation))
-        stylePrimaryButton(start)
-        start.keyEquivalent = "\r"
-        let accessibility = NSButton(title: "Accessibility access", target: self, action: #selector(requestAccessibility))
-        styleSecondarySignalButton(accessibility)
-
-        let topLine = NSStackView(views: [
-            signalTitleLabel("Ready"),
+        let header = NSStackView(views: [
+            signalTitleLabel("TypeLocal"),
             flexibleSpacer(),
-            signalChip(title: store.autoPaste ? "Paste on" : "Clipboard only")
+            signalChip(title: homeReadinessTitle)
         ])
-        topLine.orientation = .horizontal
-        topLine.alignment = .centerY
-        topLine.spacing = 10
-        topLine.widthAnchor.constraint(equalToConstant: 560).isActive = true
-
-        let meter = SignalMeterView()
-        meter.translatesAutoresizingMaskIntoConstraints = false
-        meter.widthAnchor.constraint(equalToConstant: 560).isActive = true
-        meter.heightAnchor.constraint(equalToConstant: 124).isActive = true
-
-        let buttons = NSStackView(views: [start, accessibility, flexibleSpacer()])
-        buttons.orientation = .horizontal
-        buttons.alignment = .centerY
-        buttons.spacing = 8
-        buttons.widthAnchor.constraint(equalToConstant: 560).isActive = true
-
-        let autoPaste = signalToggleButton(
-            title: store.autoPaste ? "Auto paste on" : "Clipboard only",
-            selected: store.autoPaste,
-            action: #selector(toggleAutoPasteFromHome)
-        )
-        let bubble = signalToggleButton(
-            title: store.bubbleVisible ? "Bubble visible" : "Bubble hidden",
-            selected: store.bubbleVisible,
-            action: #selector(toggleBubbleFromHome)
-        )
-        let toggles = NSStackView(views: [autoPaste, bubble, flexibleSpacer()])
-        toggles.orientation = .horizontal
-        toggles.alignment = .centerY
-        toggles.spacing = 8
-        toggles.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 10
+        header.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         let stack = panelStack()
-        stack.spacing = 13
-        stack.addArrangedSubview(topLine)
-        stack.addArrangedSubview(meter)
-        stack.addArrangedSubview(buttons)
-        stack.addArrangedSubview(permissionChecklist())
+        stack.spacing = 12
+        stack.addArrangedSubview(header)
         stack.addArrangedSubview(signalSeparator())
-        stack.addArrangedSubview(signalStatusLine(label: "Target", value: "Frontmost app"))
-        stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: homeStylePicker()))
-        stack.addArrangedSubview(signalStatusLine(label: "Shortcuts", value: appDelegate?.shortcutStatusText() ?? "All shortcuts registered"))
-        stack.addArrangedSubview(signalStatusLine(label: "Paste", value: appDelegate?.outputStatusText() ?? "No dictation pasted yet."))
-        stack.addArrangedSubview(toggles)
-        return signalPanel(stack, height: 520)
+        stack.addArrangedSubview(signalControlLine(label: "Triggers", control: triggersControl()))
+        stack.addArrangedSubview(signalControlLine(label: "Speech", control: speechControls()))
+        stack.addArrangedSubview(signalControlLine(label: "Microphone", control: microphonePicker()))
+        stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: cleanupToggle()))
+        stack.addArrangedSubview(signalControlLine(label: "Storage", control: storagePicker()))
+        stack.addArrangedSubview(homeSaveControls())
+        return signalPanel(stack, height: 430)
     }
 
     private func historyView() -> NSView {
         historySearchField.placeholderString = "Search history"
         historySearchField.target = self
         historySearchField.action = #selector(historySearchChanged)
+        historySearchField.delegate = self
         styleSignalTextField(historySearchField)
         historySearchField.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
         historyTable.headerView = nil
         historyTable.dataSource = self
         historyTable.delegate = self
+        historyTable.target = self
+        historyTable.action = #selector(pasteSelectedHistory)
+        historyTable.doubleAction = #selector(pasteSelectedHistory)
         historyTable.backgroundColor = HubPalette.signalField
         historyTable.usesAlternatingRowBackgroundColors = false
         historyTable.rowHeight = 30
@@ -361,11 +387,17 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         let tableScroll = scrollView(document: historyTable, height: 210)
         let detail = scrollableText(historyDetailTextView, height: 130)
+        let paste = NSButton(title: "Paste selected", target: self, action: #selector(pasteSelectedHistory))
+        styleSignalSmallButton(paste, width: 104)
         let copy = NSButton(title: "Copy selected", target: self, action: #selector(copySelectedHistory))
-        styleSignalSmallButton(copy, width: 112)
+        styleSignalSmallButton(copy, width: 104)
+        let delete = NSButton(title: "Delete selected", target: self, action: #selector(deleteSelectedHistory))
+        styleSignalSmallButton(delete, width: 108)
+        let clear = NSButton(title: "Clear history", target: self, action: #selector(clearHistory))
+        styleSignalSmallButton(clear, width: 92)
         let expand = NSButton(title: "Expand all", target: self, action: #selector(toggleExpandHistory))
-        styleSignalSmallButton(expand, width: 98)
-        let buttons = NSStackView(views: [copy, expand])
+        styleSignalSmallButton(expand, width: 92)
+        let buttons = NSStackView(views: [paste, copy, delete, clear, expand])
         buttons.orientation = .horizontal
         buttons.spacing = 8
 
@@ -382,14 +414,18 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         dictionaryField.action = #selector(addDictionaryWord)
         styleSignalTextField(dictionaryField)
         let add = NSButton(title: "Add", target: self, action: #selector(addDictionaryWord))
-        styleSignalSmallButton(add, width: 72)
+        styleSignalSmallButton(add, width: 62)
+        let save = NSButton(title: "Save edits", target: self, action: #selector(saveDictionaryEdits))
+        styleSignalSmallButton(save, width: 82)
+        let delete = NSButton(title: "Delete", target: self, action: #selector(deleteSelectedDictionaryLine))
+        styleSignalSmallButton(delete, width: 82)
         let clear = NSButton(title: "Clear", target: self, action: #selector(clearDictionary))
-        styleSignalSmallButton(clear, width: 72)
-        let row = NSStackView(views: [dictionaryField, add, clear])
+        styleSignalSmallButton(clear, width: 64)
+        let row = NSStackView(views: [dictionaryField, add, save, delete, clear])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8
-        dictionaryField.widthAnchor.constraint(equalToConstant: 330).isActive = true
+        dictionaryField.widthAnchor.constraint(equalToConstant: 184).isActive = true
 
         let note = NSTextField(wrappingLabelWithString: "Dictionary terms are sent into Apple Speech as recognition hints when the next recording starts. They improve odds, but they are not hard replacements.")
         note.font = NSFont.systemFont(ofSize: 12, weight: .medium)
@@ -397,7 +433,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         note.maximumNumberOfLines = 3
         note.widthAnchor.constraint(equalToConstant: 560).isActive = true
 
-        let stack = NSStackView(views: [row, note, scrollableText(dictionaryTextView, height: 280)])
+        let stack = NSStackView(views: [row, note, scrollableText(dictionaryTextView, height: 280, editable: true)])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -456,7 +492,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             historyTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         }
         updateHistoryDetail()
-        dictionaryTextView.string = store.dictionaryWords.isEmpty ? "No dictionary terms yet." : store.dictionaryWords.joined(separator: "\n")
+        dictionaryTextView.string = store.dictionaryWords.joined(separator: "\n")
         snippetsTextView.string = store.snippets.map { "\"\($0.phrase)\" -> \($0.expansion)" }.joined(separator: "\n\n")
     }
 
@@ -510,6 +546,73 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         label.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
         label.textColor = HubPalette.signalText
         return label
+    }
+
+    private var homeReadinessTitle: String {
+        if !microphoneStatus.ready || !speechStatus.ready {
+            return "Needs access"
+        }
+        if !accessibilityStatus.ready && store.autoPaste {
+            return "Paste access"
+        }
+        if hasUnsavedHomeChanges {
+            return "Unsaved"
+        }
+        return "Ready"
+    }
+
+    private var hasUnsavedHomeChanges: Bool {
+        homeDraft != HomeDraft(store: store)
+    }
+
+    private func homeStatsRow() -> NSView {
+        let row = NSStackView(views: [
+            homeStat(title: "History", value: "\(store.recent.count)", detail: "recent"),
+            homeStat(title: "Dictionary", value: "\(store.dictionaryWords.count)", detail: "hints"),
+            homeStat(title: "Snippets", value: "\(store.snippets.count)", detail: "shortcuts")
+        ])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        row.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        return row
+    }
+
+    private func homeStat(title: String, value: String, detail: String) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        titleLabel.textColor = HubPalette.signalMuted
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 22, weight: .semibold)
+        valueLabel.textColor = HubPalette.signalText
+
+        let detailLabel = NSTextField(labelWithString: detail)
+        detailLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        detailLabel.textColor = HubPalette.signalMuted
+
+        let stack = NSStackView(views: [titleLabel, valueLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 1
+
+        let wrapper = NSView()
+        wrapper.wantsLayer = true
+        wrapper.layer?.backgroundColor = HubPalette.signalField.cgColor
+        wrapper.layer?.borderColor = HubPalette.signalBorder.cgColor
+        wrapper.layer?.borderWidth = 1
+        wrapper.layer?.cornerRadius = 8
+        wrapper.addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 8),
+            stack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -10),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: wrapper.bottomAnchor, constant: -8),
+            wrapper.widthAnchor.constraint(equalToConstant: 181),
+            wrapper.heightAnchor.constraint(equalToConstant: 80)
+        ])
+        return wrapper
     }
 
     private func flexibleSpacer() -> NSView {
@@ -614,9 +717,17 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private var speechStatus: (title: String, detail: String, ready: Bool) {
+        if homeDraft.speechModel == .localWhisper {
+            let status = DictationEngine.localWhisperStatus(languageIdentifier: homeDraft.speechLanguageIdentifier)
+            return (status.ready ? "Ready" : "Missing", status.detail, status.ready)
+        }
+
         switch SFSpeechRecognizer.authorizationStatus() {
         case .authorized:
-            return ("Ready", "Speech Recognition access is available.", true)
+            if SFSpeechRecognizer(locale: Locale(identifier: homeDraft.speechLanguageIdentifier))?.supportsOnDeviceRecognition == true {
+                return ("Ready", "On-device Speech Recognition is available.", true)
+            }
+            return ("Unavailable", "Current macOS language does not support on-device recognition.", false)
         case .notDetermined:
             return ("First use", "macOS will ask when you start dictation.", true)
         case .denied, .restricted:
@@ -628,9 +739,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private var accessibilityStatus: (title: String, detail: String, ready: Bool) {
         if AXIsProcessTrusted() {
-            return ("Ready", "Wispry can paste and repolish selected text.", true)
+            return ("Ready", "TypeLocal can paste and repolish selected text.", true)
         }
         return ("Needed", "Required for reliable paste and selected-text rewrite.", false)
+    }
+
+    private var currentLanguageName: String {
+        Locale.current.localizedString(forIdentifier: homeDraft.speechLanguageIdentifier) ?? homeDraft.speechLanguageIdentifier
     }
 
     private func signalControlLine(label: String, control: NSView) -> NSView {
@@ -645,6 +760,235 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         line.spacing = 12
         line.widthAnchor.constraint(equalToConstant: 560).isActive = true
         return line
+    }
+
+    private func triggersControl() -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.addArrangedSubview(triggerRow(
+            role: .hold,
+            title: "Hold",
+            detail: "Record while held. Release to paste.",
+            shortcut: homeDraft.holdTrigger
+        ))
+        stack.addArrangedSubview(triggerRow(
+            role: .press,
+            title: "Press",
+            detail: "Press once to start. Press again to stop.",
+            shortcut: homeDraft.pressTrigger
+        ))
+        return stack
+    }
+
+    private func triggerRow(role: TriggerRole, title: String, detail: String, shortcut: TriggerShortcut) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = HubPalette.signalText
+        titleLabel.widthAnchor.constraint(equalToConstant: 48).isActive = true
+
+        let detailLabel = NSTextField(labelWithString: detail)
+        detailLabel.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        detailLabel.textColor = HubPalette.signalMuted
+        detailLabel.widthAnchor.constraint(equalToConstant: 194).isActive = true
+
+        let captureText = triggerCaptureRole == role ? "Press shortcut..." : shortcut.display
+        let shortcutLabel = valuePill(captureText, width: 122)
+
+        let record = NSButton(title: triggerCaptureRole == role ? "Cancel" : "Record", target: self, action: #selector(recordTriggerShortcut(_:)))
+        record.tag = role.rawValue
+        styleSignalSmallButton(record, width: 72)
+
+        let row = NSStackView(views: [titleLabel, detailLabel, shortcutLabel, record])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        return row
+    }
+
+    private func speechControls() -> NSView {
+        let model = popup(width: 138)
+        for option in SpeechModel.allCases {
+            model.addItem(withTitle: option.rawValue)
+        }
+        if let index = SpeechModel.allCases.firstIndex(of: homeDraft.speechModel) {
+            model.selectItem(at: index)
+        }
+        model.target = self
+        model.action = #selector(speechModelSelected(_:))
+
+        let language = popup(width: 252)
+        for option in languageOptions {
+            language.addItem(withTitle: option.title)
+        }
+        if let index = languageOptions.firstIndex(where: { $0.identifier == homeDraft.speechLanguageIdentifier }) {
+            language.selectItem(at: index)
+        }
+        language.target = self
+        language.action = #selector(languageSelected(_:))
+
+        let row = NSStackView(views: [model, language])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        return row
+    }
+
+    private func microphonePicker() -> NSView {
+        let control = popup(width: 252)
+        control.addItem(withTitle: "System default")
+        control.lastItem?.representedObject = ""
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInMicrophone, .externalUnknown],
+            mediaType: .audio,
+            position: .unspecified
+        )
+        for device in discovery.devices {
+            control.addItem(withTitle: device.localizedName)
+            control.lastItem?.representedObject = device.uniqueID
+        }
+        if let microphoneUniqueID = homeDraft.microphoneUniqueID,
+           let item = control.itemArray.first(where: { ($0.representedObject as? String) == microphoneUniqueID }) {
+            control.select(item)
+        }
+        control.toolTip = microphoneStatus.detail
+        control.target = self
+        control.action = #selector(microphoneSelected(_:))
+        return control
+    }
+
+    private func cleanupToggle() -> NSView {
+        choiceButton(
+            title: homeDraft.cleanupEnabled ? "On" : "Off",
+            selected: homeDraft.cleanupEnabled,
+            action: #selector(toggleCleanupFromHome),
+            tag: 0,
+            width: 72
+        )
+    }
+
+    private func storagePicker() -> NSView {
+        let control = popup(width: 160)
+        control.addItem(withTitle: "Local")
+        control.lastItem?.representedObject = StorageMode.local.rawValue
+        control.addItem(withTitle: "Cloud (coming soon)")
+        control.lastItem?.representedObject = StorageMode.cloud.rawValue
+        control.lastItem?.isEnabled = false
+        control.selectItem(at: 0)
+        control.target = self
+        control.action = #selector(storageSelected(_:))
+        return control
+    }
+
+    private func homeSaveControls() -> NSView {
+        let status = NSTextField(labelWithString: hasUnsavedHomeChanges ? "Unsaved changes" : "Saved")
+        status.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        status.textColor = hasUnsavedHomeChanges ? HubPalette.signalText : HubPalette.signalMuted
+        status.widthAnchor.constraint(equalToConstant: 180).isActive = true
+
+        let save = NSButton(title: "Save changes", target: self, action: #selector(saveHomeChanges))
+        styleSignalSmallButton(save, width: 108)
+        save.isEnabled = hasUnsavedHomeChanges
+
+        let revert = NSButton(title: "Revert", target: self, action: #selector(revertHomeChanges))
+        styleSignalSmallButton(revert, width: 72)
+        revert.isEnabled = hasUnsavedHomeChanges
+
+        let row = NSStackView(views: [status, flexibleSpacer(), revert, save])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        row.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        return row
+    }
+
+    private func valuePill(_ title: String, width: CGFloat) -> NSView {
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = HubPalette.signalText
+        label.alignment = .center
+
+        let wrapper = NSView()
+        wrapper.wantsLayer = true
+        wrapper.layer?.backgroundColor = HubPalette.signalAccent.withAlphaComponent(0.10).cgColor
+        wrapper.layer?.borderColor = HubPalette.signalBorder.cgColor
+        wrapper.layer?.borderWidth = 1
+        wrapper.layer?.cornerRadius = 7
+        wrapper.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 6),
+            label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -10),
+            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -6),
+            wrapper.widthAnchor.constraint(equalToConstant: width),
+            wrapper.heightAnchor.constraint(equalToConstant: 28)
+        ])
+        return wrapper
+    }
+
+    private func popup(width: CGFloat) -> NSPopUpButton {
+        let control = NSPopUpButton(frame: .zero, pullsDown: false)
+        control.controlSize = .small
+        control.bezelStyle = .rounded
+        control.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        control.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return control
+    }
+
+    private func choiceButton(title: String, selected: Bool, action: Selector, tag: Int, width: CGFloat) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.tag = tag
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = 7
+        button.layer?.backgroundColor = selected
+            ? HubPalette.signalText.cgColor
+            : HubPalette.signalAccent.withAlphaComponent(0.11).cgColor
+        button.layer?.borderColor = selected
+            ? HubPalette.signalText.cgColor
+            : HubPalette.signalBorder.cgColor
+        button.layer?.borderWidth = 1
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .foregroundColor: selected ? HubPalette.signalSurface : HubPalette.signalText,
+                .font: NSFont.systemFont(ofSize: 12, weight: selected ? .bold : .semibold)
+            ]
+        )
+        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return button
+    }
+
+    private var languageOptions: [(identifier: String, title: String)] {
+        var identifiers = [
+            homeDraft.speechLanguageIdentifier,
+            Locale.current.identifier,
+            "en_GB",
+            "en_US",
+            "en_AU",
+            "en_CA",
+            "en_IE",
+            "en_IN",
+            "en_NZ",
+            "en_ZA",
+            "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr", "pl",
+            "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi", "he",
+            "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no", "th",
+            "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk", "te",
+            "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk", "br",
+            "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw", "gl",
+            "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc", "ka",
+            "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo", "ht",
+            "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl", "mg",
+            "as", "tt", "haw", "ln", "ha", "ba", "jw", "su", "yue"
+        ]
+        identifiers = Array(NSOrderedSet(array: identifiers)) as? [String] ?? identifiers
+        return identifiers.map { identifier in
+            (identifier, Locale.current.localizedString(forIdentifier: identifier) ?? identifier)
+        }
     }
 
     private func homeStylePicker() -> NSView {
@@ -668,6 +1012,21 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         }
 
         updateHomeStyleButtons()
+        return row
+    }
+
+    private func homeTuneButtons() -> NSView {
+        let history = NSButton(title: "History", target: self, action: #selector(openHistoryFromHome))
+        let dictionary = NSButton(title: "Dictionary", target: self, action: #selector(openDictionaryFromHome))
+        let shortcuts = NSButton(title: "Shortcuts", target: self, action: #selector(openShortcutsFromHome))
+        styleSignalSmallButton(history, width: 76)
+        styleSignalSmallButton(dictionary, width: 92)
+        styleSignalSmallButton(shortcuts, width: 88)
+
+        let row = NSStackView(views: [history, dictionary, shortcuts])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
         return row
     }
 
@@ -789,6 +1148,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         field.layer?.cornerRadius = 7
     }
 
+    private func performActionFeedback() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    }
+
     private func panelStack() -> NSStackView {
         let stack = NSStackView()
         stack.orientation = .vertical
@@ -857,7 +1220,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         title.textColor = HubPalette.text
         title.widthAnchor.constraint(equalToConstant: 180).isActive = true
 
-        let shortcut = NSTextField(labelWithString: shortcutCaptureAction == action ? "Press new shortcut..." : store.shortcuts.shortcut(for: action).display)
+        let currentShortcut = store.shortcuts.shortcut(for: action)
+        let shortcut = NSTextField(labelWithString: shortcutCaptureAction == action ? "Press new shortcut..." : displayName(for: currentShortcut))
         shortcut.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         shortcut.textColor = shortcutCaptureAction == action
             ? HubPalette.accent
@@ -898,6 +1262,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         updateHistoryDetail()
     }
 
+    func controlTextDidChange(_ obj: Notification) {
+        guard let field = obj.object as? NSTextField, field === historySearchField else { return }
+        historySearchChanged()
+    }
+
     @objc private func recordShortcut(_ sender: NSButton) {
         let actions = ShortcutAction.allCases
         guard sender.tag >= 0 && sender.tag < actions.count else { return }
@@ -931,6 +1300,106 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         render(section: .home)
     }
 
+    @objc private func recordTriggerShortcut(_ sender: NSButton) {
+        guard let role = TriggerRole(rawValue: sender.tag) else { return }
+        performActionFeedback()
+        if triggerCaptureRole == role {
+            cancelShortcutCapture()
+        } else {
+            beginTriggerCapture(role)
+        }
+        render(section: .home)
+    }
+
+    @objc private func speechModelSelected(_ sender: NSPopUpButton) {
+        let models = SpeechModel.allCases
+        let index = sender.indexOfSelectedItem
+        guard index >= 0 && index < models.count else { return }
+        homeDraft.speechModel = models[index]
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    @objc private func languageSelected(_ sender: NSPopUpButton) {
+        let options = languageOptions
+        let index = sender.indexOfSelectedItem
+        guard index >= 0 && index < options.count else { return }
+        homeDraft.speechLanguageIdentifier = options[index].identifier
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    @objc private func microphoneSelected(_ sender: NSPopUpButton) {
+        homeDraft.microphoneUniqueID = sender.selectedItem?.representedObject as? String
+        if homeDraft.microphoneUniqueID?.isEmpty == true {
+            homeDraft.microphoneUniqueID = nil
+        }
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    @objc private func storageSelected(_ sender: NSPopUpButton) {
+        guard let raw = sender.selectedItem?.representedObject as? String,
+              let mode = StorageMode(rawValue: raw),
+              mode == .local else {
+            NSSound.beep()
+            render(section: .home)
+            return
+        }
+        homeDraft.storageMode = mode
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    @objc private func toggleCleanupFromHome() {
+        homeDraft.cleanupEnabled.toggle()
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    @objc private func saveHomeChanges() {
+        saveHomeDraft()
+        render(section: .home)
+    }
+
+    @objc private func revertHomeChanges() {
+        homeDraft = HomeDraft(store: store)
+        performActionFeedback()
+        render(section: .home)
+    }
+
+    private func saveHomeDraft() {
+        store.speechModel = homeDraft.speechModel
+        store.speechLanguageIdentifier = homeDraft.speechLanguageIdentifier
+        store.microphoneUniqueID = homeDraft.microphoneUniqueID
+        store.cleanupEnabled = homeDraft.cleanupEnabled
+        store.storageMode = homeDraft.storageMode
+        store.holdTrigger = homeDraft.holdTrigger
+        store.pressTrigger = homeDraft.pressTrigger
+        appDelegate?.reloadHotKeys()
+        performActionFeedback()
+    }
+
+    @objc private func openHistoryFromHome() {
+        performActionFeedback()
+        render(section: .history)
+    }
+
+    @objc private func openDictionaryFromHome() {
+        performActionFeedback()
+        render(section: .dictionary)
+    }
+
+    @objc private func openSnippetsFromHome() {
+        performActionFeedback()
+        render(section: .snippets)
+    }
+
+    @objc private func openShortcutsFromHome() {
+        performActionFeedback()
+        render(section: .shortcuts)
+    }
+
     @objc private func requestAccessibility() {
         appDelegate?.requestAccessibilityPrompt()
     }
@@ -939,22 +1408,65 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         appDelegate?.toggleDictation()
     }
 
+    @objc private func quitWispry() {
+        NSApp.terminate(nil)
+    }
+
     @objc private func copySelectedHistory() {
+        guard let text = selectedHistoryText() else {
+            NSSound.beep()
+            return
+        }
+        appDelegate?.copyTextFromHub(text)
+        performActionFeedback()
+    }
+
+    @objc private func pasteSelectedHistory() {
+        guard let text = selectedHistoryText() else {
+            NSSound.beep()
+            return
+        }
+        appDelegate?.pasteTextFromHub(text)
+        performActionFeedback()
+    }
+
+    private func selectedHistoryText() -> String? {
         let selected = historyTable.selectedRow
         let items = filteredHistory
-        let text: String
         if historyExpandedAll {
-            text = expandedHistoryText()
-        } else if selected >= 0 && selected < items.count {
-            text = items[selected].text
-        } else {
-            text = historyDetailTextView.string
+            return expandedHistoryText()
         }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        if selected >= 0 && selected < items.count {
+            return items[selected].text
+        }
+        let detail = historyDetailTextView.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return detail.isEmpty || detail == "No dictations yet." ? nil : detail
+    }
+
+    @objc private func deleteSelectedHistory() {
+        let selected = historyTable.selectedRow
+        let items = filteredHistory
+        guard selected >= 0 && selected < items.count else { return }
+        performActionFeedback()
+        let item = items[selected]
+        store.recent = store.recent.filter { !sameHistoryItem($0, item) }
+        historyTable.reloadData()
+        if !filteredHistory.isEmpty {
+            historyTable.selectRowIndexes(IndexSet(integer: min(selected, filteredHistory.count - 1)), byExtendingSelection: false)
+        }
+        updateHistoryDetail()
+        render(section: .history)
+    }
+
+    @objc private func clearHistory() {
+        performActionFeedback()
+        store.recent = []
+        historyQuery = ""
+        render(section: .history)
     }
 
     @objc private func toggleExpandHistory(_ sender: NSButton) {
+        performActionFeedback()
         historyExpandedAll.toggle()
         sender.title = historyExpandedAll ? "Collapse" : "Expand all"
         updateHistoryDetail()
@@ -1030,6 +1542,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         }
     }
 
+    private func sameHistoryItem(_ lhs: RecentDictation, _ rhs: RecentDictation) -> Bool {
+        lhs.date == rhs.date && lhs.appName == rhs.appName && lhs.text == rhs.text
+    }
+
     private func installShortcutCaptureMonitor() {
         guard shortcutCaptureMonitors.isEmpty else { return }
         let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -1045,10 +1561,23 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         if let global {
             shortcutCaptureMonitors.append(global)
         }
+        let localFlags = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleShortcutCapture(event) == true ? nil : event
+        }
+        if let localFlags {
+            shortcutCaptureMonitors.append(localFlags)
+        }
+        let globalFlags = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            _ = self?.handleShortcutCapture(event)
+        }
+        if let globalFlags {
+            shortcutCaptureMonitors.append(globalFlags)
+        }
     }
 
     private func beginShortcutCapture(_ action: ShortcutAction) {
         shortcutCaptureAction = action
+        triggerCaptureRole = nil
         appDelegate?.setShortcutCaptureActive(true)
         render(section: .shortcuts)
     }
@@ -1061,19 +1590,39 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func cancelShortcutCapture() {
-        guard shortcutCaptureAction != nil else { return }
+        guard shortcutCaptureAction != nil || triggerCaptureRole != nil else { return }
         shortcutCaptureAction = nil
+        triggerCaptureRole = nil
         appDelegate?.setShortcutCaptureActive(false)
-        render(section: .shortcuts)
+        render(section: selectedSection)
     }
 
     private func handleShortcutCapture(_ event: NSEvent) -> Bool {
-        guard let action = shortcutCaptureAction else { return false }
-
         if event.keyCode == UInt16(kVK_Escape) {
             cancelShortcutCapture()
             return true
         }
+
+        if let role = triggerCaptureRole {
+            if event.type == .flagsChanged, event.modifierFlags.contains(.function) {
+                finishTriggerCapture(.function, for: role)
+                return true
+            }
+
+            guard event.type == .keyDown, let shortcut = shortcut(from: event) else {
+                if event.type == .keyDown {
+                    NSSound.beep()
+                    return true
+                }
+                return false
+            }
+
+            finishTriggerCapture(.key(shortcut), for: role)
+            return true
+        }
+
+        guard let action = shortcutCaptureAction else { return false }
+        guard event.type == .keyDown else { return false }
 
         guard let shortcut = shortcut(from: event) else {
             NSSound.beep()
@@ -1082,6 +1631,26 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         finishShortcutCapture(shortcut, for: action)
         return true
+    }
+
+    private func beginTriggerCapture(_ role: TriggerRole) {
+        triggerCaptureRole = role
+        shortcutCaptureAction = nil
+        appDelegate?.setShortcutCaptureActive(true)
+        render(section: .home)
+    }
+
+    private func finishTriggerCapture(_ shortcut: TriggerShortcut, for role: TriggerRole) {
+        switch role {
+        case .hold:
+            homeDraft.holdTrigger = shortcut
+        case .press:
+            homeDraft.pressTrigger = shortcut
+        }
+        triggerCaptureRole = nil
+        appDelegate?.setShortcutCaptureActive(false)
+        performActionFeedback()
+        render(section: .home)
     }
 
     private func shortcut(from event: NSEvent) -> KeyShortcut? {
@@ -1105,11 +1674,21 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private func shortcutDisplay(keyCode: UInt16, flags: NSEvent.ModifierFlags) -> String {
         var parts: [String] = []
-        if flags.contains(.control) { parts.append("Control") }
-        if flags.contains(.option) { parts.append("Option") }
+        if flags.contains(.control) { parts.append("Ctrl") }
+        if flags.contains(.option) { parts.append("Opt") }
         if flags.contains(.shift) { parts.append("Shift") }
-        if flags.contains(.command) { parts.append("Command") }
+        if flags.contains(.command) { parts.append("Cmd") }
         parts.append(keyName(for: keyCode))
+        return parts.joined(separator: "+")
+    }
+
+    private func displayName(for shortcut: KeyShortcut) -> String {
+        var parts: [String] = []
+        if shortcut.modifiers & UInt32(controlKey) != 0 { parts.append("Ctrl") }
+        if shortcut.modifiers & UInt32(optionKey) != 0 { parts.append("Opt") }
+        if shortcut.modifiers & UInt32(shiftKey) != 0 { parts.append("Shift") }
+        if shortcut.modifiers & UInt32(cmdKey) != 0 { parts.append("Cmd") }
+        parts.append(keyName(for: UInt16(shortcut.keyCode)))
         return parts.joined(separator: "+")
     }
 
@@ -1172,6 +1751,34 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         refresh()
     }
 
+    @objc private func saveDictionaryEdits() {
+        store.dictionaryWords = cleanedDictionaryLines(from: dictionaryTextView.string)
+        refresh()
+    }
+
+    @objc private func deleteSelectedDictionaryLine() {
+        let raw = dictionaryTextView.string
+        let nsRaw = raw as NSString
+        guard nsRaw.length > 0 else { return }
+
+        let selection = dictionaryTextView.selectedRange()
+        let location = min(max(selection.location, 0), nsRaw.length)
+        let lineRange = nsRaw.lineRange(for: NSRange(location: location, length: 0))
+        let next = nsRaw.replacingCharacters(in: lineRange, with: "")
+        store.dictionaryWords = cleanedDictionaryLines(from: next)
+        refresh()
+
+        let nextLength = (dictionaryTextView.string as NSString).length
+        dictionaryTextView.setSelectedRange(NSRange(location: min(location, nextLength), length: 0))
+    }
+
+    private func cleanedDictionaryLines(from text: String) -> [String] {
+        text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && $0 != "No dictionary terms yet." }
+    }
+
     @objc private func addSnippet() {
         let phrase = snippetPhraseField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let expansion = snippetExpansionField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1210,20 +1817,20 @@ private final class SignalMeterView: NSView {
         NSGraphicsContext.current?.saveGraphicsState()
         NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).addClip()
 
-        HubPalette.signalAccent.withAlphaComponent(0.18).setFill()
+        HubPalette.signalText.withAlphaComponent(0.12).setFill()
         NSBezierPath(ovalIn: NSRect(x: rect.minX - 42, y: rect.minY - 38, width: 190, height: 138)).fill()
 
-        HubPalette.signalRed.withAlphaComponent(0.18).setFill()
+        HubPalette.signalText.withAlphaComponent(0.06).setFill()
         NSBezierPath(ovalIn: NSRect(x: rect.maxX - 176, y: rect.maxY - 122, width: 230, height: 146)).fill()
 
         NSGraphicsContext.current?.restoreGraphicsState()
     }
 
-    private func drawWave(in rect: NSRect) {
-        HubPalette.signalText.setFill()
-        let bars: [CGFloat] = [18, 32, 42, 26, 36]
-        let barWidth: CGFloat = 6
-        let spacing: CGFloat = 6
+	private func drawWave(in rect: NSRect) {
+	    HubPalette.signalText.setFill()
+	    let bars: [CGFloat] = [26, 42, 34]
+	    let barWidth: CGFloat = 7
+	    let spacing: CGFloat = 10
         let totalWidth = CGFloat(bars.count) * barWidth + CGFloat(bars.count - 1) * spacing
         let startX = rect.midX - totalWidth / 2
 

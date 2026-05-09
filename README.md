@@ -1,6 +1,6 @@
-# Wispry
+# TypeLocal
 
-Wispry is a small native macOS dictation utility inspired by the workflow of Wispr Flow. It runs as a menu bar app with a movable floating bubble that starts and stops dictation.
+TypeLocal is a small native macOS speech-to-text utility for private dictation in any app. It runs as a menu bar app with a movable floating bubble, local history, Local Whisper, and Apple Speech fallback, then pastes text back where your cursor started.
 
 ## Build
 
@@ -11,14 +11,14 @@ Wispry is a small native macOS dictation utility inspired by the workflow of Wis
 The app bundle is written to:
 
 ```text
-.build/Wispry.app
+.build/TypeLocal.app
 ```
 
 The same build also writes a local download package for the static landing page:
 
 ```text
-site/downloads/Wispry-0.1.0.zip
-site/downloads/Wispry-0.1.0.dmg
+site/downloads/TypeLocal-0.1.0.zip
+site/downloads/TypeLocal-0.1.0.dmg
 ```
 
 By default, `./build.sh` uses the best available signing identity:
@@ -36,13 +36,13 @@ SIGN_MODE=developer-id ./build.sh
 To notarize after signing, first store Apple notary credentials:
 
 ```bash
-xcrun notarytool store-credentials wispry-notary
+xcrun notarytool store-credentials typelocal-notary
 ```
 
 Then build and notarize:
 
 ```bash
-SIGN_MODE=developer-id NOTARY_PROFILE=wispry-notary ./build.sh
+SIGN_MODE=developer-id NOTARY_PROFILE=typelocal-notary ./build.sh
 ```
 
 If the Developer ID certificate is missing, `SIGN_MODE=developer-id` fails instead of silently producing an ad-hoc build.
@@ -50,10 +50,10 @@ If the Developer ID certificate is missing, `SIGN_MODE=developer-id` fails inste
 ## Run
 
 ```bash
-open .build/Wispry.app
+open .build/TypeLocal.app
 ```
 
-macOS will ask for microphone and speech recognition access the first time you dictate. For reliable automatic paste and selected-text rewrite, grant Accessibility access in System Settings when prompted. Wispry uses Apple Speech; recognition behavior depends on macOS language and availability.
+macOS will ask for microphone and Speech Recognition access the first time you dictate. For reliable automatic paste and selected-text rewrite, grant Accessibility access in System Settings when prompted. TypeLocal can use Local Whisper for private local transcription and Apple Speech as a fallback when available.
 
 ## Controls
 
@@ -63,22 +63,20 @@ macOS will ask for microphone and speech recognition access the first time you d
 - Hold `Fn` for push-to-talk, then release to stop and paste.
 - Double-tap `Fn` to latch dictation on, then click the bubble or press `Fn` again to stop and paste.
 - Press `Escape` during dictation to cancel.
-- Press `Control+Option+Space` to toggle hands-free dictation.
-- Configure a mouse side button to emit `F13` to use it as a mouse trigger.
-- Select text and press `Option+2/3/4/5` to repolish it as professional, casual, list, or clean text.
-- Open Home > Shortcuts to record different keyboard shortcuts for toggle and rewrite actions.
+- Configure hold-to-record and press-to-toggle triggers from Home.
+- Select text and press `Opt+2/3/4/5` to repolish it as professional, casual, list, or clean text.
 - Say `press enter` at the end of a dictation to paste and send.
 - Say `cancel that` to discard the current dictation.
-- Open Home to check microphone, Speech Recognition, Accessibility, shortcut, and paste status.
+- Open Home to choose model, language, microphone, cleanup, storage, and triggers.
 
 ## Features
 
 - Native always-on-top draggable bubble.
-- Menu bar controls: Home, build info, paste/copy last transcript, shortcuts, microphone, help, feedback, and quit.
-- Home hub with sidebar navigation, searchable history, dictionary hints, snippets, style transform, and editable shortcuts.
+- Menu bar controls: Home, show/hide bubble, recent dictations, help, feedback, and quit.
+- Home hub with sidebar navigation, searchable history, dictionary hints, model/language/microphone settings, and editable triggers.
 - Minimal recording state on the bubble, without showing transcript text on screen.
-- Apple Speech transcription with personal dictionary context.
-- Snippets for reusable voice shortcuts.
+- Local Whisper transcription with Apple Speech fallback.
+- No TypeLocal account, sync service, hosted transcript history, or stored audio.
 - Local cleanup styles: clean, professional, casual, and list.
 - App-aware style defaults for Mail, Messages, Slack, and Discord.
 - Clipboard fallback when Accessibility access is not available.

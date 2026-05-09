@@ -2,50 +2,74 @@ import Foundation
 
 struct TranscriptAccumulator {
     private(set) var text = ""
+    private var committedText = ""
+    private var activeText = ""
+    private var activeFirstSegmentTimestamp: TimeInterval?
 
     mutating func reset() {
         text = ""
+        committedText = ""
+        activeText = ""
+        activeFirstSegmentTimestamp = nil
     }
 
     mutating func ingest(_ candidate: String, firstSegmentTimestamp: TimeInterval? = nil) -> String {
         let candidate = Self.normalizeWhitespace(candidate)
         guard !candidate.isEmpty else { return text }
-        guard !text.isEmpty else {
-            text = candidate
-            return text
-        }
-
-        if firstSegmentTimestamp == nil || (firstSegmentTimestamp ?? 0) < 0.75 {
-            text = candidate
+        guard !activeText.isEmpty else {
+            activeText = candidate
+            activeFirstSegmentTimestamp = firstSegmentTimestamp
+            rebuildText()
             return text
         }
 
         let existingKey = Self.comparisonKey(text)
         let candidateKey = Self.comparisonKey(candidate)
+        let activeKey = Self.comparisonKey(activeText)
 
         if candidateKey == existingKey || existingKey.contains(candidateKey) {
             return text
         }
 
         if candidateKey.hasPrefix(existingKey) {
-            text = candidate
+            committedText = ""
+            activeText = candidate
+            activeFirstSegmentTimestamp = firstSegmentTimestamp
+            rebuildText()
+            return text
+        }
+
+        let activeTokens = Self.tokens(from: activeText)
+        let candidateTokens = Self.tokens(from: candidate)
+
+        if Self.isSameRecognitionWindow(activeFirstSegmentTimestamp, firstSegmentTimestamp),
+           Self.shouldReplaceActiveRevision(activeKey: activeKey, activeTokens: activeTokens, candidateKey: candidateKey, candidateTokens: candidateTokens) {
+            activeText = candidate
+            activeFirstSegmentTimestamp = firstSegmentTimestamp
+            rebuildText()
             return text
         }
 
         let existingTokens = Self.tokens(from: text)
-        let candidateTokens = Self.tokens(from: candidate)
         let overlap = Self.overlapCount(existingTokens: existingTokens, candidateTokens: candidateTokens)
 
         if overlap >= min(2, candidateTokens.count) {
-            let wordsToAppend = candidate.split(separator: " ").dropFirst(overlap).map(String.init)
-            if !wordsToAppend.isEmpty {
-                text = Self.join(text, wordsToAppend.joined(separator: " "))
-            }
+            committedText = Self.words(from: text).dropLast(overlap).joined(separator: " ")
+            activeText = candidate
+            activeFirstSegmentTimestamp = firstSegmentTimestamp
+            rebuildText()
             return text
         }
 
-        text = Self.join(text, candidate)
+        committedText = text
+        activeText = candidate
+        activeFirstSegmentTimestamp = firstSegmentTimestamp
+        rebuildText()
         return text
+    }
+
+    private mutating func rebuildText() {
+        text = Self.join(committedText, activeText)
     }
 
     private static func normalizeWhitespace(_ input: String) -> String {
@@ -63,10 +87,15 @@ struct TranscriptAccumulator {
     }
 
     private static func tokens(from input: String) -> [String] {
+        words(from: input)
+            .map { tokenKey($0) }
+            .filter { !$0.isEmpty }
+    }
+
+    private static func words(from input: String) -> [String] {
         input
             .split(separator: " ")
-            .map { tokenKey(String($0)) }
-            .filter { !$0.isEmpty }
+            .map(String.init)
     }
 
     private static func comparisonKey(_ input: String) -> String {
@@ -92,5 +121,61 @@ struct TranscriptAccumulator {
         }
 
         return 0
+    }
+
+    private static func shouldReplaceAsFullRevision(existingTokens: [String], candidateTokens: [String]) -> Bool {
+        guard !existingTokens.isEmpty, !candidateTokens.isEmpty else { return false }
+        guard candidateTokens.count >= Int(Double(existingTokens.count) * 0.72) else {
+            return false
+        }
+
+        var existingCounts = countsByToken(existingTokens)
+        var sharedCount = 0
+        for token in candidateTokens {
+            if let count = existingCounts[token], count > 0 {
+                sharedCount += 1
+                existingCounts[token] = count - 1
+            }
+        }
+
+        let coverage = Double(sharedCount) / Double(max(existingTokens.count, candidateTokens.count))
+        return coverage >= 0.52
+    }
+
+    private static func isSameRecognitionWindow(_ lhs: TimeInterval?, _ rhs: TimeInterval?) -> Bool {
+        switch (lhs, rhs) {
+        case (.none, .none):
+            return true
+        case (.some(let left), .some(let right)):
+            return abs(left - right) < 0.35
+        default:
+            return false
+        }
+    }
+
+    private static func shouldReplaceActiveRevision(
+        activeKey: String,
+        activeTokens: [String],
+        candidateKey: String,
+        candidateTokens: [String]
+    ) -> Bool {
+        if candidateKey == activeKey {
+            return false
+        }
+        if activeKey.contains(candidateKey) {
+            return false
+        }
+        if candidateKey.hasPrefix(activeKey) {
+            return true
+        }
+        return shouldReplaceAsFullRevision(existingTokens: activeTokens, candidateTokens: candidateTokens)
+    }
+
+    private static func countsByToken(_ tokens: [String]) -> [String: Int] {
+        var counts: [String: Int] = [:]
+        for token in tokens {
+            counts[token, default: 0] += 1
+        }
+        return counts
     }
 }

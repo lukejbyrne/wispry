@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="Wispry"
+APP_NAME="TypeLocal"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$ROOT_DIR/.build"
 APP_DIR="$BUILD_DIR/$APP_NAME.app"
@@ -29,7 +29,10 @@ resolve_signing() {
   local local_id
   developer_id="$(find_identity "Developer ID Application:")"
   development_id="$(find_identity "Apple Development:")"
-  local_id="$(find_identity "Wispry Local Code Signing")"
+  local_id="$(find_identity "TypeLocal Local Code Signing")"
+  if [[ -z "$local_id" ]]; then
+    local_id="$(find_identity "Wispry Local Code Signing")"
+  fi
 
   case "$SIGN_MODE" in
     auto)
@@ -74,7 +77,7 @@ resolve_signing() {
         SIGN_IDENTITY="$local_id"
       fi
       if [[ -z "$SIGN_IDENTITY" ]]; then
-        echo "error: SIGN_MODE=local requested, but the Wispry Local Code Signing identity is not installed." >&2
+        echo "error: SIGN_MODE=local requested, but no TypeLocal/Wispry local signing identity is installed." >&2
         exit 1
       fi
       RESOLVED_SIGN_MODE="local"
@@ -185,5 +188,5 @@ echo "$APP_DIR"
 echo "$DMG_PATH"
 echo "Signing mode: $RESOLVED_SIGN_MODE"
 if [[ "$RESOLVED_SIGN_MODE" == "adhoc" ]]; then
-  echo "warning: no Developer ID, Apple Development, or Wispry local signing identity was found; built with ad-hoc signing." >&2
+  echo "warning: no Developer ID, Apple Development, or TypeLocal local signing identity was found; built with ad-hoc signing." >&2
 fi

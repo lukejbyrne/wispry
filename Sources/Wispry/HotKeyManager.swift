@@ -18,11 +18,13 @@ final class HotKeyManager {
     private let signature = FourCharCode("WSPY")
     private(set) var registrationFailures: [String] = []
 
-    func install(shortcuts: ShortcutSettings) {
+    func install(shortcuts: ShortcutSettings, pressTrigger: TriggerShortcut) {
         uninstallHotKeys()
         registrationFailures.removeAll()
         ensureHandler()
-        register(shortcut: shortcuts.toggle, id: 1, label: "Toggle dictation")
+        if let shortcut = pressTrigger.keyShortcut {
+            register(shortcut: shortcut, id: 1, label: "Press trigger")
+        }
         register(keyCode: UInt32(kVK_F13), modifiers: 0, id: 2, label: "Mouse trigger")
         register(shortcut: shortcuts.professional, id: 3, label: "Professional rewrite")
         register(shortcut: shortcuts.casual, id: 4, label: "Casual rewrite")

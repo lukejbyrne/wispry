@@ -22,8 +22,11 @@ struct TextPipelineSmoke {
         testQuestionPunctuation()
         testCorrectionMarkersDoNotEatNormalNegation()
         testPunctuationWordsCanStayWords()
+        testRepeatedFalseStartRevision()
         testTranscriptAccumulatorReplacesFullRevisions()
         testTranscriptAccumulatorKeepsTimedRollingWindows()
+        testTranscriptAccumulatorDoesNotDropLongTextOnTimestampRestart()
+        testTranscriptAccumulatorReplacesActivePartialRevisions()
         guard failures.isEmpty else {
             for failure in failures {
                 FileHandle.standardError.write(Data("FAIL: \(failure)\n".utf8))
@@ -149,6 +152,18 @@ struct TextPipelineSmoke {
         expect(history.text == "The period of review is short.", "period of should stay words")
     }
 
+    private static func testRepeatedFalseStartRevision() {
+        let result = TextPipeline.process(
+            "there is new day move with you on the there is no day move with you on the website",
+            style: .clean,
+            snippets: []
+        )
+        expect(
+            result.text == "There is no day move with you on the website.",
+            "repeated false-start revision should keep the later version, got \(result.text)"
+        )
+    }
+
     private static func testTranscriptAccumulatorReplacesFullRevisions() {
         var accumulator = TranscriptAccumulator()
         _ = accumulator.ingest("I'm just gonna test and see how long this takes", firstSegmentTimestamp: 0)
@@ -171,6 +186,33 @@ struct TextPipelineSmoke {
         expect(
             result == "this is the first part of a longer thought and here is the second part and here is the final part",
             "transcript accumulator should merge timed rolling windows, got \(result)"
+        )
+    }
+
+    private static func testTranscriptAccumulatorDoesNotDropLongTextOnTimestampRestart() {
+        var accumulator = TranscriptAccumulator()
+        _ = accumulator.ingest(
+            "this is the first paragraph and it has a few ideas about the product and why longer recordings should keep accumulating",
+            firstSegmentTimestamp: 0
+        )
+        let result = accumulator.ingest(
+            "the next paragraph starts after Apple speech restarts timestamps",
+            firstSegmentTimestamp: 0
+        )
+        expect(
+            result == "this is the first paragraph and it has a few ideas about the product and why longer recordings should keep accumulating the next paragraph starts after Apple speech restarts timestamps",
+            "transcript accumulator should not replace long text with restarted timestamp segment, got \(result)"
+        )
+    }
+
+    private static func testTranscriptAccumulatorReplacesActivePartialRevisions() {
+        var accumulator = TranscriptAccumulator()
+        _ = accumulator.ingest("as for the do", firstSegmentTimestamp: 18)
+        _ = accumulator.ingest("as for the doubling but", firstSegmentTimestamp: 18)
+        let result = accumulator.ingest("as for the doubling and the limitation", firstSegmentTimestamp: 18)
+        expect(
+            result == "as for the doubling and the limitation",
+            "transcript accumulator should replace active partial revisions, got \(result)"
         )
     }
 }

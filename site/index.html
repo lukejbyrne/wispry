@@ -3,25 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wispry | Private Mac dictation that pastes clean text in place</title>
-  <meta name="description" content="Wispry is a native macOS dictation utility for short bursts of speech, conservative cleanup, and reliable paste back into the app you started from.">
+  <title>TypeLocal | Private speech to text for Mac</title>
+  <meta name="description" content="TypeLocal is private Mac speech to text. Click a text field, speak, and paste clean text with local history, no account, no TypeLocal server, and no hosted audio.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     :root {
-      --ink: #101510;
-      --panel: #182018;
-      --panel-2: #222819;
-      --field: #0a100a;
-      --paper: #eee5d2;
-      --paper-2: #faf3df;
-      --paper-text: #171813;
-      --text: #f6f1e5;
-      --muted: rgba(246, 241, 229, 0.68);
-      --quiet: rgba(246, 241, 229, 0.42);
-      --line: rgba(246, 241, 229, 0.18);
-      --accent: #abd56b;
-      --red: #c94536;
-      --blue: #80b6ff;
+      --ink: #0d0d0c;
+      --panel: #171716;
+      --panel-2: #222220;
+      --field: #080807;
+      --paper: #f2f1ec;
+      --paper-2: #e7e5dd;
+      --paper-text: #141412;
+      --text: #f2f1ec;
+      --muted: rgba(242, 241, 236, 0.66);
+      --quiet: rgba(242, 241, 236, 0.40);
+      --line: rgba(242, 241, 236, 0.18);
+      --accent: oklch(66% 0.08 62);
+      --red: #b8b5ad;
+      --blue: #d6d4cd;
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     }
 
@@ -66,7 +66,7 @@
       padding: 8px 10px 8px 18px;
       border: 1px solid rgba(246, 241, 229, 0.18);
       border-radius: 10px;
-      background: rgba(16, 21, 16, 0.78);
+      background: rgba(13, 13, 12, 0.82);
       box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
       backdrop-filter: blur(18px);
       transform: translateX(-50%);
@@ -85,7 +85,7 @@
       width: 23px;
       height: 23px;
       display: block;
-      border-radius: 6px;
+      border-radius: 50%;
       box-shadow: 0 0 0 1px rgba(246, 241, 229, 0.18);
     }
 
@@ -106,8 +106,8 @@
       padding: 0 14px;
       border: 1px solid rgba(246, 241, 229, 0.26);
       border-radius: 8px;
-      background: rgba(246, 241, 229, 0.08);
-      color: var(--text);
+      background: var(--accent);
+      color: var(--ink);
       font-size: 13px;
       font-weight: 850;
     }
@@ -119,9 +119,7 @@
       color: var(--paper-text);
       border-bottom: 1px solid var(--line);
       background:
-        radial-gradient(circle at 10% 16%, rgba(128, 182, 255, 0.18), transparent 28%),
-        radial-gradient(circle at 88% 78%, rgba(201, 69, 54, 0.16), transparent 26%),
-        linear-gradient(135deg, rgba(171, 213, 107, 0.16), transparent 42%),
+        radial-gradient(circle at 82% 18%, oklch(66% 0.08 62 / 0.22), transparent 28%),
         var(--paper);
     }
 
@@ -140,13 +138,32 @@
     .hero-inner {
       position: relative;
       z-index: 3;
-      width: min(1120px, calc(100% - 44px));
+      width: min(1140px, calc(100% - 44px));
+      display: grid;
+      grid-template-columns: minmax(0, 0.78fr) minmax(420px, 1.22fr);
+      grid-template-areas:
+        "copy demo"
+        "actions actions";
+      align-items: center;
+      gap: clamp(24px, 4vw, 52px);
+      margin: 0 auto;
+      padding: clamp(18px, 3vw, 30px);
+      border: 1px solid rgba(20, 20, 18, 0.14);
+      border-radius: 22px;
+      background: rgba(250, 249, 244, 0.66);
+      box-shadow: 0 28px 90px rgba(23, 24, 19, 0.14);
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      animation: heroPanelIn 760ms cubic-bezier(0.19, 1, 0.22, 1) 90ms forwards;
+    }
+
+    .hero-shell {
+      position: relative;
+      z-index: 3;
       min-height: min(94svh, 980px);
       display: grid;
-      grid-template-columns: minmax(0, 0.84fr) minmax(460px, 1fr);
       align-items: center;
-      gap: 58px;
-      margin: 0 auto;
       padding: 118px 0 52px;
     }
 
@@ -155,7 +172,7 @@
       align-items: center;
       gap: 9px;
       margin-bottom: 18px;
-      color: #315e1d;
+      color: rgba(20, 20, 18, 0.64);
       font-size: 12px;
       font-weight: 900;
       letter-spacing: 0.08em;
@@ -167,7 +184,15 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #315e1d;
+      background: var(--paper-text);
+    }
+
+    .section.dark .eyebrow {
+      color: var(--muted);
+    }
+
+    .section.dark .eyebrow::before {
+      background: var(--accent);
     }
 
     h1,
@@ -179,7 +204,7 @@
 
     h1 {
       max-width: 500px;
-      margin-bottom: 18px;
+      margin-bottom: 0;
       color: var(--paper-text);
       font-size: clamp(52px, 6vw, 92px);
       line-height: 0.94;
@@ -187,18 +212,113 @@
     }
 
     .hero-copy {
-      max-width: 520px;
-      margin-bottom: 0;
-      color: rgba(23, 24, 19, 0.72);
-      font-size: clamp(19px, 2vw, 24px);
-      line-height: 1.34;
+      grid-area: copy;
+      max-width: 560px;
     }
 
     .hero-actions {
+      grid-area: actions;
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 12px;
-      margin-top: 30px;
+      margin-top: -10px;
+    }
+
+    .hero-actions .button {
+      min-width: min(240px, 100%);
+    }
+
+    .hero-demo {
+      grid-area: demo;
+      width: 100%;
+      padding: 10px;
+      border: 1px solid rgba(20, 20, 18, 0.18);
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(214, 212, 205, 0.52), rgba(250, 249, 244, 0.86)),
+        rgba(250, 249, 244, 0.72);
+      box-shadow: 0 26px 80px rgba(23, 24, 19, 0.18);
+      opacity: 0;
+      transform: translateY(14px);
+      animation: heroChildIn 680ms cubic-bezier(0.19, 1, 0.22, 1) 250ms forwards;
+    }
+
+    .hero-demo-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 2px 10px;
+      color: rgba(20, 20, 18, 0.58);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero-demo-label b {
+      color: var(--paper-text);
+    }
+
+    .hero-demo-player {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+      overflow: hidden;
+      border: 1px solid rgba(20, 20, 18, 0.14);
+      border-radius: 10px;
+      background: var(--field);
+      object-fit: cover;
+    }
+
+    .language-strip {
+      overflow: hidden;
+      border-top: 1px solid rgba(23, 24, 19, 0.12);
+      border-bottom: 1px solid rgba(23, 24, 19, 0.12);
+      background: var(--paper-2);
+    }
+
+    .language-track {
+      width: max-content;
+      display: flex;
+      gap: 12px;
+      padding: 13px 0;
+      animation: languageMarquee 34s linear infinite;
+    }
+
+    .language-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(23, 24, 19, 0.12);
+      border-radius: 999px;
+      background: rgba(250, 249, 244, 0.72);
+      color: rgba(20, 20, 18, 0.72);
+      font-size: 13px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    @keyframes languageMarquee {
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    @keyframes heroPanelIn {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes heroChildIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .button {
@@ -207,7 +327,7 @@
       align-items: center;
       justify-content: center;
       padding: 0 18px;
-      border: 1px solid var(--text);
+      border: 1px solid var(--paper-text);
       border-radius: 8px;
       background: var(--paper-text);
       color: var(--paper);
@@ -238,24 +358,6 @@
       color: var(--paper-text);
     }
 
-    .proof-line {
-      max-width: 580px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 44px;
-      color: rgba(23, 24, 19, 0.56);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .proof-line strong {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--paper-text);
-      font-size: 16px;
-    }
-
     .hero-visual {
       position: relative;
       min-width: 0;
@@ -263,9 +365,7 @@
       padding: 24px;
       border: 1px solid rgba(23, 24, 19, 0.16);
       border-radius: 18px;
-      background:
-        radial-gradient(circle at 84% 16%, rgba(171, 213, 107, 0.16), transparent 34%),
-        linear-gradient(180deg, #1b241b, #0d130d);
+      background: var(--panel);
       box-shadow: 0 40px 100px rgba(23, 24, 19, 0.26);
       isolation: isolate;
     }
@@ -326,7 +426,7 @@
       height: 7px;
       display: inline-block;
       border-radius: 50%;
-      background: var(--accent);
+      background: var(--text);
     }
 
     .conversion-window {
@@ -336,7 +436,7 @@
       overflow: hidden;
       border: 1px solid rgba(246, 241, 229, 0.14);
       border-radius: 14px;
-      background: #f4edda;
+      background: var(--paper);
       color: var(--paper-text);
       box-shadow: 0 26px 72px rgba(0, 0, 0, 0.32);
     }
@@ -394,14 +494,14 @@
       background:
         linear-gradient(90deg, rgba(246, 241, 229, 0.08), transparent 1px),
         linear-gradient(0deg, rgba(246, 241, 229, 0.06), transparent 1px),
-        #101810;
+        #10100f;
       background-size: 24px 24px;
       border: 1px solid rgba(246, 241, 229, 0.1);
     }
 
     .text-panel {
       color: var(--paper-text);
-      background: #fff9e9;
+      background: #f8f7f2;
       border: 1px solid rgba(23, 24, 19, 0.12);
     }
 
@@ -417,18 +517,18 @@
     }
 
     .signal-panel .stage-label {
-      color: var(--accent);
+      color: var(--text);
     }
 
     .text-panel .stage-label {
-      color: #315e1d;
+      color: var(--paper-text);
     }
 
     .recording-dot {
       width: 9px;
       height: 9px;
       flex: 0 0 auto;
-      border: 3px solid rgba(171, 213, 107, 0.18);
+      border: 3px solid rgba(242, 241, 236, 0.18);
       border-radius: 50%;
       background: var(--accent);
       animation: recordDot 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
@@ -445,7 +545,7 @@
     .waveform i {
       width: 7px;
       border-radius: 999px;
-      background: var(--accent);
+      background: var(--text);
       animation: voicePulse 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
       transform-origin: center;
     }
@@ -494,11 +594,11 @@
     .spoken-text mark {
       padding: 0 2px;
       border-radius: 4px;
-      background: rgba(201, 69, 54, 0.16);
+      background: rgba(242, 241, 236, 0.10);
       color: rgba(246, 241, 229, 0.62);
       text-decoration: line-through;
       text-decoration-thickness: 1px;
-      text-decoration-color: rgba(201, 69, 54, 0.7);
+      text-decoration-color: rgba(242, 241, 236, 0.62);
       animation: rejectWord 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
     }
 
@@ -507,7 +607,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--accent);
+      color: var(--text);
       font-size: 24px;
       font-weight: 950;
     }
@@ -519,7 +619,7 @@
       bottom: 22px;
       left: 50%;
       width: 1px;
-      background: linear-gradient(180deg, rgba(23, 24, 19, 0.12), rgba(171, 213, 107, 0.84), rgba(23, 24, 19, 0.12));
+      background: linear-gradient(180deg, rgba(23, 24, 19, 0.12), rgba(242, 241, 236, 0.72), rgba(23, 24, 19, 0.12));
       transform: translateX(-50%);
     }
 
@@ -531,8 +631,8 @@
       display: grid;
       place-items: center;
       border-radius: 50%;
-      background: #152015;
-      border: 1px solid rgba(171, 213, 107, 0.32);
+      background: #151514;
+      border: 1px solid rgba(242, 241, 236, 0.24);
       box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
       animation: arrowCycle 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
     }
@@ -555,7 +655,7 @@
     .clean-output {
       margin: 0;
       padding-top: 6px;
-      color: #182017;
+      color: var(--paper-text);
       font-size: 20px;
       font-weight: 850;
       line-height: 1.35;
@@ -575,7 +675,7 @@
       height: 1em;
       display: inline-block;
       margin-left: 3px;
-      background: #315e1d;
+      background: var(--paper-text);
       vertical-align: -0.12em;
       animation: caretBlink 920ms steps(1, end) infinite, caretCycle 5200ms cubic-bezier(0.19, 1, 0.22, 1) infinite;
     }
@@ -598,14 +698,14 @@
 
     @keyframes rejectWord {
       0%, 8% {
-        background: rgba(201, 69, 54, 0);
+        background: rgba(242, 241, 236, 0);
         color: rgba(246, 241, 229, 0.78);
-        text-decoration-color: rgba(201, 69, 54, 0);
+        text-decoration-color: rgba(242, 241, 236, 0);
       }
       18%, 100% {
-        background: rgba(201, 69, 54, 0.16);
+        background: rgba(242, 241, 236, 0.10);
         color: rgba(246, 241, 229, 0.62);
-        text-decoration-color: rgba(201, 69, 54, 0.7);
+        text-decoration-color: rgba(242, 241, 236, 0.62);
       }
     }
 
@@ -629,12 +729,12 @@
 
     @keyframes arrowCycle {
       0%, 20%, 48%, 100% {
-        background: #152015;
-        border-color: rgba(171, 213, 107, 0.32);
+        background: #151514;
+        border-color: rgba(242, 241, 236, 0.24);
       }
       32% {
-        background: #1d2b1b;
-        border-color: rgba(171, 213, 107, 0.56);
+        background: #252523;
+        border-color: rgba(242, 241, 236, 0.44);
       }
     }
 
@@ -666,9 +766,7 @@
     }
 
     .section.dark {
-      background:
-        radial-gradient(circle at 12% 0%, rgba(128, 182, 255, 0.12), transparent 26%),
-        var(--ink);
+      background: var(--ink);
     }
 
     .section-inner {
@@ -712,7 +810,7 @@
     }
 
     .workflow span {
-      color: #527db7;
+      color: rgba(20, 20, 18, 0.58);
       font-size: 13px;
       font-weight: 950;
     }
@@ -727,41 +825,59 @@
       font-size: 15px;
     }
 
-    .video-strip {
+    .capability-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
       gap: 18px;
       margin-top: 34px;
     }
 
-    .video-tile {
-      min-height: 300px;
+    .capability-panel {
+      padding: 26px;
+      border: 1px solid rgba(23, 24, 19, 0.16);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .capability-panel h3 {
+      margin-bottom: 12px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .capability-panel p {
+      color: rgba(23, 24, 19, 0.68);
+      font-size: 16px;
+    }
+
+    .capability-list {
       display: grid;
-      align-content: space-between;
+      gap: 1px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid rgba(246, 241, 229, 0.14);
+      border-radius: 12px;
+      background: rgba(246, 241, 229, 0.14);
+      list-style: none;
+    }
+
+    .capability-list li {
+      display: grid;
+      grid-template-columns: 132px 1fr;
       gap: 18px;
       padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: rgba(24, 32, 24, 0.72);
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
-    }
-
-    .video-tile.large {
-      min-height: 360px;
-    }
-
-    .video-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      background: var(--panel);
       color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 14px;
+      line-height: 1.45;
     }
 
-    .video-label b {
+    .capability-list b {
       color: var(--text);
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .fake-player {
@@ -774,9 +890,8 @@
       background:
         linear-gradient(90deg, rgba(246, 241, 229, 0.08), transparent 1px),
         linear-gradient(0deg, rgba(246, 241, 229, 0.06), transparent 1px),
-        radial-gradient(circle at 30% 30%, rgba(171, 213, 107, 0.16), transparent 32%),
         var(--field);
-      background-size: 32px 32px, 32px 32px, auto, auto;
+      background-size: 32px 32px, 32px 32px, auto;
       position: relative;
       overflow: hidden;
       padding: 22px;
@@ -795,10 +910,10 @@
       height: 28px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(171, 213, 107, 0.32);
+      border: 1px solid rgba(242, 241, 236, 0.24);
       border-radius: 50%;
-      color: var(--accent);
-      background: rgba(171, 213, 107, 0.1);
+      color: var(--text);
+      background: rgba(242, 241, 236, 0.08);
       font-size: 12px;
       font-weight: 950;
     }
@@ -821,13 +936,13 @@
       display: grid;
       gap: 10px;
       padding: 16px;
-      border: 1px solid rgba(171, 213, 107, 0.24);
+      border: 1px solid rgba(242, 241, 236, 0.20);
       border-radius: 9px;
-      background: rgba(171, 213, 107, 0.1);
+      background: rgba(242, 241, 236, 0.07);
     }
 
     .proof-result small {
-      color: var(--accent);
+      color: var(--text);
       font-size: 11px;
       font-weight: 950;
       letter-spacing: 0.06em;
@@ -856,14 +971,12 @@
 
     .privacy-card.dark-card {
       color: var(--text);
-      background:
-        radial-gradient(circle at 16% 12%, rgba(171, 213, 107, 0.15), transparent 32%),
-        var(--panel);
-      border-color: rgba(16, 21, 16, 0.72);
+      background: var(--panel);
+      border-color: oklch(66% 0.08 62 / 0.34);
     }
 
     .privacy-card small {
-      color: #315e1d;
+      color: rgba(20, 20, 18, 0.58);
       font-size: 12px;
       font-weight: 950;
       letter-spacing: 0.06em;
@@ -871,7 +984,7 @@
     }
 
     .privacy-card.dark-card small {
-      color: var(--accent);
+      color: var(--text);
     }
 
     .privacy-card h3 {
@@ -915,33 +1028,59 @@
       margin-top: 34px;
     }
 
-    .quote-box {
-      padding: 24px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: rgba(24, 32, 24, 0.78);
+    .faq-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 34px;
+      border-top: 1px solid var(--line);
     }
 
-    .quote-box small {
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 950;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+    .faq-item {
+      border-bottom: 1px solid var(--line);
+      background: rgba(18, 18, 17, 0.72);
     }
 
-    .quote-box p {
-      margin-top: 16px;
+    .faq-item summary {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 22px;
       color: var(--text);
-      font-size: 20px;
-      line-height: 1.45;
+      font-size: 18px;
+      font-weight: 850;
+      list-style: none;
+      cursor: pointer;
     }
 
-    .quote-box output {
-      display: block;
-      margin-top: 16px;
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary::after {
+      content: "+";
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(246, 241, 229, 0.18);
+      border-radius: 50%;
+      color: var(--accent);
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .faq-item[open] summary::after {
+      content: "-";
+    }
+
+    .faq-item p {
+      max-width: 800px;
+      margin: -2px 72px 22px 22px;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1.5;
     }
 
@@ -953,6 +1092,10 @@
     }
 
     .price-card {
+      min-height: 354px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       padding: 26px;
       border: 1px solid rgba(23, 24, 19, 0.16);
       border-radius: 12px;
@@ -961,14 +1104,12 @@
 
     .price-card.featured {
       color: var(--text);
-      background:
-        radial-gradient(circle at 16% 14%, rgba(171, 213, 107, 0.16), transparent 34%),
-        var(--panel);
-      border-color: rgba(16, 21, 16, 0.72);
+      background: var(--panel);
+      border-color: oklch(66% 0.08 62 / 0.34);
     }
 
     .price-card small {
-      color: #527db7;
+      color: rgba(20, 20, 18, 0.58);
       font-size: 12px;
       font-weight: 950;
       letter-spacing: 0.06em;
@@ -1010,6 +1151,24 @@
       color: var(--muted);
     }
 
+    .price-action {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: auto;
+      padding-top: 30px;
+    }
+
+    .price-action .button {
+      min-width: min(226px, 100%);
+    }
+
+    .price-card.featured .price-action .button {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
     .footer {
       padding: 34px 32px;
       border-top: 1px solid var(--line);
@@ -1020,9 +1179,25 @@
     .footer-inner {
       width: min(1080px, 100%);
       display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 20px;
       margin: 0 auto;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 14px;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
     }
 
     @media (max-width: 960px) {
@@ -1044,13 +1219,26 @@
         display: none;
       }
 
-      .hero-inner {
-        width: min(346px, calc(100vw - 44px));
-        margin-left: 22px;
-        margin-right: 22px;
+      .hero-demo {
+        width: 100%;
+        margin-top: 4px;
+      }
+
+      .hero-shell {
         min-height: auto;
-        grid-template-columns: 1fr;
         padding: 96px 0 44px;
+      }
+
+      .hero-inner {
+        width: min(620px, calc(100vw - 44px));
+        margin-left: auto;
+        margin-right: auto;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "copy"
+          "demo"
+          "actions";
+        padding: 16px;
       }
 
       h1 {
@@ -1058,8 +1246,8 @@
         line-height: 0.96;
       }
 
-      .hero-copy {
-        max-width: 346px;
+      .hero-actions {
+        grid-column: 1;
       }
 
       .hero-visual {
@@ -1067,18 +1255,6 @@
         min-height: auto;
         padding: 14px;
         overflow: hidden;
-      }
-
-      .proof-line {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 30px;
-        font-size: 11px;
-        line-height: 1.22;
-      }
-
-      .proof-line strong {
-        font-size: 14px;
       }
 
       .desktop-menu span:last-child {
@@ -1128,7 +1304,7 @@
         bottom: auto;
         width: auto;
         height: 1px;
-        background: linear-gradient(90deg, rgba(23, 24, 19, 0.12), rgba(171, 213, 107, 0.84), rgba(23, 24, 19, 0.12));
+        background: linear-gradient(90deg, rgba(23, 24, 19, 0.12), rgba(242, 241, 236, 0.72), rgba(23, 24, 19, 0.12));
         transform: translateY(-50%);
       }
 
@@ -1137,11 +1313,29 @@
       }
 
       .workflow,
-      .video-strip,
+      .capability-grid,
       .privacy-grid,
       .cleanup-grid,
       .pricing {
         grid-template-columns: 1fr;
+      }
+
+      .price-card {
+        min-height: auto;
+      }
+
+      .faq-item summary {
+        padding: 0 16px;
+        font-size: 16px;
+      }
+
+      .faq-item p {
+        margin: -2px 56px 18px 16px;
+      }
+
+      .capability-list li {
+        grid-template-columns: 1fr;
+        gap: 6px;
       }
 
       .section {
@@ -1150,6 +1344,11 @@
 
       .footer-inner {
         flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .footer-links {
+        justify-content: flex-start;
       }
     }
 
@@ -1163,6 +1362,9 @@
       }
 
       .waveform i,
+      .hero-inner,
+      .hero-demo,
+      .language-track,
       .recording-dot,
       .spoken-text mark,
       .conversion-arrow span,
@@ -1176,193 +1378,181 @@
       .typed-text {
         clip-path: none;
       }
+
+      .hero-inner,
+      .hero-demo,
+      .metric {
+        opacity: 1;
+        transform: none;
+      }
     }
   </style>
 </head>
 <body>
   <nav class="site-nav" aria-label="Primary navigation">
-    <a class="brand" href="#top"><img class="brand-mark" src="favicon.svg" alt="" width="23" height="23"> Wispry</a>
+    <a class="brand" href="#top"><img class="brand-mark" src="favicon.svg" alt="" width="23" height="23"> TypeLocal</a>
     <div class="nav-links">
-      <a href="#workflow">Workflow</a>
-      <a href="#watch">Proof</a>
-      <a href="#privacy">Privacy</a>
+      <a href="#workflow">Features</a>
       <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
     </div>
-    <a class="nav-action" href="#download">Get Wispry</a>
+    <a class="nav-action" href="#download">Get TypeLocal</a>
   </nav>
 
   <header class="hero" id="top">
-    <div class="hero-inner">
-      <div>
-        <span class="eyebrow">Private dictation for Mac</span>
-        <h1>Voice to text.</h1>
-        <p class="hero-copy">Cleaned and pasted where your cursor was.</p>
-        <div class="hero-actions">
-          <a class="button" href="downloads/Wispry-0.1.0.dmg" download>Download Mac beta</a>
-          <a class="button secondary" href="#watch">See it work</a>
+    <div class="hero-shell">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow">Private speech to text for Mac</span>
+          <h1>Click. Speak. Done.</h1>
         </div>
-        <div class="proof-line" aria-label="Product highlights">
-          <div><strong>Voice</strong></div>
-          <div><strong>Clean</strong></div>
-          <div><strong>Paste</strong></div>
+        <div class="hero-demo">
+          <div class="hero-demo-label"><b>Real Mac use</b><span>autoplays muted</span></div>
+          <video class="hero-demo-player" autoplay loop controls muted playsinline preload="auto" poster="demo-poster.svg">
+            <source src="media/typelocal-demo.mp4" type="video/mp4">
+            <a href="media/typelocal-demo.mp4">Watch the TypeLocal demo video</a>
+          </video>
+        </div>
+        <div class="hero-actions">
+          <a class="button" href="downloads/TypeLocal-0.1.0.dmg" download>Download Mac beta</a>
         </div>
       </div>
-
-      <aside class="hero-visual" aria-label="Voice converted into clean text by Wispry">
-        <div class="desktop-menu">
-          <span class="window-dots"><i></i><i></i><i></i></span>
-          <span class="window-bars"><i></i><i></i><i></i></span>
-          <span><i class="menu-dot"></i></span>
-        </div>
-        <div class="conversion-window">
-          <div class="conversion-body">
-            <div class="conversion-map">
-              <span class="handoff-beam" aria-hidden="true"></span>
-              <div class="signal-panel">
-                <div class="stage-label"><span>Voice</span><span class="recording-dot" aria-hidden="true"></span></div>
-                <div class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <p class="spoken-text"><mark>Friday.</mark> Take that back: Thursday, less blunt.</p>
-              </div>
-              <div class="conversion-arrow" aria-hidden="true"><span>&rarr;</span></div>
-              <div class="text-panel">
-                <div class="stage-label"><span>Text</span><span>Mail</span></div>
-                <div class="editor-shell" aria-hidden="true">
-                  <span class="editor-row short"></span>
-                  <span class="editor-row"></span>
-                </div>
-                <p class="clean-output"><span class="typed-text">Thursday morning. Warm tone.</span><span class="typing-caret" aria-hidden="true"></span></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
     </div>
   </header>
+
+  <section class="language-strip" aria-label="Supported languages">
+    <div class="language-track">
+      <span class="language-pill">🇬🇧 English</span>
+      <span class="language-pill">🇫🇷 French</span>
+      <span class="language-pill">🇩🇪 German</span>
+      <span class="language-pill">🇪🇸 Spanish</span>
+      <span class="language-pill">🇮🇹 Italian</span>
+      <span class="language-pill">🇵🇹 Portuguese</span>
+      <span class="language-pill">🇳🇱 Dutch</span>
+      <span class="language-pill">🇸🇪 Swedish</span>
+      <span class="language-pill">🇯🇵 Japanese</span>
+      <span class="language-pill">🇰🇷 Korean</span>
+      <span class="language-pill">🇨🇳 Chinese</span>
+      <span class="language-pill">🇵🇱 Polish</span>
+      <span class="language-pill">🇹🇷 Turkish</span>
+      <span class="language-pill">🇮🇳 Hindi</span>
+      <span class="language-pill">🇻🇳 Vietnamese</span>
+      <span class="language-pill">🇬🇧 English</span>
+      <span class="language-pill">🇫🇷 French</span>
+      <span class="language-pill">🇩🇪 German</span>
+      <span class="language-pill">🇪🇸 Spanish</span>
+      <span class="language-pill">🇮🇹 Italian</span>
+      <span class="language-pill">🇵🇹 Portuguese</span>
+      <span class="language-pill">🇳🇱 Dutch</span>
+      <span class="language-pill">🇸🇪 Swedish</span>
+      <span class="language-pill">🇯🇵 Japanese</span>
+      <span class="language-pill">🇰🇷 Korean</span>
+      <span class="language-pill">🇨🇳 Chinese</span>
+      <span class="language-pill">🇵🇱 Polish</span>
+      <span class="language-pill">🇹🇷 Turkish</span>
+      <span class="language-pill">🇮🇳 Hindi</span>
+      <span class="language-pill">🇻🇳 Vietnamese</span>
+    </div>
+  </section>
 
   <main>
     <section class="section light" id="workflow">
       <div class="section-inner">
-        <h2>Speak. Clean. Paste.</h2>
+        <span class="eyebrow">V1</span>
+        <h2>Small app, obvious controls.</h2>
         <div class="workflow">
           <article>
             <span>01</span>
-            <h3>Listen</h3>
-            <p>Fn key or floating bubble.</p>
+            <h3>Private speech to text</h3>
+            <p>No TypeLocal account, no TypeLocal server, no hosted audio. History stays local on your Mac.</p>
           </article>
           <article>
             <span>02</span>
-            <h3>Polish</h3>
-            <p>Fillers, punctuation, clear takebacks.</p>
+            <h3>History and dictionary</h3>
+            <p>Recent dictations are searchable. Dictionary terms help recognition with names, products, and acronyms.</p>
           </article>
           <article>
             <span>03</span>
-            <h3>Paste</h3>
-            <p>Clipboard first. Active app next.</p>
+            <h3>Triggers and paste</h3>
+            <p>Choose hold-to-record or double-tap-to-record. Text lands back in the field you started from.</p>
           </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section dark" id="watch">
-      <div class="section-inner">
-        <span class="eyebrow">Proof</span>
-        <h2>Rough speech in. Clean text out.</h2>
-        <div class="video-strip">
-          <article class="video-tile large">
-            <div class="video-label"><b>Dictate in place</b><span>3 steps</span></div>
-            <div class="fake-player">
-              <div class="proof-step"><span>1</span><p><b>Target app</b>Keep your cursor there.</p></div>
-              <div class="proof-step"><span>2</span><p><b>Voice</b>Speak the rough version.</p></div>
-              <div class="proof-step"><span>3</span><p><b>Paste</b>Clean text lands back.</p></div>
-            </div>
-          </article>
-          <article class="video-tile">
-            <div class="video-label"><b>Clean a correction</b><span>example</span></div>
-            <div class="fake-player">
-              <div class="proof-result">
-                <small>Raw speech</small>
-                <p>Use the green one. Take that back, use the red one.</p>
-              </div>
-              <div class="proof-result">
-                <small>Clean paste</small>
-                <strong>Use the red one.</strong>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section light" id="privacy">
-      <div class="section-inner">
-        <span class="eyebrow">Privacy</span>
-        <h2>Clear boundaries.</h2>
-        <p>Local settings. Apple Speech. Explicit clipboard fallback.</p>
-        <div class="privacy-grid">
-          <article class="privacy-card">
-            <small>On your Mac</small>
-            <h3>History stays local.</h3>
-            <p>Dictations, snippets, dictionary hints, and cleanup preferences live in local app settings.</p>
-          </article>
-          <article class="privacy-card dark-card">
-            <small>Speech recognition</small>
-            <ul class="privacy-list">
-              <li><b>macOS prompts</b>Microphone, Speech Recognition, Accessibility.</li>
-              <li><b>Apple Speech</b>Recognition behavior depends on macOS language and availability.</li>
-              <li><b>Clipboard first</b>The cleaned text is recoverable before paste.</li>
-            </ul>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section dark" id="cleanup">
-      <div class="section-inner">
-        <h2>Corrections need intent.</h2>
-        <div class="cleanup-grid">
-          <div class="quote-box">
-            <small>Raw speech</small>
-            <p>Use the green one. Take that back, use the red one.</p>
-            <output>Only explicit takebacks rewrite text.</output>
-          </div>
-          <div class="quote-box">
-            <small>Clean result</small>
-            <p>Use the red one.</p>
-            <output>"No" and "actually" stay words.</output>
-          </div>
         </div>
       </div>
     </section>
 
     <section class="section light" id="download">
       <div class="section-inner">
-        <span class="eyebrow" id="pricing">Founding access</span>
-        <h2>Mac beta now. Paid build later.</h2>
-        <p>No checkout until signing and updates are real.</p>
+        <span class="eyebrow" id="pricing">Pricing</span>
+        <h2>Free in Skool. Cheap lifetime if you want it.</h2>
+        <p>The goal is distribution first: get people using private Mac dictation, then let supporters buy in early.</p>
         <div class="pricing">
           <article class="price-card">
-            <small>Beta access</small>
+            <small>Community</small>
             <div class="price">Free</div>
-            <p>Pressure test paste reliability and cleanup.</p>
+            <p>Join the free Skool and use the Mac beta while the product gets tightened.</p>
             <ul class="price-list">
-              <li>Mac menu bar app</li>
+              <li>Private Mac dictation</li>
               <li>Dictation history</li>
-              <li>Editable shortcuts</li>
+              <li>Updates, feedback, and roadmap votes in Skool</li>
             </ul>
+            <div class="price-action">
+              <a class="button" href="#faq">Join free Skool</a>
+            </div>
           </article>
           <article class="price-card featured">
-            <small>Release target</small>
-            <div class="price">$9.99 lifetime</div>
-            <p>One-time purchase, once release plumbing exists.</p>
+            <small>Founding lifetime</small>
+            <div class="price">$19</div>
+            <p>A deliberately aggressive early price for people who want to back the app.</p>
             <ul class="price-list">
-              <li>Signed and notarized download</li>
-              <li>No recurring subscription</li>
-              <li>Update path and support terms published before payment</li>
+              <li>Unlimited local dictation on Mac</li>
+              <li>Beta updates while the offer is open</li>
+              <li>Founding price while the beta is open</li>
             </ul>
+            <div class="price-action">
+              <a class="button" href="downloads/TypeLocal-0.1.0.dmg" download>Download Mac beta</a>
+            </div>
           </article>
         </div>
-        <div class="hero-actions">
-          <a class="button" href="downloads/Wispry-0.1.0.dmg" download>Download Mac beta</a>
+	      </div>
+	    </section>
+
+    <section class="section dark" id="faq">
+      <div class="section-inner">
+        <span class="eyebrow">FAQ</span>
+        <h2>Frequently asked questions.</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>Is it private?</summary>
+            <p>TypeLocal has no account, no TypeLocal server, and stores no audio. Local settings and history stay on your Mac.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What model does it use?</summary>
+            <p>Local Whisper uses whisper.cpp with the English model by default and the multilingual model for other languages. Apple on-device Speech remains available as a fallback.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Does it work offline?</summary>
+            <p>Yes for local dictation. Once the local model is installed, recording and transcription can run without a TypeLocal cloud service.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Does it work everywhere?</summary>
+            <p>It targets normal Mac text fields by copying first, returning focus, and pasting back.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What about long dictations?</summary>
+            <p>The app now keeps the local Whisper model warm so stop-to-paste is much faster than loading the model after every recording.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Why so cheap?</summary>
+            <p>The first goal is distribution. Skool access is free, and the lifetime deal is for early supporters before pricing changes.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Do you store transcripts?</summary>
+            <p>History is local on your Mac. You can clear it from the app, and TypeLocal does not host your transcript history.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Why Accessibility permission?</summary>
+            <p>macOS requires it for reliable paste and selected-text rewrite in other apps. Without it, TypeLocal falls back to copying text to the clipboard.</p>
+          </details>
         </div>
       </div>
     </section>
@@ -1370,8 +1560,12 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <span>Wispry</span>
-      <span>Speak. Clean. Paste.</span>
+      <span>TypeLocal</span>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:lukebyrnee97@gmail.com?subject=TypeLocal%20support">Support</a>
+      </div>
     </div>
   </footer>
 

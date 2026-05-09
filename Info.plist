@@ -5,15 +5,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>Wispry</string>
+  <string>TypeLocal</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
-  <string>local.wispry.dictation</string>
+  <string>app.typelocal.mac</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Wispry</string>
+  <string>TypeLocal</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -25,10 +25,10 @@
   <key>LSUIElement</key>
   <true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Wispry records your voice so it can turn speech into text.</string>
+  <string>TypeLocal records your voice so it can turn speech into text.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>Wispry uses speech recognition to transcribe dictation.</string>
+  <string>TypeLocal uses speech recognition to transcribe dictation.</string>
   <key>NSHumanReadableCopyright</key>
-  <string>Local utility app</string>
+  <string>TypeLocal Mac utility app</string>
 </dict>
 </plist>

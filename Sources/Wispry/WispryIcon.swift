@@ -3,7 +3,7 @@ import AppKit
 enum WispryIcon {
     private static let ink = NSColor(calibratedRed: 16 / 255, green: 21 / 255, blue: 16 / 255, alpha: 1)
     private static let paper = NSColor(calibratedRed: 246 / 255, green: 241 / 255, blue: 229 / 255, alpha: 1)
-    private static let accent = NSColor(calibratedRed: 171 / 255, green: 213 / 255, blue: 107 / 255, alpha: 1)
+    private static let accent = paper
     private static let red = NSColor(calibratedRed: 201 / 255, green: 69 / 255, blue: 54 / 255, alpha: 1)
 
     static func appMark(size: CGFloat) -> NSImage {
@@ -36,9 +36,7 @@ enum WispryIcon {
     private static func drawStatusBars(size: CGFloat, state: BubbleState) {
         NSColor(calibratedWhite: 1, alpha: state == .idle ? 0.82 : 0.94).setFill()
 
-        let heights: [CGFloat] = state == .listening
-            ? [7, 13, 9, 15]
-            : [7, 13, 9]
+        let heights: [CGFloat] = [7, 13, 9]
         let barWidth: CGFloat = 2.4
         let spacing: CGFloat = 2.4
         let totalWidth = CGFloat(heights.count) * barWidth + CGFloat(heights.count - 1) * spacing
@@ -95,18 +93,10 @@ enum WispryIcon {
         }
 
         ink.withAlphaComponent(backgroundAlpha).setFill()
-        NSBezierPath(
-            roundedRect: rect.insetBy(dx: size * 0.03, dy: size * 0.03),
-            xRadius: size * 14 / 64,
-            yRadius: size * 14 / 64
-        ).fill()
+        NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.03, dy: size * 0.03)).fill()
 
         paper.withAlphaComponent(0.20).setStroke()
-        let border = NSBezierPath(
-            roundedRect: rect.insetBy(dx: size * 0.07, dy: size * 0.07),
-            xRadius: size * 12 / 64,
-            yRadius: size * 12 / 64
-        )
+        let border = NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.07, dy: size * 0.07))
         border.lineWidth = max(0.7, size * 0.04)
         border.stroke()
 
@@ -132,43 +122,58 @@ enum WispryIcon {
     }
 
     private static func drawMark(in rect: NSRect, accentColor: NSColor, lineWidth: CGFloat) {
-        func point(_ x: CGFloat, _ y: CGFloat) -> NSPoint {
-            NSPoint(
-                x: rect.minX + x / 64 * rect.width,
-                y: rect.maxY - y / 64 * rect.height
-            )
+        accentColor.setFill()
+
+        let heights: [CGFloat] = [0.36, 0.70, 0.50]
+        let barWidth = rect.width * 0.12
+        let spacing = rect.width * 0.15
+        let totalWidth = CGFloat(heights.count) * barWidth + CGFloat(heights.count - 1) * spacing
+        let startX = rect.midX - totalWidth / 2
+
+        for (index, heightRatio) in heights.enumerated() {
+            let height = rect.height * heightRatio
+            let x = startX + CGFloat(index) * (barWidth + spacing)
+            let y = rect.midY - height / 2
+            NSBezierPath(
+                roundedRect: NSRect(x: x, y: y, width: barWidth, height: height),
+                xRadius: barWidth / 2,
+                yRadius: barWidth / 2
+            ).fill()
         }
 
-        let wave = NSBezierPath()
-        wave.move(to: point(12, 35))
-        wave.line(to: point(17, 35))
-        wave.line(to: point(20, 23))
-        wave.line(to: point(26, 48))
-        wave.line(to: point(32, 16))
-        wave.line(to: point(38, 35))
-        wave.line(to: point(52, 35))
-        wave.lineWidth = lineWidth
-        wave.lineCapStyle = .round
-        wave.lineJoinStyle = .round
-        accentColor.setStroke()
-        wave.stroke()
+        if accentColor.isEqual(red) {
+            paper.withAlphaComponent(0.9).setStroke()
+            let cross = NSBezierPath()
+            cross.lineCapStyle = .round
+            cross.lineWidth = max(1.4, lineWidth * 0.55)
+            cross.move(to: NSPoint(x: rect.midX - rect.width * 0.22, y: rect.midY - rect.height * 0.22))
+            cross.line(to: NSPoint(x: rect.midX + rect.width * 0.22, y: rect.midY + rect.height * 0.22))
+            cross.move(to: NSPoint(x: rect.midX + rect.width * 0.22, y: rect.midY - rect.height * 0.22))
+            cross.line(to: NSPoint(x: rect.midX - rect.width * 0.22, y: rect.midY + rect.height * 0.22))
+            cross.stroke()
+        }
+    }
 
-        let cursor = NSBezierPath()
-        cursor.move(to: point(44, 18))
-        cursor.line(to: point(44, 46))
-        cursor.lineWidth = lineWidth
-        cursor.lineCapStyle = .round
-        paper.setStroke()
-        cursor.stroke()
+    static func drawBars(in rect: NSRect, color: NSColor, active: Bool = false, phase: CGFloat = 0) {
+        color.setFill()
 
-        paper.setFill()
-        NSBezierPath(
-            ovalIn: NSRect(
-                x: point(44, 13).x - lineWidth * 0.58,
-                y: point(44, 13).y - lineWidth * 0.58,
-                width: lineWidth * 1.16,
-                height: lineWidth * 1.16
+        let baseHeights: [CGFloat] = [0.34, 0.64, 0.46]
+        let barWidth = rect.width * 0.09
+        let spacing = rect.width * 0.12
+        let totalWidth = CGFloat(baseHeights.count) * barWidth + CGFloat(baseHeights.count - 1) * spacing
+        let startX = rect.midX - totalWidth / 2
+
+        for (index, ratio) in baseHeights.enumerated() {
+            let pulse = active ? 0.82 + ((sin(phase + CGFloat(index) * 0.8) + 1) / 2) * 0.30 : 1
+            let height = rect.height * ratio * pulse
+            let x = startX + CGFloat(index) * (barWidth + spacing)
+            let y = rect.midY - height / 2
+            NSBezierPath(
+                roundedRect: NSRect(x: x, y: y, width: barWidth, height: height),
+                xRadius: barWidth / 2,
+                yRadius: barWidth / 2
             )
-        ).fill()
+            .fill()
+        }
     }
 }

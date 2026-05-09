@@ -9,6 +9,16 @@ enum TransformStyle: String, Codable, CaseIterable {
     case list = "List"
 }
 
+enum SpeechModel: String, Codable, CaseIterable {
+    case appleOnDevice = "Apple on-device"
+    case localWhisper = "Local Whisper"
+}
+
+enum StorageMode: String, Codable, CaseIterable {
+    case local = "Local"
+    case cloud = "Cloud"
+}
+
 struct VoiceSnippet: Codable, Equatable {
     var phrase: String
     var expansion: String
@@ -36,6 +46,34 @@ struct KeyShortcut: Codable, Equatable {
     }
 }
 
+struct TriggerShortcut: Codable, Equatable {
+    var keyCode: UInt32?
+    var modifiers: UInt32
+    var display: String
+    var isFunctionKey: Bool
+
+    static let function = TriggerShortcut(
+        keyCode: nil,
+        modifiers: 0,
+        display: "Fn",
+        isFunctionKey: true
+    )
+
+    static func key(_ shortcut: KeyShortcut) -> TriggerShortcut {
+        TriggerShortcut(
+            keyCode: shortcut.keyCode,
+            modifiers: shortcut.modifiers,
+            display: shortcut.display,
+            isFunctionKey: false
+        )
+    }
+
+    var keyShortcut: KeyShortcut? {
+        guard let keyCode, !isFunctionKey else { return nil }
+        return KeyShortcut(keyCode: keyCode, modifiers: modifiers, display: display)
+    }
+}
+
 enum ShortcutAction: String, Codable, CaseIterable {
     case toggle
     case professional
@@ -45,7 +83,7 @@ enum ShortcutAction: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .toggle: return "Toggle dictation"
+        case .toggle: return "Hands-free toggle"
         case .professional: return "Professional rewrite"
         case .casual: return "Casual rewrite"
         case .list: return "List rewrite"
@@ -62,11 +100,11 @@ struct ShortcutSettings: Codable, Equatable {
     var clean: KeyShortcut
 
     static let defaults = ShortcutSettings(
-        toggle: .make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Control+Option+Space"),
-        professional: .make(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(optionKey), display: "Option+2"),
-        casual: .make(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(optionKey), display: "Option+3"),
-        list: .make(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(optionKey), display: "Option+4"),
-        clean: .make(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(optionKey), display: "Option+5")
+        toggle: .make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Ctrl+Opt+Space"),
+        professional: .make(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(optionKey), display: "Opt+2"),
+        casual: .make(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(optionKey), display: "Opt+3"),
+        list: .make(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(optionKey), display: "Opt+4"),
+        clean: .make(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(optionKey), display: "Opt+5")
     )
 
     func shortcut(for action: ShortcutAction) -> KeyShortcut {
@@ -102,6 +140,13 @@ final class SettingsStore {
     private let bubbleVisibleKey = "bubbleVisible"
     private let autoPasteKey = "autoPaste"
     private let shortcutsKey = "shortcuts"
+    private let holdTriggerKey = "holdTrigger"
+    private let pressTriggerKey = "pressTrigger"
+    private let speechModelKey = "speechModel"
+    private let speechLanguageKey = "speechLanguage"
+    private let microphoneUniqueIDKey = "microphoneUniqueID"
+    private let cleanupEnabledKey = "cleanupEnabled"
+    private let storageModeKey = "storageMode"
 
     private init() {
         if defaults.object(forKey: snippetsKey) == nil {
@@ -118,6 +163,24 @@ final class SettingsStore {
         }
         if defaults.object(forKey: shortcutsKey) == nil {
             shortcuts = .defaults
+        }
+        if defaults.object(forKey: holdTriggerKey) == nil {
+            holdTrigger = .function
+        }
+        if defaults.object(forKey: pressTriggerKey) == nil {
+            pressTrigger = .key(.make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Ctrl+Opt+Space"))
+        }
+        if defaults.object(forKey: speechModelKey) == nil {
+            speechModel = Self.defaultSpeechModel(languageIdentifier: Locale.current.identifier)
+        }
+        if defaults.object(forKey: speechLanguageKey) == nil {
+            speechLanguageIdentifier = Locale.current.identifier
+        }
+        if defaults.object(forKey: cleanupEnabledKey) == nil {
+            cleanupEnabled = true
+        }
+        if defaults.object(forKey: storageModeKey) == nil {
+            storageMode = .local
         }
     }
 
@@ -179,6 +242,58 @@ final class SettingsStore {
         set { encode(newValue, key: shortcutsKey) }
     }
 
+    var holdTrigger: TriggerShortcut {
+        get { decode(TriggerShortcut.self, key: holdTriggerKey) ?? .function }
+        set { encode(newValue, key: holdTriggerKey) }
+    }
+
+    var pressTrigger: TriggerShortcut {
+        get {
+            decode(TriggerShortcut.self, key: pressTriggerKey)
+                ?? .key(.make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Ctrl+Opt+Space"))
+        }
+        set { encode(newValue, key: pressTriggerKey) }
+    }
+
+    var speechModel: SpeechModel {
+        get {
+            guard let raw = defaults.string(forKey: speechModelKey) else {
+                return Self.defaultSpeechModel(languageIdentifier: speechLanguageIdentifier)
+            }
+            return SpeechModel(rawValue: raw) ?? .appleOnDevice
+        }
+        set { defaults.set(newValue.rawValue, forKey: speechModelKey) }
+    }
+
+    var speechLanguageIdentifier: String {
+        get { defaults.string(forKey: speechLanguageKey) ?? Locale.current.identifier }
+        set { defaults.set(newValue, forKey: speechLanguageKey) }
+    }
+
+    var microphoneUniqueID: String? {
+        get { defaults.string(forKey: microphoneUniqueIDKey) }
+        set {
+            if let newValue, !newValue.isEmpty {
+                defaults.set(newValue, forKey: microphoneUniqueIDKey)
+            } else {
+                defaults.removeObject(forKey: microphoneUniqueIDKey)
+            }
+        }
+    }
+
+    var cleanupEnabled: Bool {
+        get { defaults.bool(forKey: cleanupEnabledKey) }
+        set { defaults.set(newValue, forKey: cleanupEnabledKey) }
+    }
+
+    var storageMode: StorageMode {
+        get {
+            guard let raw = defaults.string(forKey: storageModeKey) else { return .local }
+            return StorageMode(rawValue: raw) ?? .local
+        }
+        set { defaults.set(newValue.rawValue, forKey: storageModeKey) }
+    }
+
     func setShortcut(_ shortcut: KeyShortcut, for action: ShortcutAction) {
         var settings = shortcuts
         settings.set(shortcut, for: action)
@@ -186,8 +301,21 @@ final class SettingsStore {
     }
 
     func addRecent(text: String, appName: String) {
+        let cleanedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedText.isEmpty else { return }
+
         var items = recent
-        items.insert(RecentDictation(date: Date(), appName: appName, text: text), at: 0)
+        let now = Date()
+        if let first = items.first,
+           first.appName == appName,
+           first.text == cleanedText,
+           now.timeIntervalSince(first.date) < 15 {
+            items[0] = RecentDictation(date: now, appName: appName, text: cleanedText)
+            recent = items
+            return
+        }
+
+        items.insert(RecentDictation(date: now, appName: appName, text: cleanedText), at: 0)
         recent = items
     }
 
@@ -225,5 +353,32 @@ final class SettingsStore {
     private func encode<T: Encodable>(_ value: T, key: String) {
         guard let data = try? JSONEncoder().encode(value) else { return }
         defaults.set(data, forKey: key)
+    }
+
+    private static func defaultSpeechModel(languageIdentifier: String) -> SpeechModel {
+        localWhisperIsAvailable(languageIdentifier: languageIdentifier) ? .localWhisper : .appleOnDevice
+    }
+
+    private static func localWhisperIsAvailable(languageIdentifier: String) -> Bool {
+        let executableCandidates = [
+            "/opt/homebrew/bin/whisper-server",
+            "/usr/local/bin/whisper-server",
+            "/opt/homebrew/bin/whisper-cli",
+            "/usr/local/bin/whisper-cli",
+            "\(NSHomeDirectory())/.local/bin/whisper"
+        ]
+        guard executableCandidates.contains(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+            return false
+        }
+
+        let cacheDirectory = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent(".cache/whisper.cpp", isDirectory: true)
+        let languageCode = Locale(identifier: languageIdentifier).language.languageCode?.identifier
+        let modelCandidates = languageCode == "en"
+            ? ["ggml-base.en.bin", "ggml-tiny.en.bin", "ggml-base.bin", "ggml-tiny.bin"]
+            : ["ggml-base.bin", "ggml-tiny.bin"]
+        return modelCandidates
+            .map { cacheDirectory.appendingPathComponent($0).path }
+            .contains(where: { FileManager.default.fileExists(atPath: $0) })
     }
 }

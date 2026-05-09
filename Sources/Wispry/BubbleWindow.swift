@@ -219,117 +219,19 @@ final class BubbleView: NSView {
     }
 
     private func drawStaticSoundIcon(in rect: NSRect) {
-        NSColor(calibratedWhite: 1.0, alpha: hover ? 0.90 : 0.68).setFill()
-
-        let bars: [CGFloat] = [7, 13, 9]
-        let barWidth: CGFloat = 3
-        let spacing: CGFloat = 4
-        let totalWidth = CGFloat(bars.count) * barWidth + CGFloat(bars.count - 1) * spacing
-        let startX = rect.midX - totalWidth / 2
-
-        for (index, height) in bars.enumerated() {
-            let x = startX + CGFloat(index) * (barWidth + spacing)
-            let y = rect.midY - height / 2
-            NSBezierPath(
-                roundedRect: NSRect(x: x, y: y, width: barWidth, height: height),
-                xRadius: 1.5,
-                yRadius: 1.5
-            ).fill()
-        }
-    }
-
-    private func drawLogoMark(in rect: NSRect, active: Bool) {
-        let insetRect = rect.insetBy(dx: 2.2, dy: 2.2)
-        let pulse = active ? 0.78 + ((sin(phase) + 1) / 2) * 0.20 : (hover ? 0.96 : 0.82)
-        let waveColor = NSColor(calibratedRed: 171 / 255, green: 213 / 255, blue: 107 / 255, alpha: pulse)
-        let cursorColor = NSColor(calibratedRed: 246 / 255, green: 241 / 255, blue: 229 / 255, alpha: active ? 0.96 : 0.86)
-        let lineWidth: CGFloat = active ? 2.9 : 2.65
-
-        func point(_ x: CGFloat, _ y: CGFloat) -> NSPoint {
-            NSPoint(
-                x: insetRect.minX + x / 64 * insetRect.width,
-                y: insetRect.minY + y / 64 * insetRect.height
-            )
-        }
-
-        let wave = NSBezierPath()
-        wave.move(to: point(12, 35))
-        wave.line(to: point(17, 35))
-        wave.line(to: point(20, 23))
-        wave.line(to: point(26, 48))
-        wave.line(to: point(32, 16))
-        wave.line(to: point(38, 35))
-        wave.line(to: point(52, 35))
-        wave.lineWidth = lineWidth
-        wave.lineCapStyle = .round
-        wave.lineJoinStyle = .round
-        waveColor.setStroke()
-        wave.stroke()
-
-        let cursor = NSBezierPath()
-        cursor.move(to: point(44, 18))
-        cursor.line(to: point(44, 46))
-        cursor.lineWidth = lineWidth
-        cursor.lineCapStyle = .round
-        cursorColor.setStroke()
-        cursor.stroke()
-
-        cursorColor.setFill()
-        NSBezierPath(
-            ovalIn: NSRect(
-                x: point(44, 13).x - lineWidth * 0.55,
-                y: point(44, 13).y - lineWidth * 0.55,
-                width: lineWidth * 1.1,
-                height: lineWidth * 1.1
-            )
-        ).fill()
-    }
-
-    private func drawMicrophoneIcon(in rect: NSRect) {
-        NSColor(calibratedWhite: 1.0, alpha: hover ? 0.92 : 0.72).setStroke()
-        let centerX = rect.midX
-        let top = rect.minY + 13
-        let body = NSBezierPath(roundedRect: NSRect(x: centerX - 5.5, y: top, width: 11, height: 17), xRadius: 5.5, yRadius: 5.5)
-        body.lineWidth = 1.8
-        body.stroke()
-
-        let stem = NSBezierPath()
-        stem.move(to: NSPoint(x: centerX, y: top + 25))
-        stem.line(to: NSPoint(x: centerX, y: top + 29))
-        stem.lineWidth = 1.8
-        stem.stroke()
-
-        let base = NSBezierPath()
-        base.move(to: NSPoint(x: centerX - 7, y: top + 29))
-        base.line(to: NSPoint(x: centerX + 7, y: top + 29))
-        base.lineWidth = 1.8
-        base.stroke()
+        WispryIcon.drawBars(
+            in: rect.insetBy(dx: 2, dy: 2),
+            color: NSColor(calibratedWhite: 1.0, alpha: hover ? 0.90 : 0.68)
+        )
     }
 
     private func drawWaveform(in rect: NSRect) {
-        NSColor(calibratedWhite: 1.0, alpha: 0.90).setFill()
-
-        let clip = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
-        NSGraphicsContext.current?.saveGraphicsState()
-        clip.addClip()
-
-        let bars = 4
-        let spacing: CGFloat = 3.2
-        let barWidth: CGFloat = 3
-        let totalWidth = CGFloat(bars) * barWidth + CGFloat(bars - 1) * spacing
-        let startX = rect.midX - totalWidth / 2
-
-        for index in 0..<bars {
-            let offset = CGFloat(index) * 0.75
-            let amplitude = (sin(phase + offset) + 1) / 2
-            let height = 6 + amplitude * 12
-            let x = startX + CGFloat(index) * (barWidth + spacing)
-            let y = rect.midY - height / 2
-            let bar = NSBezierPath(roundedRect: NSRect(x: x, y: y, width: barWidth, height: height), xRadius: 2, yRadius: 2)
-            bar.fill()
-        }
-
-        NSGraphicsContext.current?.restoreGraphicsState()
+        WispryIcon.drawBars(
+            in: rect.insetBy(dx: 2, dy: 2),
+            color: NSColor(calibratedWhite: 1.0, alpha: 0.90),
+            active: true,
+            phase: phase
+        )
     }
 
     private func drawProcessingIcon(in rect: NSRect) {

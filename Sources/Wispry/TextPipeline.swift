@@ -33,6 +33,7 @@ enum TextPipeline {
         text = normalizePunctuationSpacing(text)
         text = removeConversationalLeadIns(text)
         text = removeFillers(text)
+        text = collapseRepeatedClauseRevisions(text)
         text = removeRepeatedWords(text)
 
         let finalStyle = commandStyle ?? style
@@ -281,6 +282,57 @@ enum TextPipeline {
         }
 
         return output.joined(separator: " ")
+    }
+
+    private static func collapseRepeatedClauseRevisions(_ input: String) -> String {
+        let words = input.split(separator: " ").map(String.init)
+        guard words.count >= 8 else { return input }
+
+        for split in 2..<(words.count - 2) {
+            guard split <= 24 else { break }
+            let left = Array(words[..<split])
+            let right = Array(words[split...])
+            guard right.count >= 4, left.count <= 24 else { continue }
+            guard tokenKey(left[0]) == tokenKey(right[0]),
+                  tokenKey(left[1]) == tokenKey(right[1]) else {
+                continue
+            }
+
+            let comparedRight = Array(right.prefix(left.count))
+            guard revisionSimilarity(left: left, right: comparedRight) >= 0.72 else {
+                continue
+            }
+
+            return right.joined(separator: " ")
+        }
+
+        return input
+    }
+
+    private static func revisionSimilarity(left: [String], right: [String]) -> Double {
+        guard !left.isEmpty, !right.isEmpty else { return 0 }
+        var rightCounts: [String: Int] = [:]
+        for word in right {
+            let key = tokenKey(word)
+            guard !key.isEmpty else { continue }
+            rightCounts[key, default: 0] += 1
+        }
+
+        var shared = 0
+        for word in left {
+            let key = tokenKey(word)
+            guard let count = rightCounts[key], count > 0 else { continue }
+            shared += 1
+            rightCounts[key] = count - 1
+        }
+
+        return Double(shared) / Double(max(left.count, right.count))
+    }
+
+    private static func tokenKey(_ input: String) -> String {
+        input
+            .lowercased()
+            .trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
     }
 
     private static func apply(style: TransformStyle, to input: String) -> String {

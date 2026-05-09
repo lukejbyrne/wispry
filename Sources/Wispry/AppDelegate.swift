@@ -26,11 +26,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isShortcutCaptureActive = false
     private var isListening = false
     private var isProcessingDictation = false
+    private var hasCompletedCurrentDictation = false
     private var functionKeyIsDown = false
+    private var holdTriggerKeyIsDown = false
+    private var pressTriggerKeyIsDown = false
     private var functionKeyLatched = false
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var pendingFunctionReleaseStop = false
     private var lastFunctionReleaseDate = Date.distantPast
+    private var ignoreNextFunctionRelease = false
     private var successResetWorkItem: DispatchWorkItem?
     private var dictationCompletionWatchdog: DispatchWorkItem?
     private var recordingEventTap: CFMachPort?
@@ -59,9 +63,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .clipboardOnly:
                 return "Copied to clipboard."
             case .accessibilityRequired:
-                return "Copied. Accessibility is not trusted for this build; re-add Wispry if it is already enabled."
+                return "Copied. Accessibility is not trusted for this build; re-add TypeLocal if it is already enabled."
             case .inputControlRequired:
-                return "Copied. Allow Wispry to control your computer so it can paste automatically."
+                return "Copied. Allow TypeLocal to control your computer so it can paste automatically."
             case .noTarget:
                 return "Copied to clipboard. No target app was available to paste into."
             }
@@ -87,10 +91,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.requestAccessibilityPromptIfNeeded()
         }
+        scheduleLaunchSelfTestIfRequested()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        dictationEngine.cancel()
+        dictationEngine.shutdown()
         removeRecordingEventTap()
         removeFunctionEventTap()
     }
@@ -135,12 +140,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return CGRequestPostEventAccess()
     }
 
+    private func scheduleLaunchSelfTestIfRequested() {
+        let environment = ProcessInfo.processInfo.environment
+        guard let text = environment["WISPRY_SELF_TEST_PASTE_TEXT"],
+              !text.isEmpty else {
+            return
+        }
+
+        let shouldQuit = environment["WISPRY_SELF_TEST_QUIT_AFTER"] == "1"
+        logDiagnostic(
+            "self-test requested chars=\(text.count) quitAfter=\(shouldQuit) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.runLaunchSelfTestPaste(text, shouldQuitAfter: shouldQuit)
+        }
+    }
+
+    private func runLaunchSelfTestPaste(_ text: String, shouldQuitAfter: Bool) {
+        let snapshot = focusedTextSnapshot()
+        targetApplication = preferredDictationTarget(snapshot: snapshot)
+        logDiagnostic(
+            "self-test start target=\(targetApplication?.localizedName ?? "none") snapshot=\(snapshot != nil) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
+        )
+        pasteOrCopy(text, shouldPressEnter: false, preferredSnapshot: snapshot)
+
+        guard shouldQuitAfter else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            NSApp.terminate(nil)
+        }
+    }
+
     func reloadHotKeys() {
         guard !isShortcutCaptureActive else {
             hotKeys.uninstallHotKeys()
             return
         }
-        hotKeys.install(shortcuts: store.shortcuts)
+        hotKeys.install(shortcuts: store.shortcuts, pressTrigger: store.pressTrigger)
     }
 
     func setShortcutCaptureActive(_ active: Bool) {
@@ -165,11 +201,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             : hotKeys.registrationFailures.joined(separator: " ")
     }
 
+    func copyTextFromHub(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        lastTranscript = trimmed
+        copyToClipboard(trimmed)
+        lastOutputStatus = "Copied history item to clipboard."
+        showSuccessTick()
+    }
+
+    func pasteTextFromHub(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        lastTranscript = trimmed
+        targetApplication = currentExternalApplication() ?? lastExternalApplication
+        pasteOrCopy(trimmed, shouldPressEnter: false, preferredSnapshot: nil)
+    }
+
     private func installMenuBar() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = WispryIcon.statusImage(for: .idle)
         item.button?.imagePosition = .imageOnly
-        item.button?.toolTip = "Wispry"
+        item.button?.toolTip = "TypeLocal"
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
@@ -238,6 +291,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.handleFunctionModifierChange(event)
             return event
         }
+        NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            self?.handleTriggerKeyEvent(
+                keyCode: UInt32(event.keyCode),
+                modifiers: self?.carbonModifiers(from: event.modifierFlags) ?? 0,
+                isDown: event.type == .keyDown
+            )
+        }
+        NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            self?.handleTriggerKeyEvent(
+                keyCode: UInt32(event.keyCode),
+                modifiers: self?.carbonModifiers(from: event.modifierFlags) ?? 0,
+                isDown: event.type == .keyDown
+            )
+            return event
+        }
     }
 
     private func handleFunctionModifierChange(_ event: NSEvent) {
@@ -248,44 +316,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isDown != functionKeyIsDown else { return }
 
         functionKeyIsDown = isDown
+        guard !isShortcutCaptureActive else { return }
         logDiagnostic("fn \(isDown ? "down" : "up") listening=\(isListening) processing=\(isProcessingDictation) latched=\(functionKeyLatched)")
+        if store.holdTrigger.isFunctionKey {
+            handleHoldTriggerChange(isDown: isDown)
+            return
+        }
+
+        if store.pressTrigger.isFunctionKey && isDown {
+            toggleDictation()
+        }
+    }
+
+    private func handleTriggerKeyEvent(keyCode: UInt32, modifiers: UInt32, isDown: Bool) {
+        guard !isShortcutCaptureActive else { return }
+
+        if matches(trigger: store.holdTrigger, keyCode: keyCode, modifiers: modifiers) || (holdTriggerKeyIsDown && store.holdTrigger.keyCode == keyCode) {
+            guard holdTriggerKeyIsDown != isDown else { return }
+            holdTriggerKeyIsDown = isDown
+            handleHoldTriggerChange(isDown: isDown)
+            return
+        }
+
+        if !isDown, store.pressTrigger.keyCode == keyCode {
+            pressTriggerKeyIsDown = false
+        }
+    }
+
+    private func matches(trigger: TriggerShortcut, keyCode: UInt32, modifiers: UInt32) -> Bool {
+        guard !trigger.isFunctionKey, trigger.keyCode == keyCode else { return false }
+        return trigger.modifiers == modifiers
+    }
+
+    private func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.command) { result |= UInt32(cmdKey) }
+        if flags.contains(.option) { result |= UInt32(optionKey) }
+        if flags.contains(.control) { result |= UInt32(controlKey) }
+        if flags.contains(.shift) { result |= UInt32(shiftKey) }
+        return result
+    }
+
+    private func carbonModifiers(from flags: CGEventFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.maskCommand) { result |= UInt32(cmdKey) }
+        if flags.contains(.maskAlternate) { result |= UInt32(optionKey) }
+        if flags.contains(.maskControl) { result |= UInt32(controlKey) }
+        if flags.contains(.maskShift) { result |= UInt32(shiftKey) }
+        return result
+    }
+
+    private func handleHoldTriggerChange(isDown: Bool) {
         if isDown {
             functionReleaseStopWorkItem?.cancel()
             pendingFunctionReleaseStop = false
-
-            let isDoubleTap = Date().timeIntervalSince(lastFunctionReleaseDate) < 0.42
-
-            if isListening {
-                if functionKeyLatched {
-                    functionKeyLatched = false
-                    stopDictation()
-                } else if isDoubleTap {
-                    functionKeyLatched = true
-                    logDiagnostic("fn latch enabled while listening")
-                }
-                return
-            }
-
-            if isProcessingDictation {
-                if isDoubleTap {
-                    functionKeyLatched = true
-                    logDiagnostic("fn latch pending while starting")
-                }
-                return
-            }
-
-            functionKeyLatched = isDoubleTap
-            if functionKeyLatched {
-                logDiagnostic("fn latch start")
-            }
-            if !isProcessingDictation {
+            if functionKeyLatched && isListening {
+                ignoreNextFunctionRelease = true
+                stopDictation()
+            } else if isListening && Date().timeIntervalSince(lastFunctionReleaseDate) < 0.40 {
+                functionKeyLatched = true
+                lastOutputStatus = "Fn latched. Press Fn again to stop and paste."
+                setBubbleState(.listening)
+            } else if !isListening && !isProcessingDictation {
                 startDictation()
             }
         } else {
             lastFunctionReleaseDate = Date()
-            if isListening && !functionKeyLatched {
-                scheduleFunctionReleaseStop(after: 0.28)
-            } else if isProcessingDictation && !functionKeyLatched {
+            if ignoreNextFunctionRelease {
+                ignoreNextFunctionRelease = false
+                return
+            }
+            if functionKeyLatched {
+                return
+            }
+            if isListening {
+                scheduleFunctionReleaseStop(after: 0.34)
+            } else if isProcessingDictation {
                 pendingFunctionReleaseStop = true
             }
         }
@@ -306,23 +412,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard AXIsProcessTrusted() else { return false }
 
         let mask = CGEventMask(1 << CGEventType.flagsChanged.rawValue)
+            | CGEventMask(1 << CGEventType.keyDown.rawValue)
+            | CGEventMask(1 << CGEventType.keyUp.rawValue)
         let callback: CGEventTapCallBack = { _, type, event, userInfo in
-            guard type == .flagsChanged, let userInfo else {
-                return Unmanaged.passUnretained(event)
-            }
-
-            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-            let isFunctionKeyEvent = keyCode == UInt16(kVK_Function)
-            guard isFunctionKeyEvent else {
+            guard let userInfo else {
                 return Unmanaged.passUnretained(event)
             }
 
             let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userInfo).takeUnretainedValue()
-            let isDown = event.flags.contains(.maskSecondaryFn)
             DispatchQueue.main.async {
-                appDelegate.handleFunctionFlagChange(isDown: isDown)
+                switch type {
+                case .flagsChanged:
+                    let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+                    guard keyCode == UInt16(kVK_Function) else { return }
+                    appDelegate.handleFunctionFlagChange(isDown: event.flags.contains(.maskSecondaryFn))
+                case .keyDown, .keyUp:
+                    appDelegate.handleTriggerKeyEvent(
+                        keyCode: UInt32(event.getIntegerValueField(.keyboardEventKeycode)),
+                        modifiers: appDelegate.carbonModifiers(from: event.flags),
+                        isDown: type == .keyDown
+                    )
+                default:
+                    break
+                }
             }
-            return nil
+            return Unmanaged.passUnretained(event)
         }
 
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
@@ -366,6 +480,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startDictation() {
         guard !isProcessingDictation else { return }
         isProcessingDictation = true
+        hasCompletedCurrentDictation = false
         targetTextSnapshot = focusedTextSnapshot()
         currentPartialTranscript = ""
         dictationCompletionWatchdog?.cancel()
@@ -379,7 +494,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bubbleWindow?.bubbleView.partialTranscript = ""
         bubbleWindow?.bubbleView.showCopyButton = false
 
-        dictationEngine.requestPermissions { [weak self] result in
+        dictationEngine.requestPermissions(model: store.speechModel) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success:
@@ -400,7 +515,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             dictationEngine.onComplete = { [weak self] result in
                 self?.completeDictation(result)
             }
-            try dictationEngine.start(contextualStrings: store.dictionaryWords)
+            try dictationEngine.start(
+                model: store.speechModel,
+                contextualStrings: store.dictionaryWords,
+                languageIdentifier: store.speechLanguageIdentifier,
+                microphoneUniqueID: store.microphoneUniqueID
+            )
             isListening = true
             hotKeys.installRecordingHotKeys()
             installRecordingEventTap()
@@ -424,20 +544,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        ignoreNextFunctionRelease = false
         pendingFunctionReleaseStop = false
         setBubbleState(.processing)
         FeedbackSound.shared.playStop()
         dictationEngine.stopAndCommit()
-        installDictationCompletionWatchdog()
+        if !dictationEngine.usesDelayedExternalTranscription {
+            installDictationCompletionWatchdog()
+        }
     }
 
     private func cancelDictation() {
         guard isListening || isProcessingDictation else { return }
         isListening = false
         isProcessingDictation = false
+        hasCompletedCurrentDictation = true
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        ignoreNextFunctionRelease = false
         pendingFunctionReleaseStop = false
         targetTextSnapshot = nil
         currentPartialTranscript = ""
@@ -449,15 +574,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func completeDictation(_ result: Result<String, Error>) {
+        guard !hasCompletedCurrentDictation else {
+            logDiagnostic("record duplicate completion ignored target=\(targetAppName)")
+            return
+        }
+        hasCompletedCurrentDictation = true
         dictationCompletionWatchdog?.cancel()
         isListening = false
         isProcessingDictation = false
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        ignoreNextFunctionRelease = false
         pendingFunctionReleaseStop = false
 
+        let finalResult: Result<String, Error>
         switch result {
+        case .success(let rawText):
+            finalResult = .success(rawText)
+        case .failure(let error):
+            let fallback = currentPartialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+            logDiagnostic("record failure error=\(error.localizedDescription) partialChars=\(fallback.count)")
+            if fallback.isEmpty {
+                targetTextSnapshot = nil
+                currentPartialTranscript = ""
+                presentError(error.localizedDescription)
+                return
+            }
+            finalResult = .success(fallback)
+        }
+
+        switch finalResult {
         case .success(let rawText):
             let text = (rawText.isEmpty ? currentPartialTranscript : rawText).trimmingCharacters(in: .whitespacesAndNewlines)
             logDiagnostic("record complete chars=\(text.count) autoPaste=\(store.autoPaste) target=\(targetAppName)")
@@ -469,10 +616,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            let style = store.style(
-                for: targetApplication?.bundleIdentifier,
-                appName: targetApplication?.localizedName
-            )
+            let style = store.cleanupEnabled
+                ? store.style(
+                    for: targetApplication?.bundleIdentifier,
+                    appName: targetApplication?.localizedName
+                )
+                : .verbatim
             let processed = TextPipeline.process(text, style: style, snippets: store.snippets)
             if processed.cancelled || processed.text.isEmpty {
                 lastOutputStatus = "Dictation cancelled."
@@ -495,17 +644,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 lastOutputStatus = "Copied to clipboard. Auto paste is off."
                 showSuccessTick()
             }
-
         case .failure(let error):
-            let fallback = currentPartialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
-            logDiagnostic("record failure error=\(error.localizedDescription) partialChars=\(fallback.count)")
-            if !fallback.isEmpty {
-                completeDictation(.success(fallback))
-            } else {
-                targetTextSnapshot = nil
-                currentPartialTranscript = ""
-                presentError(error.localizedDescription)
-            }
+            presentError(error.localizedDescription)
         }
     }
 
@@ -537,8 +677,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         logDiagnostic(
             "paste start target=\(targetName) bundle=\(target.bundleIdentifier ?? "unknown") pid=\(target.processIdentifier) chars=\(text.count) axTrusted=\(AXIsProcessTrusted()) frontmost=\(NSWorkspace.shared.frontmostApplication?.localizedName ?? "none")"
         )
+        let usableSnapshot = preferredSnapshot.flatMap { snapshot -> FocusedTextSnapshot? in
+            guard let owner = applicationOwning(snapshot.element),
+                  owner.processIdentifier == target.processIdentifier else {
+                return nil
+            }
+            return snapshot
+        }
         activateTarget(target) {
-            self.deliverPaste(text, to: target, preferredSnapshot: preferredSnapshot) { outcome in
+            self.deliverPaste(text, to: target, preferredSnapshot: usableSnapshot) { outcome in
                 self.lastOutputStatus = outcome.message(targetName: targetName)
                 self.logDiagnostic("paste outcome=\(outcome) target=\(targetName) pid=\(target.processIdentifier)")
                 self.applyPasteOutcomeState(outcome)
@@ -574,14 +721,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func logDiagnostic(_ message: String) {
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let line = "[\(timestamp)] \(message)\n"
-        NSLog("Wispry %@", message)
+        NSLog("TypeLocal %@", message)
 
         do {
             let logsDirectory = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library")
                 .appendingPathComponent("Logs")
             try FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
-            let logURL = logsDirectory.appendingPathComponent("Wispry.log")
+            let logURL = logsDirectory.appendingPathComponent("TypeLocal.log")
 
             if FileManager.default.fileExists(atPath: logURL.path),
                let handle = try? FileHandle(forWritingTo: logURL) {
@@ -594,13 +741,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try line.write(to: logURL, atomically: true, encoding: .utf8)
             }
         } catch {
-            NSLog("Wispry could not write diagnostics: %@", error.localizedDescription)
+            NSLog("TypeLocal could not write diagnostics: %@", error.localizedDescription)
         }
     }
 
     private func repolishSelection(style: TransformStyle) {
         guard AXIsProcessTrusted() else {
-            lastOutputStatus = "Repolish needs Accessibility access before Wispry can read selected text."
+            lastOutputStatus = "Repolish needs Accessibility access before TypeLocal can read selected text."
             requestAccessibilityPromptIfNeeded()
             return
         }
@@ -645,7 +792,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func resolvedPasteTarget() -> NSRunningApplication? {
-        for application in [targetApplication, currentExternalApplication(), lastExternalApplication] {
+        for application in [currentExternalApplication(), targetApplication, lastExternalApplication] {
             guard let application, !application.isTerminated, isExternalApplication(application) else {
                 continue
             }
@@ -1055,9 +1202,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         logDiagnostic("present error=\(message)")
         isListening = false
         isProcessingDictation = false
+        hasCompletedCurrentDictation = true
         hotKeys.uninstallRecordingHotKeys()
         removeRecordingEventTap()
         functionKeyLatched = false
+        ignoreNextFunctionRelease = false
         pendingFunctionReleaseStop = false
         targetTextSnapshot = nil
         currentPartialTranscript = ""
@@ -1066,14 +1215,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bubbleWindow?.bubbleView.partialTranscript = ""
         lastOutputStatus = message
 
-        let alert = NSAlert()
-        alert.messageText = "Wispry could not dictate"
-        alert.informativeText = message
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-
-        setBubbleState(.idle)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            self?.setBubbleState(.idle)
+        }
     }
 
     @objc private func menuToggleDictation() {
@@ -1092,10 +1236,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pasteOrCopy(lastTranscript, shouldPressEnter: false, preferredSnapshot: snapshot)
     }
 
+    @objc private func menuPasteRecent(_ sender: NSMenuItem) {
+        guard let text = sender.representedObject as? String, !text.isEmpty else { return }
+        lastTranscript = text
+        let snapshot = menuOpenTextSnapshot
+        targetApplication = menuOpenTargetApplication ?? preferredDictationTarget(snapshot: snapshot)
+        pasteOrCopy(text, shouldPressEnter: false, preferredSnapshot: snapshot)
+    }
+
     @objc private func menuTestAutoPaste() {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
-        let text = "Wispry auto paste test \(formatter.string(from: Date()))"
+        let text = "TypeLocal auto paste test \(formatter.string(from: Date()))"
         lastTranscript = text
         let snapshot = menuOpenTextSnapshot
         targetApplication = menuOpenTargetApplication ?? preferredDictationTarget(snapshot: snapshot)
@@ -1132,7 +1284,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuCheckForUpdates() {
         let alert = NSAlert()
-        alert.messageText = "Wispry local beta"
+        alert.messageText = "TypeLocal local beta"
         alert.informativeText = "Version 0.1.0 is packaged by ./build.sh. Signed, notarized updates should be added before paid release."
         alert.addButton(withTitle: "OK")
         alert.runModal()
@@ -1149,15 +1301,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuHelp() {
         let alert = NSAlert()
-        alert.messageText = "Wispry shortcuts"
-        alert.informativeText = "Click bubble: toggle dictation\nHold Fn: push to talk\nDouble-tap Fn: latch dictation\nRelease Fn: stop and paste\nEscape: cancel\nControl+Option+Space: toggle\nF13: mouse trigger\nOption+2/3/4/5: repolish selected text"
+        alert.messageText = "TypeLocal triggers"
+        alert.informativeText = "Hold trigger: record while held, release to paste\nPress trigger: press once to start, press again to stop\nEscape: cancel\nReturn: stop and paste"
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
 
     @objc private func menuSendFeedback() {
-        let subject = "Wispry feedback"
-        let urlString = "mailto:?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Wispry%20feedback")"
+        let subject = "TypeLocal feedback"
+        let urlString = "mailto:lukebyrnee97@gmail.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "TypeLocal%20feedback")"
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
@@ -1223,45 +1375,11 @@ extension AppDelegate: NSMenuDelegate {
         menu.removeAllItems()
 
         menu.addItem(NSMenuItem(title: "Home", action: #selector(menuOpenHub), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Build Info", action: #selector(menuCheckForUpdates), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
-
-        menu.addItem(NSMenuItem(
-            title: isListening ? "Stop and Paste" : "Start Dictation",
-            action: #selector(menuToggleDictation),
-            keyEquivalent: ""
-        ))
-
-        let paste = NSMenuItem(title: "Paste Last Transcript", action: #selector(menuPasteLast), keyEquivalent: "")
-        paste.isEnabled = !lastTranscript.isEmpty
-        menu.addItem(paste)
-
-        menu.addItem(NSMenuItem(title: "Test Auto Paste", action: #selector(menuTestAutoPaste), keyEquivalent: ""))
-
-        let copy = NSMenuItem(title: "Copy Last Transcript", action: #selector(menuCopyLast), keyEquivalent: "")
-        copy.isEnabled = !lastTranscript.isEmpty
-        menu.addItem(copy)
-
-        let repolishMenu = NSMenu()
-        repolishMenu.addItem(NSMenuItem(title: "Professional", action: #selector(menuRepolishProfessional), keyEquivalent: ""))
-        repolishMenu.addItem(NSMenuItem(title: "Casual", action: #selector(menuRepolishCasual), keyEquivalent: ""))
-        repolishMenu.addItem(NSMenuItem(title: "List", action: #selector(menuRepolishList), keyEquivalent: ""))
-        repolishMenu.addItem(NSMenuItem(title: "Clean", action: #selector(menuRepolishClean), keyEquivalent: ""))
-        let repolish = NSMenuItem(title: "Repolish Selection", action: nil, keyEquivalent: "")
-        repolish.submenu = repolishMenu
-        menu.addItem(repolish)
-
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Shortcuts", action: #selector(menuOpenShortcuts), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Microphone", action: #selector(menuToggleDictation), keyEquivalent: ""))
         menu.addItem(NSMenuItem(
             title: store.bubbleVisible ? "Hide Bubble" : "Show Bubble",
             action: #selector(menuToggleBubble),
             keyEquivalent: ""
         ))
-        menu.addItem(NSMenuItem(title: "Accessibility Access", action: #selector(requestAccessibilityPrompt), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Help", action: #selector(menuHelp), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Send Support Feedback", action: #selector(menuSendFeedback), keyEquivalent: ""))
 
         menu.addItem(NSMenuItem.separator())
         let recent = store.recent.prefix(4)
@@ -1275,13 +1393,13 @@ extension AppDelegate: NSMenuDelegate {
             menu.addItem(label)
             for item in recent {
                 let excerpt = item.text.count > 54 ? String(item.text.prefix(54)) + "..." : item.text
-                let menuItem = NSMenuItem(title: excerpt, action: nil, keyEquivalent: "")
-                menuItem.isEnabled = false
+                let menuItem = NSMenuItem(title: excerpt, action: #selector(menuPasteRecent(_:)), keyEquivalent: "")
+                menuItem.representedObject = item.text
                 menu.addItem(menuItem)
             }
         }
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit Wispry", action: #selector(menuQuit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit TypeLocal", action: #selector(menuQuit), keyEquivalent: "q"))
     }
 }
