@@ -1,0 +1,7 @@
+{
+  "version": "0.1.0",
+  "build": "1",
+  "minimum_macos": "13.0",
+  "download_url": "https://idonttype.com/downloads/IDontType-0.1.0.dmg",
+  "release_notes": "Initial Mac beta with local dictation, searchable history, dictionary terms, and paste-back into the active app."
+}

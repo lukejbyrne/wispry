@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TypeLocal | Private speech to text for Mac</title>
-  <meta name="description" content="TypeLocal is private Mac speech to text. Click a text field, speak, and paste clean text with local history, no account, no TypeLocal server, and no hosted audio.">
+  <title>i don't type | Private speech to text for Mac</title>
+  <meta name="description" content="i don't type is private Mac speech to text. Click a text field, speak, and paste clean text with local history, no account, no i don't type server, and no hosted audio.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     :root {
@@ -299,6 +299,80 @@
       font-size: 13px;
       font-weight: 850;
       white-space: nowrap;
+    }
+
+    .proof-strip {
+      background: var(--paper);
+      padding: 48px 0;
+    }
+
+    .proof-strip-inner {
+      width: min(1080px, calc(100% - 44px));
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      margin: 0 auto;
+      padding: clamp(34px, 5vw, 52px) clamp(18px, 4vw, 48px);
+      border: 1px solid rgba(242, 241, 236, 0.14);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(179, 148, 85, 0.20), transparent 34%),
+        linear-gradient(135deg, #10100f, #1b1a18 58%, #11110f);
+      box-shadow: 0 32px 90px rgba(23, 24, 19, 0.24);
+    }
+
+    .proof-stat {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+      padding: 0 clamp(10px, 2vw, 28px);
+      text-align: center;
+    }
+
+    .proof-stat:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 10%;
+      right: 0;
+      width: 1px;
+      height: 80%;
+      background: linear-gradient(180deg, transparent, rgba(242, 241, 236, 0.20), transparent);
+    }
+
+    .proof-stat strong {
+      display: block;
+      color: var(--stat-color);
+      font-size: clamp(38px, 5vw, 54px);
+      font-weight: 950;
+      letter-spacing: -0.07em;
+      line-height: 0.9;
+    }
+
+    .proof-stat span {
+      display: block;
+      max-width: 170px;
+      color: rgba(250, 249, 244, 0.62);
+      font-size: 17px;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .proof-stat:nth-child(1) {
+      --stat-color: oklch(77% 0.12 72);
+    }
+
+    .proof-stat:nth-child(2) {
+      --stat-color: var(--text);
+    }
+
+    .proof-stat:nth-child(3) {
+      --stat-color: oklch(77% 0.12 72);
+    }
+
+    .proof-stat:nth-child(4) {
+      --stat-color: var(--text);
     }
 
     @keyframes languageMarquee {
@@ -1320,6 +1394,30 @@
         grid-template-columns: 1fr;
       }
 
+      .proof-strip {
+        padding: 34px 0;
+      }
+
+      .proof-strip-inner {
+        width: min(420px, calc(100% - 34px));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px 0;
+        padding: 30px 12px;
+        border-radius: 22px;
+      }
+
+      .proof-stat {
+        padding: 0 12px;
+      }
+
+      .proof-stat::after {
+        display: none;
+      }
+
+      .proof-stat span {
+        font-size: 14px;
+      }
+
       .price-card {
         min-height: auto;
       }
@@ -1390,13 +1488,13 @@
 </head>
 <body>
   <nav class="site-nav" aria-label="Primary navigation">
-    <a class="brand" href="#top"><img class="brand-mark" src="favicon.svg" alt="" width="23" height="23"> TypeLocal</a>
+    <a class="brand" href="#top"><img class="brand-mark" src="favicon.svg" alt="" width="23" height="23"> i don't type</a>
     <div class="nav-links">
       <a href="#workflow">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
     </div>
-    <a class="nav-action" href="#download">Get TypeLocal</a>
+    <a class="nav-action" href="#download">Stop typing</a>
   </nav>
 
   <header class="hero" id="top">
@@ -1408,13 +1506,13 @@
         </div>
         <div class="hero-demo">
           <div class="hero-demo-label"><b>Real Mac use</b><span>autoplays muted</span></div>
-          <video class="hero-demo-player" autoplay loop controls muted playsinline preload="auto" poster="demo-poster.svg">
-            <source src="media/typelocal-demo.mp4" type="video/mp4">
-            <a href="media/typelocal-demo.mp4">Watch the TypeLocal demo video</a>
+          <video class="hero-demo-player" autoplay loop muted playsinline preload="auto" poster="demo-poster.jpg" aria-label="i don't type Mac dictation demo">
+            <source src="media/idonttype-demo.mp4" type="video/mp4">
+            <a href="media/idonttype-demo.mp4">Watch the i don't type demo video</a>
           </video>
         </div>
         <div class="hero-actions">
-          <a class="button" href="downloads/TypeLocal-0.1.0.dmg" download>Download Mac beta</a>
+          <a class="button" href="downloads/IDontType-0.1.0.dmg" download>Download Mac beta</a>
         </div>
       </div>
     </div>
@@ -1455,26 +1553,47 @@
     </div>
   </section>
 
+  <section class="proof-strip" aria-label="Product proof">
+    <div class="proof-strip-inner">
+      <article class="proof-stat">
+        <strong>3x</strong>
+        <span>Faster than typing</span>
+      </article>
+      <article class="proof-stat">
+        <strong>0</strong>
+        <span>Hosted transcripts</span>
+      </article>
+      <article class="proof-stat">
+        <strong>100+</strong>
+        <span>Languages supported</span>
+      </article>
+      <article class="proof-stat">
+        <strong>Local</strong>
+        <span>Whisper on your Mac</span>
+      </article>
+    </div>
+  </section>
+
   <main>
     <section class="section light" id="workflow">
       <div class="section-inner">
-        <span class="eyebrow">V1</span>
-        <h2>Small app, obvious controls.</h2>
+        <span class="eyebrow">For people who would rather not type</span>
+        <h2>Still just click, speak, done.</h2>
         <div class="workflow">
           <article>
             <span>01</span>
-            <h3>Private speech to text</h3>
-            <p>No TypeLocal account, no TypeLocal server, no hosted audio. History stays local on your Mac.</p>
+            <h3>Talk into any text field</h3>
+            <p>Put your cursor where the words should go. Hold the trigger, say the thing, and i don't type pastes it back there.</p>
           </article>
           <article>
             <span>02</span>
-            <h3>History and dictionary</h3>
-            <p>Recent dictations are searchable. Dictionary terms help recognition with names, products, and acronyms.</p>
+            <h3>Keeps the useful bits</h3>
+            <p>Recent dictations are searchable, and dictionary terms help with the names, products, and acronyms you keep saying.</p>
           </article>
           <article>
             <span>03</span>
-            <h3>Triggers and paste</h3>
-            <p>Choose hold-to-record or double-tap-to-record. Text lands back in the field you started from.</p>
+            <h3>Private by default</h3>
+            <p>No i don't type account, no i don't type server, no hosted audio. History stays local on your Mac.</p>
           </article>
         </div>
       </div>
@@ -1483,20 +1602,20 @@
     <section class="section light" id="download">
       <div class="section-inner">
         <span class="eyebrow" id="pricing">Pricing</span>
-        <h2>Free in Skool. Cheap lifetime if you want it.</h2>
-        <p>The goal is distribution first: get people using private Mac dictation, then let supporters buy in early.</p>
+        <h2>Get it free when you join my Skool.</h2>
+        <p>i don't type is included as a free member perk. The Skool page has the full context: courses, community, updates, and the Mac beta.</p>
         <div class="pricing">
           <article class="price-card">
-            <small>Community</small>
+            <small>Skool member perk</small>
             <div class="price">Free</div>
-            <p>Join the free Skool and use the Mac beta while the product gets tightened.</p>
+            <p>Join my Skool and get the Mac beta included alongside the courses and community.</p>
             <ul class="price-list">
               <li>Private Mac dictation</li>
               <li>Dictation history</li>
-              <li>Updates, feedback, and roadmap votes in Skool</li>
+              <li>Feedback and roadmap votes in Skool</li>
             </ul>
             <div class="price-action">
-              <a class="button" href="#faq">Join free Skool</a>
+              <a class="button" href="https://www.skool.com/luke">Join Skool</a>
             </div>
           </article>
           <article class="price-card featured">
@@ -1509,7 +1628,7 @@
               <li>Founding price while the beta is open</li>
             </ul>
             <div class="price-action">
-              <a class="button" href="downloads/TypeLocal-0.1.0.dmg" download>Download Mac beta</a>
+              <a class="button" href="downloads/IDontType-0.1.0.dmg" download>Download Mac beta</a>
             </div>
           </article>
         </div>
@@ -1523,7 +1642,7 @@
         <div class="faq-list">
           <details class="faq-item">
             <summary>Is it private?</summary>
-            <p>TypeLocal has no account, no TypeLocal server, and stores no audio. Local settings and history stay on your Mac.</p>
+            <p>i don't type has no account, no i don't type server, and stores no audio. Local settings and history stay on your Mac.</p>
           </details>
           <details class="faq-item">
             <summary>What model does it use?</summary>
@@ -1531,7 +1650,7 @@
           </details>
           <details class="faq-item">
             <summary>Does it work offline?</summary>
-            <p>Yes for local dictation. Once the local model is installed, recording and transcription can run without a TypeLocal cloud service.</p>
+            <p>Yes for local dictation. Once the local model is installed, recording and transcription can run without a i don't type cloud service.</p>
           </details>
           <details class="faq-item">
             <summary>Does it work everywhere?</summary>
@@ -1543,15 +1662,15 @@
           </details>
           <details class="faq-item">
             <summary>Why so cheap?</summary>
-            <p>The first goal is distribution. Skool access is free, and the lifetime deal is for early supporters before pricing changes.</p>
+            <p>The first goal is distribution through Skool. i don't type is free for Skool members, and the Skool page explains the membership, courses, and community.</p>
           </details>
           <details class="faq-item">
             <summary>Do you store transcripts?</summary>
-            <p>History is local on your Mac. You can clear it from the app, and TypeLocal does not host your transcript history.</p>
+            <p>History is local on your Mac. You can clear it from the app, and i don't type does not host your transcript history.</p>
           </details>
           <details class="faq-item">
             <summary>Why Accessibility permission?</summary>
-            <p>macOS requires it for reliable paste and selected-text rewrite in other apps. Without it, TypeLocal falls back to copying text to the clipboard.</p>
+            <p>macOS requires it for reliable paste and selected-text rewrite in other apps. Without it, i don't type falls back to copying text to the clipboard.</p>
           </details>
         </div>
       </div>
@@ -1560,14 +1679,37 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <span>TypeLocal</span>
+      <span>i don't type</span>
       <div class="footer-links">
         <a href="privacy.html">Privacy</a>
         <a href="terms.html">Terms</a>
-        <a href="mailto:lukebyrnee97@gmail.com?subject=TypeLocal%20support">Support</a>
+        <a href="mailto:lukebyrnee97@gmail.com?subject=i don't type%20support">Support</a>
       </div>
     </div>
   </footer>
 
+  <script>
+    (() => {
+      const playAutoplayVideos = () => {
+        document.querySelectorAll("video[autoplay]").forEach((video) => {
+          video.muted = true;
+          video.playsInline = true;
+          video.play().catch(() => {});
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", playAutoplayVideos, { once: true });
+      } else {
+        playAutoplayVideos();
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          playAutoplayVideos();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
-# TypeLocal
+# i don't type
 
-TypeLocal is a small native macOS speech-to-text utility for private dictation in any app. It runs as a menu bar app with a movable floating bubble, local history, Local Whisper, and Apple Speech fallback, then pastes text back where your cursor started.
+i don't type is a small native macOS speech-to-text utility for private dictation in any app. It runs as a menu bar app with a movable floating bubble, local history, Local Whisper, and Apple Speech fallback, then pastes text back where your cursor started.
 
 ## Build
 
@@ -11,14 +11,14 @@ TypeLocal is a small native macOS speech-to-text utility for private dictation i
 The app bundle is written to:
 
 ```text
-.build/TypeLocal.app
+.build/i don't type.app
 ```
 
 The same build also writes a local download package for the static landing page:
 
 ```text
-site/downloads/TypeLocal-0.1.0.zip
-site/downloads/TypeLocal-0.1.0.dmg
+site/downloads/IDontType-0.1.0.zip
+site/downloads/IDontType-0.1.0.dmg
 ```
 
 By default, `./build.sh` uses the best available signing identity:
@@ -36,13 +36,13 @@ SIGN_MODE=developer-id ./build.sh
 To notarize after signing, first store Apple notary credentials:
 
 ```bash
-xcrun notarytool store-credentials typelocal-notary
+xcrun notarytool store-credentials idonttype-notary
 ```
 
 Then build and notarize:
 
 ```bash
-SIGN_MODE=developer-id NOTARY_PROFILE=typelocal-notary ./build.sh
+SIGN_MODE=developer-id NOTARY_PROFILE=idonttype-notary ./build.sh
 ```
 
 If the Developer ID certificate is missing, `SIGN_MODE=developer-id` fails instead of silently producing an ad-hoc build.
@@ -50,10 +50,10 @@ If the Developer ID certificate is missing, `SIGN_MODE=developer-id` fails inste
 ## Run
 
 ```bash
-open .build/TypeLocal.app
+open .build/i don't type.app
 ```
 
-macOS will ask for microphone and Speech Recognition access the first time you dictate. For reliable automatic paste and selected-text rewrite, grant Accessibility access in System Settings when prompted. TypeLocal can use Local Whisper for private local transcription and Apple Speech as a fallback when available.
+macOS will ask for microphone and Speech Recognition access the first time you dictate. For reliable automatic paste and selected-text rewrite, grant Accessibility access in System Settings when prompted. i don't type can use Local Whisper for private local transcription and Apple Speech as a fallback when available.
 
 ## Controls
 
@@ -76,7 +76,7 @@ macOS will ask for microphone and Speech Recognition access the first time you d
 - Home hub with sidebar navigation, searchable history, dictionary hints, model/language/microphone settings, and editable triggers.
 - Minimal recording state on the bubble, without showing transcript text on screen.
 - Local Whisper transcription with Apple Speech fallback.
-- No TypeLocal account, sync service, hosted transcript history, or stored audio.
+- No i don't type account, sync service, hosted transcript history, or stored audio.
 - Local cleanup styles: clean, professional, casual, and list.
 - App-aware style defaults for Mail, Messages, Slack, and Discord.
 - Clipboard fallback when Accessibility access is not available.

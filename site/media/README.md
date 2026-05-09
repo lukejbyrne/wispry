@@ -1,1 +1,1 @@
-Put the recorded landing-page demo video here as `typelocal-demo.mp4`.
+Put the recorded landing-page demo video here as `idonttype-demo.mp4`.

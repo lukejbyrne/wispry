@@ -32,7 +32,7 @@ final class HubWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "TypeLocal"
+        window.title = "i don't type"
         window.minSize = NSSize(width: 880, height: 680)
         window.center()
         window.isReleasedWhenClosed = false
@@ -182,7 +182,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
         let alert = NSAlert()
         alert.messageText = "Save Home changes?"
-        alert.informativeText = "You changed TypeLocal settings on Home. Save them before closing, discard them, or keep editing."
+        alert.informativeText = "You changed i don't type settings on Home. Save them before closing, discard them, or keep editing."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Discard")
@@ -220,7 +220,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         ])
         brandRow.addArrangedSubview(mark)
 
-        let brand = NSTextField(labelWithString: "TypeLocal")
+        let brand = NSTextField(labelWithString: "i don't type")
         brand.font = NSFont.systemFont(ofSize: 20, weight: .bold)
         brand.textColor = HubPalette.signalText
         brandRow.addArrangedSubview(brand)
@@ -310,7 +310,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         case .history:
             return "Recent dictations by time, with a short summary and full text."
         case .dictionary:
-            return "Words and phrases TypeLocal should bias recognition toward on the next dictation."
+            return "Words and phrases i don't type should bias recognition toward on the next dictation."
         case .snippets:
             return "Spoken phrases that expand into reusable text."
         case .shortcuts:
@@ -335,7 +335,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private func homeView() -> NSView {
         let header = NSStackView(views: [
-            signalTitleLabel("TypeLocal"),
+            signalTitleLabel("i don't type"),
             flexibleSpacer(),
             signalChip(title: homeReadinessTitle)
         ])
@@ -353,8 +353,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(signalControlLine(label: "Microphone", control: microphonePicker()))
         stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: cleanupToggle()))
         stack.addArrangedSubview(signalControlLine(label: "Storage", control: storagePicker()))
+        stack.addArrangedSubview(signalControlLine(label: "Updates", control: updateControls()))
         stack.addArrangedSubview(homeSaveControls())
-        return signalPanel(stack, height: 430)
+        return signalPanel(stack, height: 472)
     }
 
     private func historyView() -> NSView {
@@ -739,7 +740,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private var accessibilityStatus: (title: String, detail: String, ready: Bool) {
         if AXIsProcessTrusted() {
-            return ("Ready", "TypeLocal can paste and repolish selected text.", true)
+            return ("Ready", "i don't type can paste and repolish selected text.", true)
         }
         return ("Needed", "Required for reliable paste and selected-text rewrite.", false)
     }
@@ -900,6 +901,21 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         row.alignment = .centerY
         row.spacing = 8
         row.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        return row
+    }
+
+    private func updateControls() -> NSView {
+        let check = NSButton(title: "Check now", target: self, action: #selector(checkForUpdatesFromHome))
+        styleSignalSmallButton(check, width: 94)
+
+        let note = NSTextField(labelWithString: "Uses the Netlify update manifest.")
+        note.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        note.textColor = HubPalette.signalMuted
+
+        let row = NSStackView(views: [check, note])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
         return row
     }
 
@@ -1366,6 +1382,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         homeDraft = HomeDraft(store: store)
         performActionFeedback()
         render(section: .home)
+    }
+
+    @objc private func checkForUpdatesFromHome() {
+        performActionFeedback()
+        appDelegate?.checkForUpdates()
     }
 
     private func saveHomeDraft() {
