@@ -49,6 +49,10 @@ final class HubWindowController: NSWindowController {
     func showShortcuts() {
         (window?.contentViewController as? HubViewController)?.showShortcuts()
     }
+
+    func refresh() {
+        (window?.contentViewController as? HubViewController)?.refresh()
+    }
 }
 
 final class HubViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSWindowDelegate {
@@ -353,9 +357,10 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(signalControlLine(label: "Microphone", control: microphonePicker()))
         stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: cleanupToggle()))
         stack.addArrangedSubview(signalControlLine(label: "Storage", control: storagePicker()))
+        stack.addArrangedSubview(signalControlLine(label: "License", control: licenseControls()))
         stack.addArrangedSubview(signalControlLine(label: "Updates", control: updateControls()))
         stack.addArrangedSubview(homeSaveControls())
-        return signalPanel(stack, height: 472)
+        return signalPanel(stack, height: 514)
     }
 
     private func historyView() -> NSView {
@@ -485,7 +490,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         return signalPanel(stack, height: 356)
     }
 
-    private func refresh() {
+    func refresh() {
         historySearchField.stringValue = historyQuery
         updateHomeStyleButtons()
         historyTable.reloadData()
@@ -913,6 +918,23 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         note.textColor = HubPalette.signalMuted
 
         let row = NSStackView(views: [check, note])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        return row
+    }
+
+    private func licenseControls() -> NSView {
+        let payload = appDelegate?.activeLicensePayload
+        let status = NSTextField(labelWithString: payload?.displayPlan ?? "Not active")
+        status.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        status.textColor = payload == nil ? HubPalette.signalMuted : HubPalette.signalText
+        status.widthAnchor.constraint(equalToConstant: 172).isActive = true
+
+        let activate = NSButton(title: payload == nil ? "Activate" : "Replace", target: self, action: #selector(activateLicenseFromHome))
+        styleSignalSmallButton(activate, width: 86)
+
+        let row = NSStackView(views: [status, activate])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
@@ -1387,6 +1409,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func checkForUpdatesFromHome() {
         performActionFeedback()
         appDelegate?.checkForUpdates()
+    }
+
+    @objc private func activateLicenseFromHome() {
+        performActionFeedback()
+        appDelegate?.showActivationPrompt()
     }
 
     private func saveHomeDraft() {

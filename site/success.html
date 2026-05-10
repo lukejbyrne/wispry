@@ -90,6 +90,25 @@
       color: var(--paper);
       border-color: var(--line);
     }
+
+    .license-output {
+      width: 100%;
+      min-height: 122px;
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(13, 13, 12, 0.72);
+      color: var(--paper);
+      font: inherit;
+      resize: vertical;
+      word-break: break-all;
+    }
+
+    .status {
+      min-height: 24px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -97,13 +116,50 @@
     <a class="back" href="index.html">Back to i don't type</a>
     <section class="panel">
       <h1>You are in.</h1>
-      <p>Stripe has handled the payment and receipt. During this founding beta, activation details are being issued through the launch flow while the Apple-notarized build is finalized.</p>
+      <p>Stripe has handled the payment and receipt. Your signed license key is generated from the verified checkout session below.</p>
       <p>If you need access immediately, download the current beta below. It may show Apple's verification warning until Developer Program enrollment and notarization are complete.</p>
+      <p class="status" id="license-status">Checking payment...</p>
+      <textarea class="license-output" id="license-key" readonly hidden aria-label="License key"></textarea>
       <div class="actions">
+        <button class="button plausible-event-name=Success+Copy+License" id="copy-license" type="button" hidden>Copy license key</button>
         <a class="button plausible-event-name=Success+Download" href="downloads/IDontType-0.1.0.dmg" download>Download current beta</a>
         <a class="button secondary plausible-event-name=Success+Support" href="mailto:lukebyrnee97@gmail.com?subject=i don't type%20purchase">Need help?</a>
       </div>
     </section>
   </main>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("session_id");
+      const status = document.getElementById("license-status");
+      const output = document.getElementById("license-key");
+      const copy = document.getElementById("copy-license");
+
+      if (!sessionId) {
+        status.textContent = "No checkout session was found. If you paid, use the receipt email or contact support.";
+        return;
+      }
+
+      fetch(`/.netlify/functions/claim-license?session_id=${encodeURIComponent(sessionId)}`)
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Could not issue license.");
+          }
+          output.value = data.license_key;
+          output.hidden = false;
+          copy.hidden = false;
+          status.textContent = "License key generated. Paste it into the Mac app activation prompt.";
+        })
+        .catch((error) => {
+          status.textContent = error.message;
+        });
+
+      copy.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(output.value);
+        status.textContent = "Copied.";
+      });
+    })();
+  </script>
 </body>
 </html>

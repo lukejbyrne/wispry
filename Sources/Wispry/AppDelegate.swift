@@ -114,9 +114,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    var activeLicensePayload: LicensePayload? {
+        LicenseManager.payload(for: store.licenseKey)
+    }
+
+    var hasActiveLicense: Bool {
+        activeLicensePayload != nil
+    }
+
     func checkForUpdates() {
         updateChecker.check { [weak self] result in
             self?.presentUpdateResult(result)
+        }
+    }
+
+    func showActivationPrompt() {
+        let input = NSTextField(string: "")
+        input.placeholderString = "Paste license key"
+        input.frame = NSRect(x: 0, y: 0, width: 480, height: 24)
+
+        let alert = NSAlert()
+        alert.messageText = activeLicensePayload == nil ? "Activate i don't type" : "Replace license key?"
+        alert.informativeText = "Paste the signed license key from Stripe checkout or the Skool member claim page."
+        alert.accessoryView = input
+        alert.addButton(withTitle: "Activate")
+        alert.addButton(withTitle: "Buy lifetime")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            let key = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if LicenseManager.isValid(key) {
+                store.licenseKey = key
+                presentLicenseActivated()
+                hubWindowController?.refresh()
+            } else {
+                presentError("That license key is not valid.")
+            }
+        case .alertSecondButtonReturn:
+            if let url = URL(string: "https://idonttype.com/#download") {
+                NSWorkspace.shared.open(url)
+            }
+        default:
+            break
         }
     }
 
@@ -485,6 +526,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startDictation() {
+        guard hasActiveLicense else {
+            setBubbleState(.idle)
+            showActivationPrompt()
+            return
+        }
         guard !isProcessingDictation else { return }
         isProcessingDictation = true
         hasCompletedCurrentDictation = false
@@ -1293,6 +1339,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         checkForUpdates()
     }
 
+    @objc private func menuActivateLicense() {
+        showActivationPrompt()
+    }
+
     private func presentUpdateResult(_ result: AppUpdateResult) {
         let alert = NSAlert()
         switch result {
@@ -1315,6 +1365,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "OK")
             alert.runModal()
         }
+    }
+
+    private func presentLicenseActivated() {
+        let alert = NSAlert()
+        alert.messageText = "License activated"
+        if let payload = activeLicensePayload {
+            alert.informativeText = "\(payload.displayPlan) access is active on this Mac."
+        } else {
+            alert.informativeText = "i don't type is active on this Mac."
+        }
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     @objc private func menuOpenShortcuts() {
@@ -1408,6 +1470,7 @@ extension AppDelegate: NSMenuDelegate {
             keyEquivalent: ""
         ))
         menu.addItem(NSMenuItem(title: "Check for Updates...", action: #selector(menuCheckForUpdates), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: hasActiveLicense ? "License Active" : "Activate License...", action: #selector(menuActivateLicense), keyEquivalent: ""))
 
         menu.addItem(NSMenuItem.separator())
         let recent = store.recent.prefix(4)

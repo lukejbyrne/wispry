@@ -147,6 +147,7 @@ final class SettingsStore {
     private let microphoneUniqueIDKey = "microphoneUniqueID"
     private let cleanupEnabledKey = "cleanupEnabled"
     private let storageModeKey = "storageMode"
+    private let licenseKeyKey = "licenseKey"
 
     private init() {
         if defaults.object(forKey: snippetsKey) == nil {
@@ -292,6 +293,18 @@ final class SettingsStore {
             return StorageMode(rawValue: raw) ?? .local
         }
         set { defaults.set(newValue.rawValue, forKey: storageModeKey) }
+    }
+
+    var licenseKey: String? {
+        get { defaults.string(forKey: licenseKeyKey) }
+        set {
+            let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let trimmed, !trimmed.isEmpty {
+                defaults.set(trimmed, forKey: licenseKeyKey)
+            } else {
+                defaults.removeObject(forKey: licenseKeyKey)
+            }
+        }
     }
 
     func setShortcut(_ shortcut: KeyShortcut, for action: ShortcutAction) {

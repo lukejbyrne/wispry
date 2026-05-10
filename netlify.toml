@@ -1,0 +1,9 @@
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/checkout"
+  to = "/.netlify/functions/create-checkout"
+  status = 200
+
