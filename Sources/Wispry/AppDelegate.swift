@@ -92,6 +92,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.requestAccessibilityPromptIfNeeded()
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) { [weak self] in
+            self?.checkForUpdatesAutomatically()
+        }
         scheduleLaunchSelfTestIfRequested()
     }
 
@@ -125,6 +128,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func checkForUpdates() {
         updateChecker.check { [weak self] result in
             self?.presentUpdateResult(result)
+        }
+    }
+
+    private func checkForUpdatesAutomatically() {
+        let minimumInterval: TimeInterval = 60 * 60 * 12
+        if let lastCheck = store.lastAutomaticUpdateCheckAt,
+           Date().timeIntervalSince(lastCheck) < minimumInterval {
+            return
+        }
+
+        store.lastAutomaticUpdateCheckAt = Date()
+        updateChecker.check { [weak self] result in
+            guard let self else { return }
+            guard case .available(let manifest) = result else { return }
+
+            let identifier = "\(manifest.version)-\(manifest.build)"
+            guard self.store.lastPromptedUpdateIdentifier != identifier else { return }
+
+            self.store.lastPromptedUpdateIdentifier = identifier
+            self.presentUpdateResult(.available(manifest))
         }
     }
 

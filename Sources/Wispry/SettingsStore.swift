@@ -148,6 +148,8 @@ final class SettingsStore {
     private let cleanupEnabledKey = "cleanupEnabled"
     private let storageModeKey = "storageMode"
     private let licenseKeyKey = "licenseKey"
+    private let lastAutomaticUpdateCheckKey = "lastAutomaticUpdateCheckAt"
+    private let lastPromptedUpdateKey = "lastPromptedUpdateIdentifier"
 
     private init() {
         if defaults.object(forKey: snippetsKey) == nil {
@@ -303,6 +305,28 @@ final class SettingsStore {
                 defaults.set(trimmed, forKey: licenseKeyKey)
             } else {
                 defaults.removeObject(forKey: licenseKeyKey)
+            }
+        }
+    }
+
+    var lastAutomaticUpdateCheckAt: Date? {
+        get { defaults.object(forKey: lastAutomaticUpdateCheckKey) as? Date }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: lastAutomaticUpdateCheckKey)
+            } else {
+                defaults.removeObject(forKey: lastAutomaticUpdateCheckKey)
+            }
+        }
+    }
+
+    var lastPromptedUpdateIdentifier: String? {
+        get { defaults.string(forKey: lastPromptedUpdateKey) }
+        set {
+            if let newValue, !newValue.isEmpty {
+                defaults.set(newValue, forKey: lastPromptedUpdateKey)
+            } else {
+                defaults.removeObject(forKey: lastPromptedUpdateKey)
             }
         }
     }
