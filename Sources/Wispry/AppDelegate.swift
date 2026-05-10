@@ -216,9 +216,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let alert = NSAlert()
         alert.messageText = activeLicensePayload == nil ? "Activate i don't type" : "Replace license key?"
-        alert.informativeText = "Paste the signed license key from Stripe checkout or the Skool member checkout."
+        alert.informativeText = "Paste the signed license key from Stripe checkout or the Skool member checkout. A valid key is saved on this Mac."
         alert.accessoryView = input
-        alert.addButton(withTitle: "Activate")
+        alert.addButton(withTitle: activeLicensePayload == nil ? "Save license key" : "Save replacement")
         alert.addButton(withTitle: "Buy lifetime")
         alert.addButton(withTitle: "Cancel")
         NSApp.activate(ignoringOtherApps: true)
@@ -1524,7 +1524,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func presentLicenseActivated() {
         let alert = NSAlert()
-        alert.messageText = "License activated"
+        alert.messageText = "License key saved"
         if let payload = activeLicensePayload {
             alert.informativeText = "\(payload.displayPlan) access is active on this Mac."
         } else {

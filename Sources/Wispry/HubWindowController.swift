@@ -967,8 +967,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         status.textColor = payload == nil ? HubPalette.signalMuted : HubPalette.signalText
         status.widthAnchor.constraint(equalToConstant: 172).isActive = true
 
-        let activate = NSButton(title: payload == nil ? "Activate" : "Replace", target: self, action: #selector(activateLicenseFromHome))
-        styleSignalSmallButton(activate, width: 86)
+        let activate = NSButton(title: payload == nil ? "Save key" : "Replace key", target: self, action: #selector(activateLicenseFromHome))
+        styleSignalSmallButton(activate, width: 98)
 
         let row = NSStackView(views: [status, activate])
         row.orientation = .horizontal

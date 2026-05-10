@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "build": "4",
+  "build": "5",
   "minimum_macos": "13.0",
   "download_url": "https://idonttype.com/downloads/IDontType-0.1.0.dmg",
-  "release_notes": "Adds file transcription from Home, restores double-tap Fn as the press trigger default, configurable update checks, private Skool member checkout, signed license activation, and local dictation."
+  "release_notes": "Clarifies license key saving, adds file transcription from Home, restores double-tap Fn as the press trigger default, configurable update checks, private Skool member checkout, and local dictation."
 }
