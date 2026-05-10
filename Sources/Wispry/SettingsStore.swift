@@ -19,6 +19,26 @@ enum StorageMode: String, Codable, CaseIterable {
     case cloud = "Cloud"
 }
 
+enum UpdateCheckFrequency: String, Codable, CaseIterable {
+    case daily = "Daily"
+    case weekly = "Weekly"
+    case monthly = "Monthly"
+    case never = "Never"
+
+    var interval: TimeInterval? {
+        switch self {
+        case .daily:
+            return 60 * 60 * 24
+        case .weekly:
+            return 60 * 60 * 24 * 7
+        case .monthly:
+            return 60 * 60 * 24 * 30
+        case .never:
+            return nil
+        }
+    }
+}
+
 struct VoiceSnippet: Codable, Equatable {
     var phrase: String
     var expansion: String
@@ -148,6 +168,7 @@ final class SettingsStore {
     private let cleanupEnabledKey = "cleanupEnabled"
     private let storageModeKey = "storageMode"
     private let licenseKeyKey = "licenseKey"
+    private let updateCheckFrequencyKey = "updateCheckFrequency"
     private let lastAutomaticUpdateCheckKey = "lastAutomaticUpdateCheckAt"
     private let lastPromptedUpdateKey = "lastPromptedUpdateIdentifier"
 
@@ -184,6 +205,9 @@ final class SettingsStore {
         }
         if defaults.object(forKey: storageModeKey) == nil {
             storageMode = .local
+        }
+        if defaults.object(forKey: updateCheckFrequencyKey) == nil {
+            updateCheckFrequency = .weekly
         }
     }
 
@@ -307,6 +331,14 @@ final class SettingsStore {
                 defaults.removeObject(forKey: licenseKeyKey)
             }
         }
+    }
+
+    var updateCheckFrequency: UpdateCheckFrequency {
+        get {
+            guard let raw = defaults.string(forKey: updateCheckFrequencyKey) else { return .weekly }
+            return UpdateCheckFrequency(rawValue: raw) ?? .weekly
+        }
+        set { defaults.set(newValue.rawValue, forKey: updateCheckFrequencyKey) }
     }
 
     var lastAutomaticUpdateCheckAt: Date? {

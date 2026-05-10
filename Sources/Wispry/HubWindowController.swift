@@ -77,6 +77,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         var microphoneUniqueID: String?
         var cleanupEnabled: Bool
         var storageMode: StorageMode
+        var updateCheckFrequency: UpdateCheckFrequency
         var holdTrigger: TriggerShortcut
         var pressTrigger: TriggerShortcut
 
@@ -86,6 +87,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             microphoneUniqueID = store.microphoneUniqueID
             cleanupEnabled = store.cleanupEnabled
             storageMode = store.storageMode
+            updateCheckFrequency = store.updateCheckFrequency
             holdTrigger = store.holdTrigger
             pressTrigger = store.pressTrigger
         }
@@ -910,14 +912,25 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func updateControls() -> NSView {
+        let frequency = popup(width: 120)
+        for option in UpdateCheckFrequency.allCases {
+            frequency.addItem(withTitle: option.rawValue)
+            frequency.lastItem?.representedObject = option.rawValue
+        }
+        if let index = UpdateCheckFrequency.allCases.firstIndex(of: homeDraft.updateCheckFrequency) {
+            frequency.selectItem(at: index)
+        }
+        frequency.target = self
+        frequency.action = #selector(updateFrequencySelected(_:))
+
         let check = NSButton(title: "Check now", target: self, action: #selector(checkForUpdatesFromHome))
         styleSignalSmallButton(check, width: 94)
 
-        let note = NSTextField(labelWithString: "Uses the Netlify update manifest.")
+        let note = NSTextField(labelWithString: "Automatic checks")
         note.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         note.textColor = HubPalette.signalMuted
 
-        let row = NSStackView(views: [check, note])
+        let row = NSStackView(views: [frequency, check, note])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
@@ -1389,6 +1402,14 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         render(section: .home)
     }
 
+    @objc private func updateFrequencySelected(_ sender: NSPopUpButton) {
+        guard let raw = sender.selectedItem?.representedObject as? String,
+              let frequency = UpdateCheckFrequency(rawValue: raw) else { return }
+        homeDraft.updateCheckFrequency = frequency
+        performActionFeedback()
+        render(section: .home)
+    }
+
     @objc private func toggleCleanupFromHome() {
         homeDraft.cleanupEnabled.toggle()
         performActionFeedback()
@@ -1422,6 +1443,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         store.microphoneUniqueID = homeDraft.microphoneUniqueID
         store.cleanupEnabled = homeDraft.cleanupEnabled
         store.storageMode = homeDraft.storageMode
+        store.updateCheckFrequency = homeDraft.updateCheckFrequency
         store.holdTrigger = homeDraft.holdTrigger
         store.pressTrigger = homeDraft.pressTrigger
         appDelegate?.reloadHotKeys()

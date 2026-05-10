@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkForUpdatesAutomatically() {
-        let minimumInterval: TimeInterval = 60 * 60 * 12
+        guard let minimumInterval = store.updateCheckFrequency.interval else { return }
         if let lastCheck = store.lastAutomaticUpdateCheckAt,
            Date().timeIntervalSince(lastCheck) < minimumInterval {
             return
@@ -158,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let alert = NSAlert()
         alert.messageText = activeLicensePayload == nil ? "Activate i don't type" : "Replace license key?"
-        alert.informativeText = "Paste the signed license key from Stripe checkout or the Skool member claim page."
+        alert.informativeText = "Paste the signed license key from Stripe checkout or the Skool member checkout."
         alert.accessoryView = input
         alert.addButton(withTitle: "Activate")
         alert.addButton(withTitle: "Buy lifetime")
