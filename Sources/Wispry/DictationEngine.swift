@@ -115,7 +115,11 @@ final class DictationEngine {
         case .appleOnDevice:
             try startAppleSpeech(contextualStrings: contextualStrings, languageIdentifier: languageIdentifier, sessionID: sessionID)
         case .localWhisper:
-            try startLocalWhisperRecording(sessionID: sessionID)
+            try startLocalWhisperRecording(
+                contextualStrings: contextualStrings,
+                languageIdentifier: languageIdentifier,
+                sessionID: sessionID
+            )
         }
     }
 
@@ -219,7 +223,11 @@ final class DictationEngine {
         try audioEngine.start()
     }
 
-    private func startLocalWhisperRecording(sessionID: UInt64) throws {
+    private func startLocalWhisperRecording(
+        contextualStrings: [String],
+        languageIdentifier: String,
+        sessionID: UInt64
+    ) throws {
         guard Self.localWhisperBackend(languageIdentifier: activeLanguageIdentifier) != nil else {
             throw DictationEngineError.localWhisperUnavailable
         }
@@ -238,12 +246,18 @@ final class DictationEngine {
 
         let audioURL = directory.appendingPathComponent("recording-\(UUID().uuidString).caf")
         let audioFile = try AVAudioFile(forWriting: audioURL, settings: inputFormat.settings)
+        let previewRequest = startAppleSpeechPreviewIfAvailable(
+            contextualStrings: contextualStrings,
+            languageIdentifier: languageIdentifier,
+            sessionID: sessionID
+        )
 
         inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { [weak self] buffer, _ in
             guard let self, sessionID == self.sessionID else { return }
             do {
                 try self.recordingFile?.write(from: buffer)
+                previewRequest?.append(buffer)
             } catch {
                 self.finish(.failure(error), sessionID: sessionID)
             }
@@ -259,6 +273,43 @@ final class DictationEngine {
 
         audioEngine.prepare()
         try audioEngine.start()
+    }
+
+    private func startAppleSpeechPreviewIfAvailable(
+        contextualStrings: [String],
+        languageIdentifier: String,
+        sessionID: UInt64
+    ) -> SFSpeechAudioBufferRecognitionRequest? {
+        guard SFSpeechRecognizer.authorizationStatus() == .authorized else { return nil }
+        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: languageIdentifier)),
+              recognizer.isAvailable,
+              recognizer.supportsOnDeviceRecognition else {
+            return nil
+        }
+
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.requiresOnDeviceRecognition = true
+        request.taskHint = .dictation
+        if #available(macOS 13.0, *) {
+            request.addsPunctuation = true
+        }
+        request.contextualStrings = contextualStrings
+        recognitionRequest = request
+
+        recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, _ in
+            guard let self, sessionID == self.sessionID, !self.didFinish else { return }
+            guard let result else { return }
+            let transcription = result.bestTranscription
+            let text = self.transcriptAccumulator.ingest(
+                transcription.formattedString,
+                firstSegmentTimestamp: transcription.segments.first?.timestamp
+            )
+            self.lastPartialText = text
+            DispatchQueue.main.async { self.onPartial?(text) }
+        }
+
+        return request
     }
 
     func stopAndCommit() {
@@ -277,10 +328,18 @@ final class DictationEngine {
             let audioURL = recordingFileURL
             recordingFile = nil
             recordingFileURL = nil
+            recognitionRequest?.endAudio()
             DispatchQueue.main.async { [onPartial] in
-                onPartial?("Transcribing locally with Whisper...")
+                onPartial?("Finalising locally with Whisper...")
             }
             transcribeWithLocalWhisper(audioURL: audioURL, sessionID: sessionID)
+            let quickDraft = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !quickDraft.isEmpty {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) { [weak self] in
+                    guard let self, sessionID == self.sessionID, !self.didFinish else { return }
+                    self.finish(.success(quickDraft), sessionID: sessionID)
+                }
+            }
             return
         }
 
