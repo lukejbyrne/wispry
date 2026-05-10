@@ -980,12 +980,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     }
 
     private func homeSaveControls() -> NSView {
-        let status = NSTextField(labelWithString: hasUnsavedHomeChanges ? "Unsaved changes" : "Saved")
-        status.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        status.textColor = hasUnsavedHomeChanges ? HubPalette.signalText : HubPalette.signalMuted
-        status.widthAnchor.constraint(equalToConstant: 180).isActive = true
-
-        let save = NSButton(title: "Save changes", target: self, action: #selector(saveHomeChanges))
+        let save = NSButton(title: hasUnsavedHomeChanges ? "Save changes" : "Saved", target: self, action: #selector(saveHomeChanges))
         styleSignalSmallButton(save, width: 108)
         save.isEnabled = hasUnsavedHomeChanges
 
@@ -993,7 +988,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         styleSignalSmallButton(revert, width: 72)
         revert.isEnabled = hasUnsavedHomeChanges
 
-        let row = NSStackView(views: [status, flexibleSpacer(), revert, save])
+        let row = NSStackView(views: [flexibleSpacer(), revert, save])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8

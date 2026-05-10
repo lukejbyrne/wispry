@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "build": "7",
+  "build": "8",
   "minimum_macos": "13.0",
   "download_url": "https://idonttype.com/downloads/IDontType-0.1.0.dmg",
-  "release_notes": "Adds a dedicated Transcribe page with drag and drop file transcription, removes Whisper blank audio artifacts, and makes trigger recording use explicit Save and Cancel controls."
+  "release_notes": "Makes the Home save area button-only, keeping saved state inside the save button instead of a separate status label."
 }
