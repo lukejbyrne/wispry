@@ -1,4 +1,4 @@
-const { issueLicense, json } = require("./license");
+const { issueLicense, json, sha256 } = require("./license");
 
 exports.handler = async (event) => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -26,21 +26,36 @@ exports.handler = async (event) => {
   }
 
   const session = await response.json();
-  if (session.payment_status !== "paid") {
+  if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
     return json(402, { error: "Payment is not complete yet." });
   }
   if (session.mode !== "payment") {
     return json(400, { error: "Unexpected checkout mode." });
   }
-  if (session.currency !== "usd" || Number(session.amount_total || 0) < 1900) {
+
+  const email = session.customer_details?.email || session.customer_email;
+  const isMemberCheckout = session.metadata?.access_source === "skool_member";
+  let source = "stripe";
+  let plan = "founding_lifetime";
+
+  if (isMemberCheckout) {
+    const expectedToken = process.env.SKOOL_MEMBER_CHECKOUT_TOKEN;
+    if (!expectedToken || session.metadata?.member_token_sha256 !== sha256(expectedToken)) {
+      return json(403, { error: "Member checkout could not be verified." });
+    }
+    if (Number(session.amount_total || 0) !== 0) {
+      return json(400, { error: "Unexpected member checkout amount." });
+    }
+    source = "skool";
+    plan = "skool_member";
+  } else if (session.currency !== "usd" || Number(session.amount_total || 0) < 1900) {
     return json(400, { error: "Unexpected checkout amount." });
   }
 
-  const email = session.customer_details?.email || session.customer_email;
   const license = issueLicense({
     email,
-    source: "stripe",
-    plan: "founding_lifetime",
+    source,
+    plan,
     licenseId: session.id,
   });
 
@@ -50,4 +65,3 @@ exports.handler = async (event) => {
     plan: license.payload.plan,
   });
 };
-

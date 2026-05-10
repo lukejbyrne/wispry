@@ -7,3 +7,7 @@
   to = "/.netlify/functions/create-checkout"
   status = 200
 
+[[redirects]]
+  from = "/member-checkout"
+  to = "/member-checkout.html"
+  status = 200

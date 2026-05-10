@@ -4,7 +4,7 @@ This is the V1 launch model:
 
 - Website is hosted on Netlify at `https://idonttype.com`.
 - Paid users buy a one-time lifetime license through Stripe Checkout.
-- Skool members claim a license with a private member-only code.
+- Skool members use a private member-only checkout link from Skool. The link opens a $0 Stripe Checkout session before a license is issued.
 - The Mac app verifies signed license keys locally, so the app can stay privacy-first and does not need user accounts.
 - The downloadable Mac build must be signed with a Developer ID Application certificate and notarized by Apple before public launch.
 
@@ -26,9 +26,10 @@ Netlify production needs these environment variables:
 LICENSE_PRIVATE_KEY_B64
 LICENSE_PUBLIC_KEY_B64
 SITE_URL=https://idonttype.com
-SKOOL_CLAIM_CODE
+SKOOL_MEMBER_CHECKOUT_TOKEN
 STRIPE_PRICE_ID
 STRIPE_SECRET_KEY
+STRIPE_SKOOL_COUPON_ID
 ```
 
 `STRIPE_SECRET_KEY` must be a live Stripe secret key and must only be stored as a Netlify secret. Do not commit it.
@@ -66,7 +67,13 @@ Skool member route:
 https://idonttype.com/skool.html
 ```
 
-Put the private `SKOOL_CLAIM_CODE` in a pinned/private Skool post for paid members. If the code leaks, rotate the Netlify environment variable and redeploy.
+Private member checkout route:
+
+```text
+https://idonttype.com/member-checkout?token=PRIVATE_TOKEN
+```
+
+Put the private member checkout link in a pinned/private Skool post for paid members. Members enter their Skool email, complete a $0 Stripe Checkout session using the server-side Skool coupon, then the success page issues a signed license key. If the link leaks, rotate `SKOOL_MEMBER_CHECKOUT_TOKEN` in Netlify and update the Skool post.
 
 ## Apple signing and notarization
 
@@ -106,7 +113,7 @@ Expected:
 - Tests pass.
 - Function syntax checks pass.
 - `/checkout` redirects to Stripe once `STRIPE_SECRET_KEY` is configured.
-- `/skool.html` can generate a license with the private member code.
+- `/member-checkout?token=PRIVATE_TOKEN` creates a free Stripe Checkout session for members.
 - Downloaded DMG hash matches `site/downloads/IDontType-0.1.0.dmg`.
 
 ## Launch checklist
@@ -114,7 +121,7 @@ Expected:
 - Add live `STRIPE_SECRET_KEY` to Netlify production.
 - Redeploy Netlify production.
 - Run one real paid checkout and confirm the success page generates a license.
-- Put the Skool claim code in the private paid Skool member area.
+- Put the private Skool member checkout link in the private paid Skool member area.
 - Complete Apple Developer Program enrollment.
 - Build with Developer ID signing and notarization.
 - Deploy the notarized DMG.

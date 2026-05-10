@@ -198,7 +198,7 @@
     <div class="hero">
       <section>
         <h1>Free for Skool members.</h1>
-        <p class="lede">i don't type is included as a member perk. Join the Skool for the courses and community, then use the member post to claim the Mac beta.</p>
+        <p class="lede">i don't type is included as a member perk. Join the Skool for the courses and community, then use the private member link to claim the Mac beta.</p>
       </section>
       <aside class="panel">
         <p>Not a member yet? The Skool page gives the full context before you join. If you only want the app, use the $19 lifetime option on the main page instead.</p>
@@ -221,8 +221,8 @@
       <article class="step">
         <strong>02</strong>
         <div>
-          <h2>Use the member post</h2>
-          <p>The pinned member post has the private claim code. Enter it below with your Skool email to generate a signed license key.</p>
+          <h2>Use the private member link</h2>
+          <p>The pinned member post has a private checkout link. Enter your Skool email there, complete the free Stripe checkout, and get your signed license key.</p>
         </div>
       </article>
       <article class="step">
@@ -233,63 +233,6 @@
         </div>
       </article>
     </div>
-    <section class="panel" style="margin-top: 28px;">
-      <h2>Claim your member license</h2>
-      <p>Use the private code from the pinned Skool post. Do not post this code publicly.</p>
-      <form class="claim-form" id="skool-claim-form">
-        <label for="skool-email">Skool email</label>
-        <input id="skool-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
-        <label for="skool-code">Claim code</label>
-        <input id="skool-code" name="code" type="password" required placeholder="Paste the code from Skool">
-        <button class="button plausible-event-name=Skool+Claim+License" type="submit">Generate license key</button>
-        <div class="form-status" id="skool-status" role="status"></div>
-        <textarea class="license-output" id="skool-license" readonly hidden aria-label="Generated license key"></textarea>
-        <button class="button secondary" id="copy-license" type="button" hidden>Copy license key</button>
-      </form>
-    </section>
   </main>
-  <script>
-    (() => {
-      const form = document.getElementById("skool-claim-form");
-      const status = document.getElementById("skool-status");
-      const output = document.getElementById("skool-license");
-      const copy = document.getElementById("copy-license");
-
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        status.textContent = "Generating license...";
-        output.hidden = true;
-        copy.hidden = true;
-
-        const payload = {
-          email: document.getElementById("skool-email").value,
-          code: document.getElementById("skool-code").value,
-        };
-
-        try {
-          const response = await fetch("/.netlify/functions/claim-skool-license", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || "Could not generate license.");
-          }
-          output.value = data.license_key;
-          output.hidden = false;
-          copy.hidden = false;
-          status.textContent = "License generated. Paste it into the Mac app activation prompt.";
-        } catch (error) {
-          status.textContent = error.message;
-        }
-      });
-
-      copy.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(output.value);
-        status.textContent = "Copied.";
-      });
-    })();
-  </script>
 </body>
 </html>
