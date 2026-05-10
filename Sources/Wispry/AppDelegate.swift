@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import Carbon
 import Darwin
+import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore.shared
@@ -128,6 +129,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func checkForUpdates() {
         updateChecker.check { [weak self] result in
             self?.presentUpdateResult(result)
+        }
+    }
+
+    func transcribeFileFromHome() {
+        guard hasActiveLicense else {
+            showActivationPrompt()
+            return
+        }
+        guard !isListening, !isProcessingDictation else {
+            presentError("Finish the current dictation before transcribing a file.")
+            return
+        }
+        guard DictationEngine.localWhisperStatus(languageIdentifier: store.speechLanguageIdentifier).ready else {
+            presentError("Local Whisper is required for file transcription.")
+            return
+        }
+
+        let panel = NSOpenPanel()
+        panel.title = "Choose an audio or video file"
+        panel.prompt = "Transcribe"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.audio, .movie]
+        NSApp.activate(ignoringOtherApps: true)
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        startFileTranscription(url)
+    }
+
+    private func startFileTranscription(_ sourceURL: URL) {
+        isProcessingDictation = true
+        hasCompletedCurrentDictation = false
+        targetApplication = nil
+        targetTextSnapshot = nil
+        targetAppName = "File"
+        currentPartialTranscript = ""
+        lastOutputStatus = "Transcribing \(sourceURL.lastPathComponent)."
+        setBubbleState(.processing)
+
+        dictationEngine.onPartial = { [weak self] text in
+            guard let self else { return }
+            self.currentPartialTranscript = text
+            self.bubbleWindow?.bubbleView.partialTranscript = text
+        }
+        dictationEngine.onComplete = { [weak self] result in
+            self?.completeFileTranscription(result, sourceURL: sourceURL)
+        }
+
+        do {
+            try dictationEngine.transcribeFile(
+                sourceURL: sourceURL,
+                languageIdentifier: store.speechLanguageIdentifier
+            )
+        } catch {
+            isProcessingDictation = false
+            setBubbleState(.idle)
+            presentError(error.localizedDescription)
         }
     }
 
@@ -722,6 +780,80 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         case .failure(let error):
             presentError(error.localizedDescription)
+        }
+    }
+
+    private func completeFileTranscription(_ result: Result<String, Error>, sourceURL: URL) {
+        isProcessingDictation = false
+        currentPartialTranscript = ""
+        bubbleWindow?.bubbleView.partialTranscript = ""
+
+        switch result {
+        case .success(let rawText):
+            let trimmed = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                lastOutputStatus = "File transcription returned no text."
+                setBubbleState(.idle)
+                return
+            }
+
+            let style = store.cleanupEnabled ? store.style(for: nil, appName: nil) : .verbatim
+            let processed = TextPipeline.process(trimmed, style: style, snippets: store.snippets)
+            guard !processed.cancelled, !processed.text.isEmpty else {
+                lastOutputStatus = "File transcription cancelled."
+                setBubbleState(.idle)
+                return
+            }
+
+            copyToClipboard(processed.text)
+            store.addRecent(text: processed.text, appName: sourceURL.lastPathComponent)
+            store.learnLikelyTerms(from: processed.text)
+
+            do {
+                let outputURL = try saveTranscript(processed.text, for: sourceURL)
+                lastOutputStatus = "Transcript copied and saved."
+                showSuccessTick()
+                presentFileTranscriptSaved(outputURL: outputURL)
+            } catch {
+                lastOutputStatus = "Transcript copied. Could not save the text file."
+                showSuccessTick()
+                presentError("Transcript copied, but the text file could not be saved: \(error.localizedDescription)")
+            }
+        case .failure(let error):
+            setBubbleState(.idle)
+            presentError(error.localizedDescription)
+        }
+    }
+
+    private func saveTranscript(_ text: String, for sourceURL: URL) throws -> URL {
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        let preferredURL = sourceURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(baseName)-transcript")
+            .appendingPathExtension("txt")
+
+        do {
+            try text.write(to: preferredURL, atomically: true, encoding: .utf8)
+            return preferredURL
+        } catch {
+            let fallbackDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+                ?? FileManager.default.temporaryDirectory
+            let fallbackURL = fallbackDirectory
+                .appendingPathComponent("\(baseName)-transcript")
+                .appendingPathExtension("txt")
+            try text.write(to: fallbackURL, atomically: true, encoding: .utf8)
+            return fallbackURL
+        }
+    }
+
+    private func presentFileTranscriptSaved(outputURL: URL) {
+        let alert = NSAlert()
+        alert.messageText = "Transcript copied and saved"
+        alert.informativeText = outputURL.path
+        alert.addButton(withTitle: "Show File")
+        alert.addButton(withTitle: "OK")
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.activateFileViewerSelecting([outputURL])
         }
     }
 

@@ -94,6 +94,14 @@ struct TriggerShortcut: Codable, Equatable {
     }
 }
 
+private let legacyPressTriggerDefault = TriggerShortcut.key(
+    .make(
+        keyCode: UInt32(kVK_Space),
+        modifiers: UInt32(controlKey | optionKey),
+        display: "Ctrl+Opt+Space"
+    )
+)
+
 enum ShortcutAction: String, Codable, CaseIterable {
     case toggle
     case professional
@@ -192,7 +200,9 @@ final class SettingsStore {
             holdTrigger = .function
         }
         if defaults.object(forKey: pressTriggerKey) == nil {
-            pressTrigger = .key(.make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Ctrl+Opt+Space"))
+            pressTrigger = .function
+        } else if decode(TriggerShortcut.self, key: pressTriggerKey) == legacyPressTriggerDefault {
+            pressTrigger = .function
         }
         if defaults.object(forKey: speechModelKey) == nil {
             speechModel = Self.defaultSpeechModel(languageIdentifier: Locale.current.identifier)
@@ -277,7 +287,7 @@ final class SettingsStore {
     var pressTrigger: TriggerShortcut {
         get {
             decode(TriggerShortcut.self, key: pressTriggerKey)
-                ?? .key(.make(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey), display: "Ctrl+Opt+Space"))
+                ?? .function
         }
         set { encode(newValue, key: pressTriggerKey) }
     }

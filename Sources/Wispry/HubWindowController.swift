@@ -357,12 +357,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(signalControlLine(label: "Triggers", control: triggersControl()))
         stack.addArrangedSubview(signalControlLine(label: "Speech", control: speechControls()))
         stack.addArrangedSubview(signalControlLine(label: "Microphone", control: microphonePicker()))
+        stack.addArrangedSubview(signalControlLine(label: "File", control: fileTranscriptionControls()))
         stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: cleanupToggle()))
         stack.addArrangedSubview(signalControlLine(label: "Storage", control: storagePicker()))
         stack.addArrangedSubview(signalControlLine(label: "License", control: licenseControls()))
         stack.addArrangedSubview(signalControlLine(label: "Updates", control: updateControls()))
         stack.addArrangedSubview(homeSaveControls())
-        return signalPanel(stack, height: 514)
+        return signalPanel(stack, height: 558)
     }
 
     private func historyView() -> NSView {
@@ -801,7 +802,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         detailLabel.textColor = HubPalette.signalMuted
         detailLabel.widthAnchor.constraint(equalToConstant: 194).isActive = true
 
-        let captureText = triggerCaptureRole == role ? "Press shortcut..." : shortcut.display
+        let captureText = triggerCaptureRole == role ? "Press shortcut..." : triggerDisplay(shortcut, role: role)
         let shortcutLabel = valuePill(captureText, width: 122)
 
         let record = NSButton(title: triggerCaptureRole == role ? "Cancel" : "Record", target: self, action: #selector(recordTriggerShortcut(_:)))
@@ -813,6 +814,13 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         row.alignment = .centerY
         row.spacing = 8
         return row
+    }
+
+    private func triggerDisplay(_ shortcut: TriggerShortcut, role: TriggerRole) -> String {
+        if shortcut.isFunctionKey, role == .press {
+            return "Double-tap Fn"
+        }
+        return shortcut.display
     }
 
     private func speechControls() -> NSView {
@@ -864,6 +872,21 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         control.target = self
         control.action = #selector(microphoneSelected(_:))
         return control
+    }
+
+    private func fileTranscriptionControls() -> NSView {
+        let transcribe = NSButton(title: "Transcribe file", target: self, action: #selector(transcribeFileFromHome))
+        styleSignalSmallButton(transcribe, width: 118)
+
+        let note = NSTextField(labelWithString: "Saves .txt and copies it")
+        note.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        note.textColor = HubPalette.signalMuted
+
+        let row = NSStackView(views: [transcribe, note])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        return row
     }
 
     private func cleanupToggle() -> NSView {
@@ -1430,6 +1453,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func checkForUpdatesFromHome() {
         performActionFeedback()
         appDelegate?.checkForUpdates()
+    }
+
+    @objc private func transcribeFileFromHome() {
+        performActionFeedback()
+        appDelegate?.transcribeFileFromHome()
     }
 
     @objc private func activateLicenseFromHome() {

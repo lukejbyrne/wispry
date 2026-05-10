@@ -110,6 +110,38 @@ final class DictationEngine {
         }
     }
 
+    func transcribeFile(sourceURL: URL, languageIdentifier: String = Locale.current.identifier) throws {
+        guard Self.localWhisperBackend(languageIdentifier: languageIdentifier) != nil else {
+            throw DictationEngineError.localWhisperUnavailable
+        }
+
+        resetRecognition(keepCallbacks: true)
+        sessionID &+= 1
+        let sessionID = sessionID
+        activeSpeechModel = .localWhisper
+        activeLanguageIdentifier = languageIdentifier
+        activeMicrophoneUniqueID = nil
+        transcriptAccumulator.reset()
+        lastPartialText = ""
+        didFinish = false
+        shouldCommitOnFinish = true
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WispryWhisper", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let extensionPart = sourceURL.pathExtension.isEmpty ? "audio" : sourceURL.pathExtension
+        let temporaryURL = directory
+            .appendingPathComponent("file-\(UUID().uuidString)")
+            .appendingPathExtension(extensionPart)
+        try FileManager.default.copyItem(at: sourceURL, to: temporaryURL)
+
+        DispatchQueue.main.async { [onPartial] in
+            onPartial?("Transcribing file locally with Whisper...")
+        }
+        transcribeWithLocalWhisper(audioURL: temporaryURL, sessionID: sessionID)
+    }
+
     private func startAppleSpeech(contextualStrings: [String], languageIdentifier: String, sessionID: UInt64) throws {
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: languageIdentifier))
         guard let recognizer, recognizer.isAvailable else {

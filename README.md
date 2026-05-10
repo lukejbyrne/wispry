@@ -64,6 +64,7 @@ macOS will ask for microphone and Speech Recognition access the first time you d
 - Drag the bubble to move it anywhere on screen. Its position is saved.
 - Hold `Fn` for push-to-talk, then release to stop and paste.
 - Double-tap `Fn` to latch dictation on, then click the bubble or press `Fn` again to stop and paste.
+- Use Home to transcribe an audio or video file, save a `.txt` transcript beside it, and copy the transcript to the clipboard.
 - Press `Escape` during dictation to cancel.
 - Configure hold-to-record and press-to-toggle triggers from Home.
 - Select text and press `Opt+2/3/4/5` to repolish it as professional, casual, list, or clean text.
