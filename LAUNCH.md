@@ -90,7 +90,7 @@ Build and notarize:
 ```bash
 xcrun notarytool store-credentials idonttype-notary
 SIGN_MODE=developer-id NOTARY_PROFILE=idonttype-notary ./build.sh
-netlify deploy --prod --dir=site --message "Publish notarized Mac beta"
+netlify deploy --prod --dir=site --message "Publish notarized Mac release"
 ```
 
 Without this, macOS will show: Apple could not verify the DMG is free of malware.
