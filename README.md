@@ -21,6 +21,8 @@ site/downloads/IDontType-0.1.0.zip
 site/downloads/IDontType-0.1.0.dmg
 ```
 
+For production checkout, license issuing, Skool member access, and notarized distribution, see [LAUNCH.md](LAUNCH.md).
+
 By default, `./build.sh` uses the best available signing identity:
 
 - `Developer ID Application` when installed.
