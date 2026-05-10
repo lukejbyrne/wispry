@@ -30,6 +30,7 @@ SKOOL_MEMBER_CHECKOUT_TOKEN
 STRIPE_PRICE_ID
 STRIPE_SECRET_KEY
 STRIPE_SKOOL_COUPON_ID
+MANUAL_LICENSE_TOKEN
 ```
 
 `STRIPE_SECRET_KEY` must be a live Stripe secret key and must only be stored as a Netlify secret. Do not commit it.
@@ -58,6 +59,10 @@ https://idonttype.com/success.html?session_id={CHECKOUT_SESSION_ID}
 ```
 
 The success page verifies the paid Stripe session and issues a signed license key.
+
+## Manual license issuing
+
+For support cases, `/.netlify/functions/issue-license` can issue a signed license when called with `MANUAL_LICENSE_TOKEN`. Keep that token out of chat, docs, and client code. This endpoint is for one-off admin use only; normal users should go through Stripe checkout or the private Skool member checkout.
 
 ## Skool member access
 
