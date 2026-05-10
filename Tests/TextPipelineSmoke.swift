@@ -22,6 +22,7 @@ struct TextPipelineSmoke {
         testQuestionPunctuation()
         testCorrectionMarkersDoNotEatNormalNegation()
         testPunctuationWordsCanStayWords()
+        testWhisperBlankAudioArtifact()
         testRepeatedFalseStartRevision()
         testTranscriptAccumulatorReplacesFullRevisions()
         testTranscriptAccumulatorKeepsTimedRollingWindows()
@@ -150,6 +151,11 @@ struct TextPipelineSmoke {
 
         let history = TextPipeline.process("the period of review is short", style: .clean, snippets: [])
         expect(history.text == "The period of review is short.", "period of should stay words")
+    }
+
+    private static func testWhisperBlankAudioArtifact() {
+        let result = TextPipeline.process("please review this [BLANK_AUDIO]", style: .clean, snippets: [])
+        expect(result.text == "Please review this.", "blank audio artifact should be removed, got \(result.text)")
     }
 
     private static func testRepeatedFalseStartRevision() {

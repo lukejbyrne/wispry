@@ -796,6 +796,7 @@ final class DictationEngine {
 
     private static func normalizeWhisperOutput(_ text: String) -> String {
         text
+            .replacingOccurrences(of: #"(?i)(?:\s|^)(?:\[\s*blank[_ ]audio\s*\]|\(\s*blank[_ ]audio\s*\)|<\|nospeech\|>)(?=\s|$)"#, with: " ", options: .regularExpression)
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }

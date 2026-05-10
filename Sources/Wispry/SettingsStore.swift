@@ -88,9 +88,22 @@ struct TriggerShortcut: Codable, Equatable {
         )
     }
 
+    static func modifierOnly(modifiers: UInt32, display: String) -> TriggerShortcut {
+        TriggerShortcut(
+            keyCode: nil,
+            modifiers: modifiers,
+            display: display,
+            isFunctionKey: false
+        )
+    }
+
     var keyShortcut: KeyShortcut? {
         guard let keyCode, !isFunctionKey else { return nil }
         return KeyShortcut(keyCode: keyCode, modifiers: modifiers, display: display)
+    }
+
+    var isModifierOnly: Bool {
+        keyCode == nil && modifiers != 0 && !isFunctionKey
     }
 }
 

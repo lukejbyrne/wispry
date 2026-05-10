@@ -191,6 +191,7 @@ enum TextPipeline {
 
     private static func normalizeSpeechArtifacts(_ input: String) -> String {
         input
+            .replacingOccurrences(of: #"(?i)(?:\s|^)(?:\[\s*blank[_ ]audio\s*\]|\(\s*blank[_ ]audio\s*\)|<\|nospeech\|>)(?=\s|$)"#, with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"(?i)\bet cetera\b"#, with: "etc.", options: .regularExpression)
             .replacingOccurrences(of: #"(?i)\betcetera\b"#, with: "etc.", options: .regularExpression)
     }

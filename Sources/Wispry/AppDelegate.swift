@@ -4,6 +4,14 @@ import Carbon
 import Darwin
 import UniformTypeIdentifiers
 
+struct FileTranscriptionOutput {
+    let sourceURL: URL
+    let outputURL: URL
+    let text: String
+}
+
+typealias FileTranscriptionCompletion = (Result<FileTranscriptionOutput, Error>) -> Void
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore.shared
     private let dictationEngine = DictationEngine()
@@ -33,6 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var holdTriggerKeyIsDown = false
     private var pressTriggerKeyIsDown = false
     private var functionKeyLatched = false
+    private var modifierOnlyHoldTriggerIsDown = false
+    private var modifierOnlyPressTriggerIsDown = false
     private var functionReleaseStopWorkItem: DispatchWorkItem?
     private var pendingFunctionReleaseStop = false
     private var lastFunctionReleaseDate = Date.distantPast
@@ -133,18 +143,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func transcribeFileFromHome() {
-        guard hasActiveLicense else {
-            showActivationPrompt()
-            return
-        }
-        guard !isListening, !isProcessingDictation else {
-            presentError("Finish the current dictation before transcribing a file.")
-            return
-        }
-        guard DictationEngine.localWhisperStatus(languageIdentifier: store.speechLanguageIdentifier).ready else {
-            presentError("Local Whisper is required for file transcription.")
-            return
-        }
+        promptForFileTranscription()
+    }
+
+    func promptForFileTranscription(completion: FileTranscriptionCompletion? = nil) {
+        guard canStartFileTranscription(completion: completion) else { return }
 
         let panel = NSOpenPanel()
         panel.title = "Choose an audio or video file"
@@ -155,10 +158,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        startFileTranscription(url)
+        startFileTranscription(url, completion: completion)
     }
 
-    private func startFileTranscription(_ sourceURL: URL) {
+    func transcribeFile(_ sourceURL: URL, completion: FileTranscriptionCompletion? = nil) {
+        guard canStartFileTranscription(completion: completion) else { return }
+        startFileTranscription(sourceURL, completion: completion)
+    }
+
+    private func canStartFileTranscription(completion: FileTranscriptionCompletion?) -> Bool {
+        guard hasActiveLicense else {
+            showActivationPrompt()
+            completion?(.failure(fileTranscriptionError("Activate i don't type before transcribing a file.")))
+            return false
+        }
+        guard !isListening, !isProcessingDictation else {
+            let message = "Finish the current dictation before transcribing a file."
+            presentError(message)
+            completion?(.failure(fileTranscriptionError(message)))
+            return false
+        }
+        guard DictationEngine.localWhisperStatus(languageIdentifier: store.speechLanguageIdentifier).ready else {
+            let message = "Local Whisper is required for file transcription."
+            presentError(message)
+            completion?(.failure(fileTranscriptionError(message)))
+            return false
+        }
+
+        return true
+    }
+
+    private func fileTranscriptionError(_ message: String) -> NSError {
+        NSError(
+            domain: "IDontType.FileTranscription",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+    }
+
+    private func startFileTranscription(_ sourceURL: URL, completion: FileTranscriptionCompletion? = nil) {
         isProcessingDictation = true
         hasCompletedCurrentDictation = false
         targetApplication = nil
@@ -174,7 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.bubbleWindow?.bubbleView.partialTranscript = text
         }
         dictationEngine.onComplete = { [weak self] result in
-            self?.completeFileTranscription(result, sourceURL: sourceURL)
+            self?.completeFileTranscription(result, sourceURL: sourceURL, completion: completion)
         }
 
         do {
@@ -186,6 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             isProcessingDictation = false
             setBubbleState(.idle)
             presentError(error.localizedDescription)
+            completion?(.failure(error))
         }
     }
 
@@ -335,7 +374,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !trimmed.isEmpty else { return }
         lastTranscript = trimmed
         copyToClipboard(trimmed)
-        lastOutputStatus = "Copied history item to clipboard."
+        lastOutputStatus = "Copied to clipboard."
         showSuccessTick()
     }
 
@@ -414,10 +453,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         logDiagnostic("function monitor installed eventTap=\(tapInstalled)")
 
         NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handleFunctionModifierChange(event)
+            self?.handleModifierChange(event)
         }
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handleFunctionModifierChange(event)
+            self?.handleModifierChange(event)
             return event
         }
         NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
@@ -437,8 +476,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func handleFunctionModifierChange(_ event: NSEvent) {
+    private func handleModifierChange(_ event: NSEvent) {
         handleFunctionFlagChange(isDown: event.modifierFlags.contains(.function))
+        handleModifierOnlyTriggerChange(modifiers: carbonModifiers(from: event.modifierFlags))
     }
 
     private func handleFunctionFlagChange(isDown: Bool) {
@@ -469,6 +509,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !isDown, store.pressTrigger.keyCode == keyCode {
             pressTriggerKeyIsDown = false
+        }
+    }
+
+    private func handleModifierOnlyTriggerChange(modifiers: UInt32) {
+        guard !isShortcutCaptureActive else { return }
+
+        if store.holdTrigger.isModifierOnly {
+            let isDown = store.holdTrigger.modifiers == modifiers
+            if modifierOnlyHoldTriggerIsDown != isDown {
+                modifierOnlyHoldTriggerIsDown = isDown
+                handleHoldTriggerChange(isDown: isDown)
+            }
+            return
+        }
+
+        if store.pressTrigger.isModifierOnly {
+            let isDown = store.pressTrigger.modifiers == modifiers
+            if isDown && !modifierOnlyPressTriggerIsDown {
+                toggleDictation()
+            }
+            modifierOnlyPressTriggerIsDown = isDown
         }
     }
 
@@ -553,8 +614,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 switch type {
                 case .flagsChanged:
                     let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-                    guard keyCode == UInt16(kVK_Function) else { return }
-                    appDelegate.handleFunctionFlagChange(isDown: event.flags.contains(.maskSecondaryFn))
+                    if keyCode == UInt16(kVK_Function) {
+                        appDelegate.handleFunctionFlagChange(isDown: event.flags.contains(.maskSecondaryFn))
+                    }
+                    appDelegate.handleModifierOnlyTriggerChange(modifiers: appDelegate.carbonModifiers(from: event.flags))
                 case .keyDown, .keyUp:
                     appDelegate.handleTriggerKeyEvent(
                         keyCode: UInt32(event.getIntegerValueField(.keyboardEventKeycode)),
@@ -783,7 +846,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func completeFileTranscription(_ result: Result<String, Error>, sourceURL: URL) {
+    private func completeFileTranscription(
+        _ result: Result<String, Error>,
+        sourceURL: URL,
+        completion: FileTranscriptionCompletion?
+    ) {
         isProcessingDictation = false
         currentPartialTranscript = ""
         bubbleWindow?.bubbleView.partialTranscript = ""
@@ -794,6 +861,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard !trimmed.isEmpty else {
                 lastOutputStatus = "File transcription returned no text."
                 setBubbleState(.idle)
+                completion?(.failure(fileTranscriptionError("File transcription returned no text.")))
                 return
             }
 
@@ -802,6 +870,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard !processed.cancelled, !processed.text.isEmpty else {
                 lastOutputStatus = "File transcription cancelled."
                 setBubbleState(.idle)
+                completion?(.failure(fileTranscriptionError("File transcription cancelled.")))
                 return
             }
 
@@ -813,15 +882,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let outputURL = try saveTranscript(processed.text, for: sourceURL)
                 lastOutputStatus = "Transcript copied and saved."
                 showSuccessTick()
-                presentFileTranscriptSaved(outputURL: outputURL)
+                completion?(.success(FileTranscriptionOutput(
+                    sourceURL: sourceURL,
+                    outputURL: outputURL,
+                    text: processed.text
+                )))
+                if completion == nil {
+                    presentFileTranscriptSaved(outputURL: outputURL)
+                }
             } catch {
                 lastOutputStatus = "Transcript copied. Could not save the text file."
                 showSuccessTick()
                 presentError("Transcript copied, but the text file could not be saved: \(error.localizedDescription)")
+                completion?(.failure(error))
             }
         case .failure(let error):
             setBubbleState(.idle)
             presentError(error.localizedDescription)
+            completion?(.failure(error))
         }
     }
 

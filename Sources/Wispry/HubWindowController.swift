@@ -3,6 +3,7 @@ import ApplicationServices
 import AVFoundation
 import Carbon
 import Speech
+import UniformTypeIdentifiers
 
 private enum HubPalette {
     static let signalSurface = NSColor(calibratedWhite: 0.050, alpha: 1)
@@ -60,10 +61,11 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         case home = "Home"
         case history = "History"
         case dictionary = "Dictionary"
+        case transcribe = "Transcribe"
         case snippets = "Snippets"
         case shortcuts = "Shortcuts"
 
-        static let visible: [Section] = [.home, .history, .dictionary]
+        static let visible: [Section] = [.home, .history, .dictionary, .transcribe]
     }
 
     private enum TriggerRole: Int {
@@ -106,15 +108,20 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private let historySearchField = NSSearchField()
     private let historyDetailTextView = NSTextView()
     private let dictionaryTextView = NSTextView()
+    private let fileTranscriptTextView = NSTextView()
     private let snippetsTextView = NSTextView()
     private let dictionaryField = NSTextField()
     private let snippetPhraseField = NSTextField()
     private let snippetExpansionField = NSTextField()
     private var homeStyleButtons: [TransformStyle: NSButton] = [:]
     private var triggerCaptureRole: TriggerRole?
+    private var pendingTriggerShortcut: TriggerShortcut?
     private var sectionButtons: [Section: NSButton] = [:]
     private var historyExpandedAll = false
     private var historyQuery = ""
+    private var fileTranscriptStatus = "Drop an audio or video file here, or choose one from your Mac."
+    private var fileTranscriptText = ""
+    private var lastFileTranscriptOutputURL: URL?
     private var shortcutCaptureAction: ShortcutAction?
     private var shortcutCaptureMonitors: [Any] = []
 
@@ -317,6 +324,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return "Recent dictations by time, with a short summary and full text."
         case .dictionary:
             return "Words and phrases i don't type should bias recognition toward on the next dictation."
+        case .transcribe:
+            return "Drop a file, copy the transcript, and save the .txt output locally."
         case .snippets:
             return "Spoken phrases that expand into reusable text."
         case .shortcuts:
@@ -332,6 +341,8 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return historyView()
         case .dictionary:
             return dictionaryView()
+        case .transcribe:
+            return transcribeView()
         case .snippets:
             return snippetsView()
         case .shortcuts:
@@ -357,13 +368,12 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         stack.addArrangedSubview(signalControlLine(label: "Triggers", control: triggersControl()))
         stack.addArrangedSubview(signalControlLine(label: "Speech", control: speechControls()))
         stack.addArrangedSubview(signalControlLine(label: "Microphone", control: microphonePicker()))
-        stack.addArrangedSubview(signalControlLine(label: "File", control: fileTranscriptionControls()))
         stack.addArrangedSubview(signalControlLine(label: "Cleanup", control: cleanupToggle()))
         stack.addArrangedSubview(signalControlLine(label: "Storage", control: storagePicker()))
         stack.addArrangedSubview(signalControlLine(label: "License", control: licenseControls()))
         stack.addArrangedSubview(signalControlLine(label: "Updates", control: updateControls()))
         stack.addArrangedSubview(homeSaveControls())
-        return signalPanel(stack, height: 558)
+        return signalPanel(stack, height: 508)
     }
 
     private func historyView() -> NSView {
@@ -449,6 +459,44 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         return signalPanel(stack, height: 390)
     }
 
+    private func transcribeView() -> NSView {
+        let dropView = FileDropView()
+        dropView.onFileDropped = { [weak self] url in
+            self?.startFileTranscription(url)
+        }
+        dropView.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        dropView.heightAnchor.constraint(equalToConstant: 118).isActive = true
+
+        let choose = NSButton(title: "Choose file", target: self, action: #selector(chooseTranscriptionFile))
+        styleSignalSmallButton(choose, width: 100)
+        let copy = NSButton(title: "Copy transcript", target: self, action: #selector(copyFileTranscript))
+        styleSignalSmallButton(copy, width: 118)
+        let open = NSButton(title: "Show .txt", target: self, action: #selector(openSavedTranscript))
+        styleSignalSmallButton(open, width: 86)
+
+        let buttons = NSStackView(views: [choose, copy, open])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 8
+
+        let status = NSTextField(wrappingLabelWithString: fileTranscriptStatus)
+        status.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        status.textColor = HubPalette.signalMuted
+        status.maximumNumberOfLines = 2
+        status.widthAnchor.constraint(equalToConstant: 560).isActive = true
+
+        let stack = NSStackView(views: [
+            dropView,
+            buttons,
+            status,
+            scrollableText(fileTranscriptTextView, height: 250)
+        ])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 12
+        return signalPanel(stack, height: 462)
+    }
+
     private func snippetsView() -> NSView {
         snippetPhraseField.placeholderString = "Spoken phrase"
         snippetExpansionField.placeholderString = "Expansion"
@@ -502,6 +550,9 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         }
         updateHistoryDetail()
         dictionaryTextView.string = store.dictionaryWords.joined(separator: "\n")
+        fileTranscriptTextView.string = fileTranscriptText.isEmpty
+            ? "No file transcribed yet."
+            : fileTranscriptText
         snippetsTextView.string = store.snippets.map { "\"\($0.phrase)\" -> \($0.expansion)" }.joined(separator: "\n\n")
     }
 
@@ -802,14 +853,30 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         detailLabel.textColor = HubPalette.signalMuted
         detailLabel.widthAnchor.constraint(equalToConstant: 194).isActive = true
 
-        let captureText = triggerCaptureRole == role ? "Press shortcut..." : triggerDisplay(shortcut, role: role)
+        let isCapturing = triggerCaptureRole == role
+        let captureText = isCapturing
+            ? (pendingTriggerShortcut.map { triggerDisplay($0, role: role) } ?? "Press keys...")
+            : triggerDisplay(shortcut, role: role)
         let shortcutLabel = valuePill(captureText, width: 122)
 
-        let record = NSButton(title: triggerCaptureRole == role ? "Cancel" : "Record", target: self, action: #selector(recordTriggerShortcut(_:)))
-        record.tag = role.rawValue
-        styleSignalSmallButton(record, width: 72)
+        let actionViews: [NSView]
+        if isCapturing {
+            let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelTriggerShortcut(_:)))
+            cancel.tag = role.rawValue
+            styleSignalSmallButton(cancel, width: 64)
+            let save = NSButton(title: "Save", target: self, action: #selector(saveTriggerShortcut(_:)))
+            save.tag = role.rawValue
+            styleSignalSmallButton(save, width: 58)
+            save.isEnabled = pendingTriggerShortcut != nil
+            actionViews = [cancel, save]
+        } else {
+            let record = NSButton(title: "Record", target: self, action: #selector(recordTriggerShortcut(_:)))
+            record.tag = role.rawValue
+            styleSignalSmallButton(record, width: 72)
+            actionViews = [record]
+        }
 
-        let row = NSStackView(views: [titleLabel, detailLabel, shortcutLabel, record])
+        let row = NSStackView(views: [titleLabel, detailLabel, shortcutLabel] + actionViews)
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8
@@ -1378,11 +1445,25 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         guard let role = TriggerRole(rawValue: sender.tag) else { return }
         performActionFeedback()
         if triggerCaptureRole == role {
-            cancelShortcutCapture()
+            beginTriggerCapture(role)
         } else {
             beginTriggerCapture(role)
         }
         render(section: .home)
+    }
+
+    @objc private func cancelTriggerShortcut(_ sender: NSButton) {
+        performActionFeedback()
+        cancelShortcutCapture()
+    }
+
+    @objc private func saveTriggerShortcut(_ sender: NSButton) {
+        guard let role = TriggerRole(rawValue: sender.tag), triggerCaptureRole == role else { return }
+        guard let pendingTriggerShortcut else {
+            NSSound.beep()
+            return
+        }
+        finishTriggerCapture(pendingTriggerShortcut, for: role)
     }
 
     @objc private func speechModelSelected(_ sender: NSPopUpButton) {
@@ -1458,6 +1539,64 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func transcribeFileFromHome() {
         performActionFeedback()
         appDelegate?.transcribeFileFromHome()
+    }
+
+    @objc private func chooseTranscriptionFile() {
+        performActionFeedback()
+        let panel = NSOpenPanel()
+        panel.title = "Choose an audio or video file"
+        panel.prompt = "Transcribe"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.audio, .movie]
+        NSApp.activate(ignoringOtherApps: true)
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        startFileTranscription(url)
+    }
+
+    @objc private func copyFileTranscript() {
+        let text = fileTranscriptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        appDelegate?.copyTextFromHub(text)
+        performActionFeedback()
+    }
+
+    @objc private func openSavedTranscript() {
+        guard let lastFileTranscriptOutputURL else {
+            NSSound.beep()
+            return
+        }
+        performActionFeedback()
+        NSWorkspace.shared.activateFileViewerSelecting([lastFileTranscriptOutputURL])
+    }
+
+    private func startFileTranscription(_ url: URL) {
+        fileTranscriptStatus = "Transcribing \(url.lastPathComponent)..."
+        fileTranscriptText = "Working. The transcript will appear here when it is ready."
+        lastFileTranscriptOutputURL = nil
+        render(section: .transcribe)
+
+        appDelegate?.transcribeFile(url) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                switch result {
+                case .success(let output):
+                    self.fileTranscriptStatus = "Copied to clipboard and saved: \(output.outputURL.lastPathComponent)"
+                    self.fileTranscriptText = output.text
+                    self.lastFileTranscriptOutputURL = output.outputURL
+                    self.performActionFeedback()
+                case .failure(let error):
+                    self.fileTranscriptStatus = error.localizedDescription
+                    self.fileTranscriptText = ""
+                    self.lastFileTranscriptOutputURL = nil
+                }
+                self.render(section: .transcribe)
+            }
+        }
     }
 
     @objc private func activateLicenseFromHome() {
@@ -1676,6 +1815,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     private func beginShortcutCapture(_ action: ShortcutAction) {
         shortcutCaptureAction = action
         triggerCaptureRole = nil
+        pendingTriggerShortcut = nil
         appDelegate?.setShortcutCaptureActive(true)
         render(section: .shortcuts)
     }
@@ -1691,6 +1831,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         guard shortcutCaptureAction != nil || triggerCaptureRole != nil else { return }
         shortcutCaptureAction = nil
         triggerCaptureRole = nil
+        pendingTriggerShortcut = nil
         appDelegate?.setShortcutCaptureActive(false)
         render(section: selectedSection)
     }
@@ -1701,21 +1842,39 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             return true
         }
 
-        if let role = triggerCaptureRole {
-            if event.type == .flagsChanged, event.modifierFlags.contains(.function) {
-                finishTriggerCapture(.function, for: role)
-                return true
-            }
-
-            guard event.type == .keyDown, let shortcut = shortcut(from: event) else {
-                if event.type == .keyDown {
-                    NSSound.beep()
+        if triggerCaptureRole != nil {
+            if event.type == .flagsChanged {
+                if event.modifierFlags.contains(.function) {
+                    pendingTriggerShortcut = .function
+                    performActionFeedback()
+                    render(section: .home)
+                    return true
+                }
+                let modifiers = carbonModifiers(from: event.modifierFlags)
+                if modifiers != 0 {
+                    pendingTriggerShortcut = .modifierOnly(
+                        modifiers: modifiers,
+                        display: modifierOnlyDisplay(flags: event.modifierFlags)
+                    )
+                    performActionFeedback()
+                    render(section: .home)
                     return true
                 }
                 return false
             }
 
-            finishTriggerCapture(.key(shortcut), for: role)
+            guard event.type == .keyDown else {
+                return false
+            }
+
+            guard let shortcut = shortcut(from: event) else {
+                NSSound.beep()
+                return true
+            }
+
+            pendingTriggerShortcut = .key(shortcut)
+            performActionFeedback()
+            render(section: .home)
             return true
         }
 
@@ -1733,6 +1892,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private func beginTriggerCapture(_ role: TriggerRole) {
         triggerCaptureRole = role
+        pendingTriggerShortcut = nil
         shortcutCaptureAction = nil
         appDelegate?.setShortcutCaptureActive(true)
         render(section: .home)
@@ -1746,6 +1906,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
             homeDraft.pressTrigger = shortcut
         }
         triggerCaptureRole = nil
+        pendingTriggerShortcut = nil
         appDelegate?.setShortcutCaptureActive(false)
         performActionFeedback()
         render(section: .home)
@@ -1777,6 +1938,15 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         if flags.contains(.shift) { parts.append("Shift") }
         if flags.contains(.command) { parts.append("Cmd") }
         parts.append(keyName(for: keyCode))
+        return parts.joined(separator: "+")
+    }
+
+    private func modifierOnlyDisplay(flags: NSEvent.ModifierFlags) -> String {
+        var parts: [String] = []
+        if flags.contains(.control) { parts.append("Ctrl") }
+        if flags.contains(.option) { parts.append("Opt") }
+        if flags.contains(.shift) { parts.append("Shift") }
+        if flags.contains(.command) { parts.append("Cmd") }
         return parts.joined(separator: "+")
     }
 
@@ -1890,6 +2060,80 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
     @objc private func resetSnippets() {
         store.snippets = VoiceSnippet.defaults
         refresh()
+    }
+}
+
+private final class FileDropView: NSView {
+    var onFileDropped: ((URL) -> Void)?
+
+    private let titleLabel = NSTextField(labelWithString: "Drop audio or video here")
+    private let detailLabel = NSTextField(labelWithString: "MP3, WAV, M4A, MP4, MOV and other local media files")
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        accepts(sender) ? .copy : []
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard accepts(sender), let url = fileURLs(from: sender.draggingPasteboard).first else {
+            return false
+        }
+        onFileDropped?(url)
+        return true
+    }
+
+    private func setup() {
+        wantsLayer = true
+        layer?.backgroundColor = HubPalette.signalField.cgColor
+        layer?.borderColor = HubPalette.signalBorder.cgColor
+        layer?.borderWidth = 1
+        layer?.cornerRadius = 10
+        registerForDraggedTypes([.fileURL])
+
+        titleLabel.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.textColor = HubPalette.signalText
+        detailLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        detailLabel.textColor = HubPalette.signalMuted
+
+        let stack = NSStackView(views: [titleLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 6
+        addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -18)
+        ])
+    }
+
+    private func accepts(_ sender: NSDraggingInfo) -> Bool {
+        !fileURLs(from: sender.draggingPasteboard).isEmpty
+    }
+
+    private func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        let objects = pasteboard.readObjects(forClasses: [NSURL.self], options: options) ?? []
+        return objects.compactMap { object in
+            if let url = object as? URL {
+                return url
+            }
+            if let nsURL = object as? NSURL {
+                return nsURL as URL
+            }
+            return nil
+        }
     }
 }
 
