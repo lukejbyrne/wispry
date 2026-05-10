@@ -106,6 +106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) { [weak self] in
             self?.checkForUpdatesAutomatically()
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+            self?.prepareLocalWhisperIfNeeded()
+        }
         scheduleLaunchSelfTestIfRequested()
     }
 
@@ -140,6 +143,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateChecker.check { [weak self] result in
             self?.presentUpdateResult(result)
         }
+    }
+
+    func prepareLocalWhisperIfNeeded() {
+        guard store.speechModel == .localWhisper else { return }
+        dictationEngine.prepareLocalWhisper(languageIdentifier: store.speechLanguageIdentifier)
     }
 
     func transcribeFileFromHome() {

@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "build": "8",
+  "build": "9",
   "minimum_macos": "13.0",
   "download_url": "https://idonttype.com/downloads/IDontType-0.1.0.dmg",
-  "release_notes": "Makes the Home save area button-only, keeping saved state inside the save button instead of a separate status label."
+  "release_notes": "Pre-warms Local Whisper after launch and reuses an already-running whisper.cpp server to reduce delay after recording."
 }

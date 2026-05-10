@@ -65,6 +65,15 @@ final class DictationEngine {
         activeSpeechModel == .localWhisper
     }
 
+    func prepareLocalWhisper(languageIdentifier: String = Locale.current.identifier) {
+        guard case .whisperCppServer(let serverURL, let modelURL) = Self.localWhisperBackend(languageIdentifier: languageIdentifier) else {
+            return
+        }
+
+        let languageCode = Self.whisperLanguageCode(for: languageIdentifier) ?? "auto"
+        ensureWarmWhisperServer(serverURL: serverURL, modelURL: modelURL, languageCode: languageCode) { _ in }
+    }
+
     func requestPermissions(model: SpeechModel, completion: @escaping (Result<Void, Error>) -> Void) {
         if model == .localWhisper {
             AVCaptureDevice.requestAccess(for: .audio) { allowed in
@@ -609,6 +618,13 @@ final class DictationEngine {
         languageCode: String,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        if localWhisperServerProcess == nil, Self.whisperServerResponds(serverURL: serverURL) {
+            localWhisperServerModelURL = modelURL
+            localWhisperServerLanguageCode = languageCode
+            completion(.success(()))
+            return
+        }
+
         if let process = localWhisperServerProcess,
            process.isRunning,
            localWhisperServerModelURL == modelURL,

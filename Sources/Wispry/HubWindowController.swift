@@ -1609,6 +1609,7 @@ final class HubViewController: NSViewController, NSTableViewDataSource, NSTableV
         store.holdTrigger = homeDraft.holdTrigger
         store.pressTrigger = homeDraft.pressTrigger
         appDelegate?.reloadHotKeys()
+        appDelegate?.prepareLocalWhisperIfNeeded()
         performActionFeedback()
     }
 
