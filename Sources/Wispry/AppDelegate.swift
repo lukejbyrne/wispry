@@ -1553,7 +1553,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuSendFeedback() {
         let subject = "i don't type feedback"
-        let urlString = "mailto:lukebyrnee97@gmail.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "i don't type%20feedback")"
+        let urlString = "mailto:hello@lukejbyrne.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "i don't type%20feedback")"
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
