@@ -427,12 +427,6 @@ final class DictationEngine {
                 modelURL: modelURL,
                 sessionID: sessionID
             )
-        case .pythonWhisper(let executableURL):
-            transcribeWithPythonWhisper(
-                audioURL: audioURL,
-                executableURL: executableURL,
-                sessionID: sessionID
-            )
         }
     }
 
@@ -689,16 +683,28 @@ final class DictationEngine {
            localWhisperServerModelURL == modelURL,
            localWhisperServerLanguageCode == languageCode {
             DispatchQueue.global(qos: .userInitiated).async {
-                let ready = Self.whisperServerResponds(serverURL: serverURL)
+                var ready = false
+                for _ in 0..<48 {
+                    if !process.isRunning { break }
+                    if Self.whisperServerResponds(serverURL: serverURL) {
+                        ready = true
+                        break
+                    }
+                    Thread.sleep(forTimeInterval: 0.125)
+                }
                 DispatchQueue.main.async {
-                    ready
-                        ? completion(.success(()))
-                        : self.startWarmWhisperServer(
+                    if ready {
+                        completion(.success(()))
+                    } else if process.isRunning {
+                        completion(.failure(DictationEngineError.localWhisperFailed("Local Whisper server did not become ready.")))
+                    } else {
+                        self.startWarmWhisperServer(
                             serverURL: serverURL,
                             modelURL: modelURL,
                             languageCode: languageCode,
                             completion: completion
                         )
+                    }
                 }
             }
             return
@@ -881,7 +887,7 @@ final class DictationEngine {
     }
 
     static func localWhisperExecutableURL() -> URL? {
-        whisperServerExecutableURL() ?? whisperCppExecutableURL() ?? pythonWhisperExecutableURL()
+        whisperServerExecutableURL() ?? whisperCppExecutableURL()
     }
 
     static func localWhisperStatus(languageIdentifier: String = Locale.current.identifier) -> (detail: String, ready: Bool) {
@@ -890,8 +896,6 @@ final class DictationEngine {
             return ("Warm whisper.cpp server will use \(modelURL.lastPathComponent).", true)
         case .whisperCppCli(_, let modelURL):
             return ("whisper.cpp CLI is ready with \(modelURL.lastPathComponent).", true)
-        case .pythonWhisper:
-            return ("Local Whisper is ready through the Python CLI fallback.", true)
         case nil:
             return ("Install whisper.cpp with a local model, or choose Apple on-device.", false)
         }
@@ -900,7 +904,6 @@ final class DictationEngine {
     private enum LocalWhisperBackend {
         case whisperCppServer(serverURL: URL, modelURL: URL)
         case whisperCppCli(executableURL: URL, modelURL: URL)
-        case pythonWhisper(executableURL: URL)
     }
 
     private static func localWhisperBackend(languageIdentifier: String) -> LocalWhisperBackend? {
@@ -913,9 +916,6 @@ final class DictationEngine {
             if let executableURL = whisperCppExecutableURL() {
                 return .whisperCppCli(executableURL: executableURL, modelURL: modelURL)
             }
-        }
-        if let executableURL = pythonWhisperExecutableURL() {
-            return .pythonWhisper(executableURL: executableURL)
         }
         return nil
     }
@@ -945,14 +945,17 @@ final class DictationEngine {
     }
 
     private static func whisperCppModelURL(languageIdentifier: String) -> URL? {
+        let bundledDirectory = Bundle.main.resourceURL?
+            .appendingPathComponent("WhisperModels", isDirectory: true)
         let cacheDirectory = URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent(".cache/whisper.cpp", isDirectory: true)
         let languageCode = Locale(identifier: languageIdentifier).language.languageCode?.identifier
-        let candidates = languageCode == "en"
+        let names = languageCode == "en"
             ? ["ggml-base.en.bin", "ggml-tiny.en.bin", "ggml-base.bin", "ggml-tiny.bin"]
             : ["ggml-base.bin", "ggml-tiny.bin"]
-        return candidates
-            .map { cacheDirectory.appendingPathComponent($0) }
+        let directories = [bundledDirectory, cacheDirectory].compactMap { $0 }
+        return directories
+            .flatMap { directory in names.map { directory.appendingPathComponent($0) } }
             .first { FileManager.default.fileExists(atPath: $0.path) }
     }
 

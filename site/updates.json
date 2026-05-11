@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "build": "10",
+  "build": "12",
   "minimum_macos": "13.0",
   "download_url": "https://idonttype.com/downloads/IDontType-0.1.0.dmg",
-  "release_notes": "Adds an instant local draft path for Local Whisper: live on-device partials can paste quickly while Whisper remains the final pass when it returns immediately."
+  "release_notes": "Bundles the Local Whisper model and disables Python Whisper fallback so first use does not freeze on a model download."
 }

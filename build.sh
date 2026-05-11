@@ -15,6 +15,9 @@ SIGN_MODE="${SIGN_MODE:-auto}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 DMG_STAGE="$BUILD_DIR/dmg-stage"
+MODEL_DIR="$BUILD_DIR/whisper-models"
+MODEL_NAME="ggml-base.en.bin"
+MODEL_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$MODEL_NAME"
 
 find_identity() {
   local pattern="$1"
@@ -109,6 +112,13 @@ swiftc \
 cp "$ROOT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 
 swift "$ROOT_DIR/Tools/GenerateAppIcon.swift" "$RESOURCES_DIR/AppIcon.icns"
+
+mkdir -p "$MODEL_DIR" "$RESOURCES_DIR/WhisperModels"
+if [[ ! -f "$MODEL_DIR/$MODEL_NAME" ]]; then
+  echo "Downloading Local Whisper model: $MODEL_NAME"
+  curl -L --fail --retry 3 "$MODEL_URL" -o "$MODEL_DIR/$MODEL_NAME"
+fi
+cp "$MODEL_DIR/$MODEL_NAME" "$RESOURCES_DIR/WhisperModels/$MODEL_NAME"
 
 resolve_signing
 
