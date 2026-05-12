@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="sketch">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,6 +20,11 @@
       --muted: oklch(47% 0.022 78);
       --green: oklch(43% 0.13 154);
       --coral: oklch(70% 0.145 30);
+      --grid: oklch(81% 0.025 98 / 0.32);
+      --wash-1: oklch(92% 0.095 88 / 0.58);
+      --wash-2: oklch(86% 0.075 238 / 0.45);
+      --wash-3: oklch(93% 0.055 154 / 0.52);
+      --pulse: oklch(43% 0.13 154 / 0.18);
       --radius: 8px;
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -31,6 +36,60 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    :root[data-palette="sticker"] {
+      --paper: oklch(96% 0.045 96);
+      --card: oklch(99% 0.018 88);
+      --mint: oklch(88% 0.14 151);
+      --peach: oklch(87% 0.125 31);
+      --banana: oklch(91% 0.17 91);
+      --blue: oklch(82% 0.13 235);
+      --ink: oklch(18% 0.035 76);
+      --muted: oklch(43% 0.03 76);
+      --green: oklch(42% 0.18 152);
+      --coral: oklch(67% 0.2 28);
+      --grid: oklch(72% 0.06 92 / 0.24);
+      --wash-1: oklch(91% 0.18 91 / 0.72);
+      --wash-2: oklch(82% 0.13 235 / 0.5);
+      --wash-3: oklch(88% 0.14 151 / 0.6);
+      --pulse: oklch(42% 0.18 152 / 0.22);
+    }
+
+    :root[data-palette="candy"] {
+      --paper: oklch(97% 0.035 350);
+      --card: oklch(99% 0.014 28);
+      --mint: oklch(91% 0.075 178);
+      --peach: oklch(90% 0.105 16);
+      --banana: oklch(92% 0.105 77);
+      --blue: oklch(88% 0.095 278);
+      --ink: oklch(19% 0.03 322);
+      --muted: oklch(46% 0.035 322);
+      --green: oklch(45% 0.14 171);
+      --coral: oklch(68% 0.18 17);
+      --grid: oklch(80% 0.035 350 / 0.3);
+      --wash-1: oklch(90% 0.105 16 / 0.58);
+      --wash-2: oklch(88% 0.095 278 / 0.5);
+      --wash-3: oklch(91% 0.075 178 / 0.58);
+      --pulse: oklch(45% 0.14 171 / 0.2);
+    }
+
+    :root[data-palette="arcade"] {
+      --paper: oklch(95% 0.05 138);
+      --card: oklch(98% 0.018 124);
+      --mint: oklch(88% 0.16 145);
+      --peach: oklch(87% 0.14 43);
+      --banana: oklch(91% 0.16 104);
+      --blue: oklch(84% 0.13 203);
+      --ink: oklch(16% 0.045 145);
+      --muted: oklch(39% 0.045 145);
+      --green: oklch(39% 0.18 145);
+      --coral: oklch(63% 0.19 42);
+      --grid: oklch(70% 0.07 145 / 0.22);
+      --wash-1: oklch(91% 0.16 104 / 0.62);
+      --wash-2: oklch(84% 0.13 203 / 0.46);
+      --wash-3: oklch(88% 0.16 145 / 0.64);
+      --pulse: oklch(39% 0.18 145 / 0.24);
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -40,8 +99,8 @@
       overflow-x: hidden;
       background-color: var(--paper);
       background-image:
-        linear-gradient(oklch(81% 0.025 98 / 0.32) 1px, transparent 1px),
-        linear-gradient(90deg, oklch(81% 0.025 98 / 0.32) 1px, transparent 1px);
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
       background-size: 32px 32px;
     }
 
@@ -50,9 +109,9 @@
       margin: 0;
       overflow-x: hidden;
       background:
-        radial-gradient(circle at 12% 10%, oklch(92% 0.095 88 / 0.58), transparent 24rem),
-        radial-gradient(circle at 85% 8%, oklch(86% 0.075 238 / 0.45), transparent 22rem),
-        radial-gradient(circle at 75% 72%, oklch(93% 0.055 154 / 0.52), transparent 24rem);
+        radial-gradient(circle at 12% 10%, var(--wash-1), transparent 24rem),
+        radial-gradient(circle at 85% 8%, var(--wash-2), transparent 22rem),
+        radial-gradient(circle at 75% 72%, var(--wash-3), transparent 24rem);
     }
 
     a {
@@ -93,6 +152,59 @@
       background: var(--card);
       box-shadow: 6px 6px 0 var(--ink);
       animation: navDrop 620ms var(--ease) 70ms both;
+    }
+
+    .palette-lab {
+      position: sticky;
+      top: 94px;
+      z-index: 19;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: fit-content;
+      max-width: calc(100% - 34px);
+      margin-top: 12px;
+      padding: 7px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      animation: fadeUp 520ms var(--ease) 180ms both;
+    }
+
+    .palette-lab span {
+      padding: 0 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .palette-lab button {
+      min-height: 32px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 0 10px;
+      background: var(--mint);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 950;
+      cursor: pointer;
+      transition:
+        transform 170ms var(--ease),
+        background 170ms var(--ease),
+        box-shadow 170ms var(--ease);
+    }
+
+    .palette-lab button:hover,
+    .palette-lab button[aria-pressed="true"] {
+      transform: translateY(-1px);
+      background: var(--banana);
+      box-shadow: 2px 2px 0 var(--ink);
     }
 
     .brand {
@@ -951,7 +1063,7 @@
       }
 
       50% {
-        box-shadow: 4px 4px 0 var(--green), 0 0 0 10px oklch(43% 0.13 154 / 0.18);
+        box-shadow: 4px 4px 0 var(--green), 0 0 0 10px var(--pulse);
       }
     }
 
@@ -1063,6 +1175,13 @@
         flex-wrap: wrap;
       }
 
+      .palette-lab {
+        position: static;
+        width: min(100% - 22px, 420px);
+        margin-top: 14px;
+        border-radius: var(--radius);
+      }
+
       .hero {
         padding-top: 38px;
       }
@@ -1113,6 +1232,14 @@
     </div>
     <a class="button primary plausible-event-name=Cartoon+Nav+Stop+Typing" href="#download">Stop typing</a>
   </nav>
+
+  <div class="palette-lab shell" aria-label="Palette test controls">
+    <span>Palette lab</span>
+    <button type="button" data-palette-choice="sketch" aria-pressed="true">Sketch</button>
+    <button type="button" data-palette-choice="sticker" aria-pressed="false">Sticker</button>
+    <button type="button" data-palette-choice="candy" aria-pressed="false">Candy</button>
+    <button type="button" data-palette-choice="arcade" aria-pressed="false">Arcade</button>
+  </div>
 
   <header class="hero shell" id="top">
     <div class="hero-copy">
@@ -1355,6 +1482,28 @@
 
   <script>
     (() => {
+      const paletteChoices = [...document.querySelectorAll("[data-palette-choice]")];
+      const allowedPalettes = new Set(paletteChoices.map((button) => button.dataset.paletteChoice));
+
+      const setPalette = (palette, shouldStore = true) => {
+        const nextPalette = allowedPalettes.has(palette) ? palette : "sketch";
+        document.documentElement.dataset.palette = nextPalette;
+        paletteChoices.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.paletteChoice === nextPalette));
+        });
+
+        if (shouldStore) {
+          localStorage.setItem("idonttype-cartoon-palette", nextPalette);
+        }
+      };
+
+      const queryPalette = new URLSearchParams(window.location.search).get("palette");
+      setPalette(queryPalette || localStorage.getItem("idonttype-cartoon-palette") || "sketch", false);
+
+      paletteChoices.forEach((button) => {
+        button.addEventListener("click", () => setPalette(button.dataset.paletteChoice));
+      });
+
       const playAutoplayVideos = () => {
         document.querySelectorAll("video[autoplay]").forEach((video) => {
           video.muted = true;
