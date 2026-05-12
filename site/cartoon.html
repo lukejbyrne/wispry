@@ -1,0 +1,1756 @@
+<!doctype html>
+<html lang="en" data-palette="sketch">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>i don't type | Cartoon landing test</title>
+  <meta name="description" content="A playful test landing page for i don't type, private speech to text for Mac.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script defer data-domain="idonttype.com" src="https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(98% 0.022 96);
+      --card: oklch(99% 0.012 88);
+      --mint: oklch(94% 0.045 154);
+      --peach: oklch(93% 0.05 36);
+      --banana: oklch(93% 0.078 88);
+      --blue: oklch(89% 0.058 236);
+      --ink: oklch(20% 0.025 78);
+      --muted: oklch(47% 0.022 78);
+      --green: oklch(58% 0.085 154);
+      --coral: oklch(68% 0.13 30);
+      --accent: oklch(58% 0.145 30);
+      --grid: oklch(82% 0.022 98 / 0.28);
+      --wash-1: oklch(93% 0.078 88 / 0.52);
+      --wash-2: oklch(89% 0.058 236 / 0.38);
+      --wash-3: oklch(94% 0.045 154 / 0.48);
+      --pulse: oklch(89% 0.058 236 / 0.42);
+      --radius: 8px;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root[data-palette="sticker"] {
+      --paper: oklch(96% 0.045 96);
+      --card: oklch(99% 0.018 88);
+      --mint: oklch(88% 0.14 151);
+      --peach: oklch(87% 0.125 31);
+      --banana: oklch(91% 0.17 91);
+      --blue: oklch(82% 0.13 235);
+      --ink: oklch(18% 0.035 76);
+      --muted: oklch(43% 0.03 76);
+      --green: oklch(42% 0.18 152);
+      --coral: oklch(67% 0.2 28);
+      --accent: oklch(58% 0.21 28);
+      --grid: oklch(72% 0.06 92 / 0.24);
+      --wash-1: oklch(91% 0.18 91 / 0.72);
+      --wash-2: oklch(82% 0.13 235 / 0.5);
+      --wash-3: oklch(88% 0.14 151 / 0.6);
+      --pulse: oklch(42% 0.18 152 / 0.22);
+    }
+
+    :root[data-palette="candy"] {
+      --paper: oklch(97% 0.035 350);
+      --card: oklch(99% 0.014 28);
+      --mint: oklch(91% 0.075 178);
+      --peach: oklch(90% 0.105 16);
+      --banana: oklch(92% 0.105 77);
+      --blue: oklch(88% 0.095 278);
+      --ink: oklch(19% 0.03 322);
+      --muted: oklch(46% 0.035 322);
+      --green: oklch(45% 0.14 171);
+      --coral: oklch(68% 0.18 17);
+      --accent: oklch(60% 0.19 17);
+      --grid: oklch(80% 0.035 350 / 0.3);
+      --wash-1: oklch(90% 0.105 16 / 0.58);
+      --wash-2: oklch(88% 0.095 278 / 0.5);
+      --wash-3: oklch(91% 0.075 178 / 0.58);
+      --pulse: oklch(45% 0.14 171 / 0.2);
+    }
+
+    :root[data-palette="arcade"] {
+      --paper: oklch(95% 0.05 138);
+      --card: oklch(98% 0.018 124);
+      --mint: oklch(88% 0.16 145);
+      --peach: oklch(87% 0.14 43);
+      --banana: oklch(91% 0.16 104);
+      --blue: oklch(84% 0.13 203);
+      --ink: oklch(16% 0.045 145);
+      --muted: oklch(39% 0.045 145);
+      --green: oklch(39% 0.18 145);
+      --coral: oklch(63% 0.19 42);
+      --accent: oklch(55% 0.17 42);
+      --grid: oklch(70% 0.07 145 / 0.22);
+      --wash-1: oklch(91% 0.16 104 / 0.62);
+      --wash-2: oklch(84% 0.13 203 / 0.46);
+      --wash-3: oklch(88% 0.16 145 / 0.64);
+      --pulse: oklch(39% 0.18 145 / 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 10%, var(--wash-1), transparent 24rem),
+        radial-gradient(circle at 85% 8%, var(--wash-2), transparent 22rem),
+        radial-gradient(circle at 75% 72%, var(--wash-3), transparent 24rem);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid oklch(77% 0.13 154 / 0.7);
+      outline-offset: 3px;
+    }
+
+    img,
+    video {
+      max-width: 100%;
+      display: block;
+    }
+
+    .shell {
+      width: min(1140px, calc(100% - 34px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      margin-top: 14px;
+      padding: 10px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 6px 6px 0 var(--ink);
+      animation: navDrop 620ms var(--ease) 70ms both;
+    }
+
+    .palette-lab {
+      position: sticky;
+      top: 94px;
+      z-index: 19;
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: fit-content;
+      max-width: calc(100% - 34px);
+      margin-top: 12px;
+      padding: 7px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      animation: fadeUp 520ms var(--ease) 180ms both;
+    }
+
+    :root[data-lab="true"] .palette-lab {
+      display: flex;
+    }
+
+    .palette-lab span {
+      padding: 0 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .palette-lab button {
+      min-height: 32px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 0 10px;
+      background: var(--mint);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 950;
+      cursor: pointer;
+      transition:
+        transform 170ms var(--ease),
+        background 170ms var(--ease),
+        box-shadow 170ms var(--ease);
+    }
+
+    .palette-lab button:hover,
+    .palette-lab button[aria-pressed="true"] {
+      transform: translateY(-1px);
+      background: var(--banana);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 950;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 3px 3px 0 var(--blue);
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .nav-links a,
+    .tag {
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: var(--mint);
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .button {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 18px;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      color: var(--ink);
+      font-weight: 950;
+      transition:
+        transform 170ms var(--ease),
+        box-shadow 170ms var(--ease);
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
+    .button.primary {
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .button.skool {
+      background: var(--banana);
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+      gap: clamp(24px, 5vw, 58px);
+      align-items: center;
+      padding: clamp(52px, 8vw, 96px) 0 clamp(68px, 8vw, 104px);
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+    }
+
+    .kicker {
+      width: fit-content;
+      margin: 0 0 18px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: var(--blue);
+      box-shadow: 3px 3px 0 var(--ink);
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy .kicker {
+      animation: fadeUp 560ms var(--ease) 140ms both;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 8.4ch;
+      margin-bottom: 18px;
+      font-size: clamp(4.5rem, 11vw, 9rem);
+      line-height: 0.84;
+      letter-spacing: -0.08em;
+    }
+
+    h1 span {
+      display: block;
+      width: fit-content;
+      padding-right: 0.06em;
+      opacity: 0;
+      transform: translateX(var(--headline-x, 0)) translateY(28px) rotate(var(--headline-rotate, 0deg)) scale(0.96);
+      animation: wordPop 660ms var(--ease) both;
+    }
+
+    h1 span:nth-child(2) {
+      --headline-x: 0.16em;
+      --headline-rotate: -1.5deg;
+      animation-delay: 210ms;
+    }
+
+    h1 span:nth-child(3) {
+      --headline-x: 0.32em;
+      animation-delay: 320ms;
+      color: var(--accent);
+    }
+
+    h1 span:nth-child(1) {
+      animation-delay: 110ms;
+    }
+
+    .hero-copy p {
+      max-width: 35rem;
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: clamp(1.08rem, 2vw, 1.32rem);
+      line-height: 1.42;
+      font-weight: 760;
+    }
+
+    .hero-copy > p:not(.kicker) {
+      animation: fadeUp 620ms var(--ease) 430ms both;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      animation: fadeUp 620ms var(--ease) 520ms both;
+    }
+
+    .hero-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+      animation: fadeUp 620ms var(--ease) 600ms both;
+    }
+
+    .demo-card {
+      position: relative;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--banana);
+      box-shadow: 10px 10px 0 var(--ink);
+      opacity: 0;
+      transform: translateY(22px) rotate(1deg) scale(0.98);
+      animation: demoPop 760ms var(--ease) 350ms both;
+    }
+
+    .demo-card::before,
+    .demo-card::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+    }
+
+    .demo-card::before {
+      width: 96px;
+      height: 96px;
+      top: -32px;
+      right: -28px;
+      background: var(--peach);
+      box-shadow: 5px 5px 0 var(--ink);
+      animation: blobFloat 5.2s ease-in-out infinite 1s;
+    }
+
+    .demo-card::after {
+      width: 62px;
+      height: 62px;
+      bottom: -24px;
+      left: -22px;
+      background: var(--mint);
+      box-shadow: 4px 4px 0 var(--ink);
+      animation: blobFloat 4.8s ease-in-out infinite reverse;
+    }
+
+    .demo-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 54px;
+      padding: 10px 14px;
+      border-bottom: 3px solid var(--ink);
+      background: var(--blue);
+      font-weight: 950;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 7px;
+    }
+
+    .traffic span {
+      width: 13px;
+      height: 13px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+    }
+
+    .demo-body {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .video-frame {
+      overflow: hidden;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--ink);
+    }
+
+    .video-frame video {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+    }
+
+    .speech-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .orb {
+      width: 62px;
+      height: 62px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 4px 4px 0 var(--blue);
+      animation: micPulse 1.9s ease-in-out infinite;
+    }
+
+    .orb-bars {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 32px;
+    }
+
+    .orb-bars span {
+      width: 5px;
+      border-radius: 999px;
+      background: var(--card);
+      transform-origin: center bottom;
+      animation: soundBar 780ms ease-in-out infinite;
+    }
+
+    .orb-bars span:nth-child(1) {
+      height: 18px;
+    }
+
+    .orb-bars span:nth-child(2) {
+      height: 30px;
+      animation-delay: 110ms;
+    }
+
+    .orb-bars span:nth-child(3) {
+      height: 22px;
+      animation-delay: 220ms;
+    }
+
+    .typed-note {
+      position: relative;
+      min-height: 88px;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      padding: 14px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      color: var(--ink);
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .typed-note::after {
+      content: "";
+      position: absolute;
+      right: 16px;
+      bottom: 14px;
+      width: 9px;
+      height: 1.25em;
+      background: var(--accent);
+      animation: blink 1s steps(2, start) infinite;
+    }
+
+    .cursor {
+      position: absolute;
+      right: 42px;
+      bottom: 100px;
+      width: 34px;
+      height: 34px;
+      transform: rotate(-15deg);
+      filter: drop-shadow(3px 3px 0 var(--ink));
+      animation: cursorClick 2.8s var(--ease) 1.1s infinite;
+    }
+
+    .cursor svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--card);
+      stroke: var(--ink);
+      stroke-width: 8;
+      stroke-linejoin: round;
+    }
+
+    .language-strip {
+      position: relative;
+      overflow: clip;
+      overflow-clip-margin: 0;
+      contain: layout paint;
+      height: 80px;
+      margin-bottom: clamp(22px, 4vw, 42px);
+      border-block: 3px solid var(--ink);
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .language-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: max-content;
+      display: flex;
+      gap: 14px;
+      padding: 16px 0;
+      animation: marquee 30s linear infinite;
+    }
+
+    .language-pill {
+      width: 50px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--card);
+      border-radius: 999px;
+      background: var(--mint);
+      color: var(--card);
+      font-size: 1.35rem;
+      font-weight: 950;
+      line-height: 1;
+      white-space: nowrap;
+      box-shadow: 2px 2px 0 oklch(99% 0.012 88 / 0.45);
+    }
+
+    .stats {
+      padding: clamp(42px, 5vw, 70px) 0 clamp(86px, 9vw, 128px);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 10px;
+      min-height: 150px;
+      align-content: center;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: var(--card);
+      box-shadow: 6px 6px 0 var(--ink);
+      text-align: center;
+    }
+
+    .stat:nth-child(2) {
+      --rest-rotate: -1deg;
+      background: var(--mint);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .stat:nth-child(3) {
+      --rest-rotate: 1deg;
+      background: var(--blue);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .stat:nth-child(4) {
+      background: var(--peach);
+    }
+
+    .stat strong {
+      font-size: clamp(2.3rem, 4vw, 4.1rem);
+      line-height: 0.9;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .section {
+      padding: clamp(86px, 9vw, 128px) 0;
+    }
+
+    .story-section {
+      display: grid;
+      grid-template-columns: minmax(0, 0.78fr) minmax(420px, 1.22fr);
+      gap: clamp(24px, 5vw, 62px);
+      align-items: center;
+      padding: clamp(86px, 9vw, 128px) 0;
+    }
+
+    .story-copy {
+      max-width: 470px;
+    }
+
+    .story-copy p:not(.kicker) {
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.45;
+      font-weight: 760;
+    }
+
+    .story-board {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .story-panel {
+      position: relative;
+      min-height: 240px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: var(--card);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    .story-panel.messy {
+      --rest-rotate: -1deg;
+      background: var(--peach);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .story-panel.clean {
+      --rest-rotate: 1deg;
+      grid-row: span 2;
+      background: var(--mint);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .story-panel.speed {
+      background: var(--banana);
+    }
+
+    .panel-tag {
+      width: fit-content;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: var(--card);
+      box-shadow: 2px 2px 0 var(--ink);
+      color: var(--ink);
+      font-size: 0.76rem;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .story-panel h3 {
+      margin-bottom: 0;
+      font-size: clamp(1.7rem, 3vw, 2.7rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .ramble-bubble,
+    .clean-card {
+      border: 3px solid var(--ink);
+      border-radius: 10px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .ramble-bubble {
+      position: relative;
+      padding: 14px;
+      color: var(--muted);
+      font-weight: 850;
+      line-height: 1.28;
+    }
+
+    .ramble-bubble::after {
+      content: "";
+      position: absolute;
+      right: 26px;
+      bottom: -15px;
+      width: 24px;
+      height: 24px;
+      border-right: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      background: var(--card);
+      transform: rotate(45deg);
+    }
+
+    .clean-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .clean-card strong {
+      font-size: 1.1rem;
+      line-height: 1.1;
+    }
+
+    .clean-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .clean-lines span {
+      height: 12px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .clean-lines span:nth-child(2) {
+      width: 82%;
+      background: var(--banana);
+    }
+
+    .clean-lines span:nth-child(3) {
+      width: 56%;
+      background: var(--peach);
+    }
+
+    .speed-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .speed-stack span {
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: var(--card);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 0.9rem;
+      font-weight: 950;
+    }
+
+    .section-title {
+      max-width: 720px;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: clamp(2.4rem, 6vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      word-spacing: 0.02em;
+    }
+
+    .section-title p {
+      max-width: 42rem;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.45;
+      font-weight: 760;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .step,
+    .price-card,
+    .faq-item,
+    .privacy-card {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    .step {
+      min-height: 270px;
+      padding: 22px;
+    }
+
+    .step:nth-child(1) {
+      --rest-rotate: -1deg;
+      background: var(--banana);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .step:nth-child(2) {
+      background: var(--mint);
+    }
+
+    .step:nth-child(3) {
+      --rest-rotate: 1deg;
+      background: var(--blue);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .step-number {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 22px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-weight: 950;
+    }
+
+    .step h3,
+    .price-card h3 {
+      margin-bottom: 10px;
+      font-size: 1.55rem;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .step p,
+    .price-card p,
+    .faq-item p,
+    .privacy-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 740;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(340px, 1.15fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .privacy-card {
+      padding: 24px;
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .privacy-card p {
+      color: oklch(88% 0.018 88);
+    }
+
+    .privacy-card .kicker {
+      color: var(--ink);
+    }
+
+    .privacy-list {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .privacy-list li {
+      border: 2px solid var(--card);
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: var(--card);
+      background: oklch(35% 0.035 78);
+      font-weight: 900;
+    }
+
+    .mini-window {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--peach);
+      box-shadow: 8px 8px 0 var(--ink);
+      padding: 18px;
+    }
+
+    .mini-window-inner {
+      min-height: 100%;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--card);
+      padding: 18px;
+    }
+
+    .local-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      font-weight: 950;
+    }
+
+    .toggle {
+      width: 66px;
+      height: 34px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--mint);
+      padding: 3px;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .toggle span {
+      display: block;
+      width: 22px;
+      height: 22px;
+      margin-left: auto;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+    }
+
+    .sample-lines {
+      display: grid;
+      gap: 9px;
+      margin-top: 22px;
+    }
+
+    .sample-lines span {
+      height: 14px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .sample-lines span:nth-child(2) {
+      width: 74%;
+      background: var(--mint);
+    }
+
+    .sample-lines span:nth-child(3) {
+      width: 48%;
+      background: var(--banana);
+    }
+
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .price-card {
+      display: grid;
+      gap: 16px;
+      padding: 24px;
+      background: var(--mint);
+    }
+
+    .price-card.featured {
+      --rest-rotate: 1deg;
+      background: var(--banana);
+      transform: rotate(var(--rest-rotate));
+    }
+
+    .price {
+      font-size: clamp(3.2rem, 8vw, 6.4rem);
+      line-height: 0.85;
+      font-weight: 950;
+      letter-spacing: -0.07em;
+    }
+
+    .price small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      letter-spacing: 0;
+    }
+
+    .price-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .price-list li {
+      position: relative;
+      padding-left: 28px;
+      color: var(--ink);
+      font-weight: 850;
+    }
+
+    .price-list li::before {
+      content: "";
+      position: absolute;
+      top: 0.26em;
+      left: 0;
+      width: 15px;
+      height: 15px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      background: var(--accent);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .launch-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      margin-top: 22px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: var(--blue);
+      box-shadow: 6px 6px 0 var(--ink);
+      font-weight: 850;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--card);
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .faq-item summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      font-size: 1.08rem;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary::after {
+      content: "+";
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--banana);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .faq-item[open] summary::after {
+      content: "-";
+      background: var(--mint);
+    }
+
+    .faq-item p {
+      padding: 0 18px 18px;
+    }
+
+    .footer {
+      padding: 34px 0;
+      border-top: 3px solid var(--ink);
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      font-weight: 900;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: oklch(88% 0.018 88);
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes navDrop {
+      from {
+        opacity: 0;
+        transform: translateY(-18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes wordPop {
+      from {
+        opacity: 0;
+        transform: translateX(var(--headline-x, 0)) translateY(28px) rotate(calc(var(--headline-rotate, 0deg) - 2deg)) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(var(--headline-x, 0)) translateY(0) rotate(var(--headline-rotate, 0deg)) scale(1);
+      }
+    }
+
+    @keyframes demoPop {
+      from {
+        opacity: 0;
+        transform: translateY(22px) rotate(-0.5deg) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(1deg) scale(1);
+      }
+    }
+
+    @keyframes demoPopMobile {
+      from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes blobFloat {
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      50% {
+        transform: translateY(-12px) rotate(5deg);
+      }
+    }
+
+    @keyframes micPulse {
+      0%,
+      100% {
+        box-shadow: 4px 4px 0 var(--blue);
+      }
+
+      50% {
+        box-shadow: 4px 4px 0 var(--blue), 0 0 0 10px var(--pulse);
+      }
+    }
+
+    @keyframes soundBar {
+      0%,
+      100% {
+        transform: scaleY(0.72);
+      }
+
+      50% {
+        transform: scaleY(1.08);
+      }
+    }
+
+    @keyframes cursorClick {
+      0%,
+      100% {
+        transform: translate(0, 0) rotate(-15deg) scale(1);
+      }
+
+      42% {
+        transform: translate(-18px, -12px) rotate(-15deg) scale(1);
+      }
+
+      52% {
+        transform: translate(-18px, -12px) rotate(-15deg) scale(0.86);
+      }
+
+      62% {
+        transform: translate(-18px, -12px) rotate(-15deg) scale(1);
+      }
+    }
+
+    @keyframes revealUp {
+      from {
+        opacity: 0;
+        transform: translateY(26px) rotate(calc(var(--rest-rotate, 0deg) - 1deg));
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(var(--rest-rotate, 0deg));
+      }
+    }
+
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    @supports (animation-timeline: view()) {
+      .stat,
+      .step,
+      .story-panel,
+      .privacy-card,
+      .mini-window,
+      .price-card,
+      .launch-note {
+        opacity: 0;
+        animation: revealUp both;
+        animation-timeline: view();
+        animation-range: entry 8% cover 24%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .hero,
+      .privacy-grid,
+      .pricing,
+      .story-section {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-card {
+        animation-name: demoPopMobile;
+      }
+
+      .stats-grid,
+      .workflow,
+      .story-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 22px, 1140px);
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+      }
+
+      .palette-lab {
+        position: static;
+        width: min(100% - 22px, 420px);
+        margin-top: 14px;
+        border-radius: var(--radius);
+      }
+
+      .hero {
+        padding-top: 38px;
+      }
+
+      h1 {
+        font-size: clamp(4rem, 22vw, 6.4rem);
+      }
+
+      .hero-actions,
+      .launch-note,
+      .footer-inner {
+        display: grid;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .stats-grid,
+      .workflow,
+      .story-board {
+        grid-template-columns: 1fr;
+      }
+
+      .stat,
+      .step,
+      .price-card.featured,
+      .story-panel.messy,
+      .story-panel.clean {
+        --rest-rotate: 0deg;
+        transform: none;
+      }
+
+      .story-panel.clean {
+        grid-row: auto;
+      }
+
+      .cursor {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav shell" aria-label="Primary navigation">
+    <a class="brand" href="#top">
+      <img src="favicon.svg" alt="" width="36" height="36">
+      <span>i don't type</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#download">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="button primary plausible-event-name=Cartoon+Nav+Stop+Typing" href="#download">Stop typing</a>
+  </nav>
+
+  <div class="palette-lab shell" aria-label="Palette test controls">
+    <span>Palette lab</span>
+    <button type="button" data-palette-choice="sketch" aria-pressed="true">Sketch</button>
+    <button type="button" data-palette-choice="sticker" aria-pressed="false">Sticker</button>
+    <button type="button" data-palette-choice="candy" aria-pressed="false">Candy</button>
+    <button type="button" data-palette-choice="arcade" aria-pressed="false">Arcade</button>
+  </div>
+
+  <header class="hero shell" id="top">
+    <div class="hero-copy">
+      <p class="kicker">Private speech to text for Mac</p>
+      <h1 aria-label="Click. Speak. Done.">
+        <span>Click.</span>
+        <span>Speak.</span>
+        <span>Done.</span>
+      </h1>
+      <p>Click any text field, speak naturally, and i don't type pastes the words back. Local-first Mac dictation, no hosted audio.</p>
+      <div class="hero-actions">
+        <a class="button primary plausible-event-name=Cartoon+Hero+Buy" href="/checkout">Stop typing for $19</a>
+        <a class="button skool plausible-event-name=Cartoon+Hero+Skool" href="skool.html">Free with Skool</a>
+      </div>
+      <div class="hero-note">Mac launch build. Notarization next.</div>
+    </div>
+
+    <div class="demo-card" aria-label="Cartoon demo panel">
+      <div class="demo-topbar">
+        <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+        <span>real Mac demo</span>
+      </div>
+      <div class="demo-body">
+        <div class="video-frame">
+          <video autoplay loop muted playsinline preload="auto" poster="demo-poster.jpg" aria-label="i don't type Mac dictation demo">
+            <source src="media/idonttype-demo.mp4" type="video/mp4">
+            <a href="media/idonttype-demo.mp4">Watch the i don't type demo video</a>
+          </video>
+        </div>
+        <div class="speech-row">
+          <div class="orb" aria-hidden="true">
+            <div class="orb-bars"><span></span><span></span><span></span></div>
+          </div>
+          <div class="typed-note">Turn this ramble into a clean email reply.</div>
+        </div>
+      </div>
+      <div class="cursor" aria-hidden="true">
+        <svg viewBox="0 0 100 100" role="img">
+          <path d="M18 10 82 54 55 61 44 88 18 10Z"></path>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <section class="language-strip" aria-label="Supported languages">
+    <div class="language-track">
+      <span class="language-pill" role="img" aria-label="English" title="English">🇬🇧</span>
+      <span class="language-pill" role="img" aria-label="French" title="French">🇫🇷</span>
+      <span class="language-pill" role="img" aria-label="German" title="German">🇩🇪</span>
+      <span class="language-pill" role="img" aria-label="Spanish" title="Spanish">🇪🇸</span>
+      <span class="language-pill" role="img" aria-label="Italian" title="Italian">🇮🇹</span>
+      <span class="language-pill" role="img" aria-label="Portuguese" title="Portuguese">🇵🇹</span>
+      <span class="language-pill" role="img" aria-label="Dutch" title="Dutch">🇳🇱</span>
+      <span class="language-pill" role="img" aria-label="Swedish" title="Swedish">🇸🇪</span>
+      <span class="language-pill" role="img" aria-label="Japanese" title="Japanese">🇯🇵</span>
+      <span class="language-pill" role="img" aria-label="Korean" title="Korean">🇰🇷</span>
+      <span class="language-pill" role="img" aria-label="Chinese" title="Chinese">🇨🇳</span>
+      <span class="language-pill" role="img" aria-label="Polish" title="Polish">🇵🇱</span>
+      <span class="language-pill" role="img" aria-label="Turkish" title="Turkish">🇹🇷</span>
+      <span class="language-pill" role="img" aria-label="Hindi" title="Hindi">🇮🇳</span>
+      <span class="language-pill" role="img" aria-label="Vietnamese" title="Vietnamese">🇻🇳</span>
+      <span class="language-pill" role="img" aria-label="English" title="English">🇬🇧</span>
+      <span class="language-pill" role="img" aria-label="French" title="French">🇫🇷</span>
+      <span class="language-pill" role="img" aria-label="German" title="German">🇩🇪</span>
+      <span class="language-pill" role="img" aria-label="Spanish" title="Spanish">🇪🇸</span>
+      <span class="language-pill" role="img" aria-label="Italian" title="Italian">🇮🇹</span>
+      <span class="language-pill" role="img" aria-label="Portuguese" title="Portuguese">🇵🇹</span>
+      <span class="language-pill" role="img" aria-label="Dutch" title="Dutch">🇳🇱</span>
+      <span class="language-pill" role="img" aria-label="Swedish" title="Swedish">🇸🇪</span>
+      <span class="language-pill" role="img" aria-label="Japanese" title="Japanese">🇯🇵</span>
+      <span class="language-pill" role="img" aria-label="Korean" title="Korean">🇰🇷</span>
+      <span class="language-pill" role="img" aria-label="Chinese" title="Chinese">🇨🇳</span>
+      <span class="language-pill" role="img" aria-label="Polish" title="Polish">🇵🇱</span>
+      <span class="language-pill" role="img" aria-label="Turkish" title="Turkish">🇹🇷</span>
+      <span class="language-pill" role="img" aria-label="Hindi" title="Hindi">🇮🇳</span>
+      <span class="language-pill" role="img" aria-label="Vietnamese" title="Vietnamese">🇻🇳</span>
+    </div>
+  </section>
+
+  <section class="stats shell" aria-label="Product proof">
+    <div class="stats-grid">
+      <article class="stat">
+        <strong>3x</strong>
+        <span>Faster than typing</span>
+      </article>
+      <article class="stat">
+        <strong>0</strong>
+        <span>Hosted transcripts</span>
+      </article>
+      <article class="stat">
+        <strong>100+</strong>
+        <span>Languages supported</span>
+      </article>
+      <article class="stat">
+        <strong>Local</strong>
+        <span>Whisper on your Mac</span>
+      </article>
+    </div>
+  </section>
+
+  <main>
+    <section class="story-section shell" id="story">
+      <div class="story-copy">
+        <p class="kicker">The real pitch</p>
+        <h2>Say it messy. Paste it clean.</h2>
+        <p>Typing forces your thoughts through a tiny keyboard funnel. i don't type lets you say the rough version and keeps the output usable.</p>
+        <div class="hero-actions">
+          <a class="button primary plausible-event-name=Cartoon+Story+Buy" href="/checkout">Stop typing for $19</a>
+          <a class="button skool plausible-event-name=Cartoon+Story+Skool" href="skool.html">Free with Skool</a>
+        </div>
+      </div>
+      <div class="story-board" aria-label="Messy speech to clean text story">
+        <article class="story-panel messy">
+          <span class="panel-tag">You speak</span>
+          <h3>Half thoughts, edits, rambles.</h3>
+          <div class="ramble-bubble">Actually wait, say that less blunt. Also add the pricing thing. No, make it shorter...</div>
+        </article>
+        <article class="story-panel clean">
+          <span class="panel-tag">It lands</span>
+          <h3>A clean draft where your cursor already was.</h3>
+          <div class="clean-card">
+            <strong>Hey, quick update:</strong>
+            <div class="clean-lines" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </article>
+        <article class="story-panel speed">
+          <span class="panel-tag">Why it wins</span>
+          <h3>Your mouth is not the bottleneck.</h3>
+          <div class="speed-stack" aria-label="Product benefits">
+            <span>faster than typing</span>
+            <span>local history</span>
+            <span>no hosted audio</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell" id="how">
+      <div class="section-title">
+        <p class="kicker">Useful toy energy</p>
+        <h2>Cartoon outside. Useful inside.</h2>
+        <p>Same product, louder wrapper: speak, paste, move on.</p>
+      </div>
+      <div class="workflow">
+        <article class="step">
+          <div class="step-number">01</div>
+            <h3>Click a text field</h3>
+            <p>Email, ChatGPT, Notion, Slack. Put the cursor there.</p>
+        </article>
+        <article class="step">
+          <div class="step-number">02</div>
+            <h3>Press the trigger</h3>
+            <p>Hold to talk, or press once to start and stop.</p>
+        </article>
+        <article class="step">
+          <div class="step-number">03</div>
+            <h3>Text appears</h3>
+            <p>Whisper runs locally. The result pastes and saves locally.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell" id="privacy">
+      <div class="privacy-grid">
+        <article class="privacy-card">
+          <p class="kicker">Privacy first</p>
+          <h2>Local by default.</h2>
+          <p>Speak into your Mac without turning every thought into hosted data.</p>
+          <ul class="privacy-list">
+            <li>No i don't type account required</li>
+            <li>No hosted audio by i don't type</li>
+            <li>Transcript history stays on your Mac</li>
+          </ul>
+        </article>
+        <div class="mini-window" aria-label="Local settings illustration">
+          <div class="mini-window-inner">
+            <div class="local-row">
+              <span>Storage</span>
+              <strong>Local</strong>
+            </div>
+            <div class="local-row">
+              <span>Model</span>
+              <strong>Whisper</strong>
+            </div>
+            <div class="local-row">
+              <span>Cleanup</span>
+              <div class="toggle" aria-hidden="true"><span></span></div>
+            </div>
+            <div class="sample-lines" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="download">
+      <div class="section-title">
+        <p class="kicker">Launch pricing</p>
+        <h2>Free with Skool. $19 lifetime.</h2>
+        <p>Members claim it free. Non-members can buy once.</p>
+      </div>
+      <div class="pricing">
+        <article class="price-card">
+          <h3>Skool member perk</h3>
+          <div class="price">Free<small>included with Skool membership</small></div>
+          <p>Join Build With Luke and claim i don't type through the member flow.</p>
+          <ul class="price-list">
+            <li>Private Mac dictation</li>
+            <li>Included for Skool members</li>
+            <li>Courses, community, and roadmap feedback</li>
+          </ul>
+          <a class="button skool plausible-event-name=Cartoon+Skool+Access" href="skool.html">Skool member access</a>
+        </article>
+        <article class="price-card featured">
+          <h3>Founding lifetime</h3>
+          <div class="price">$19<small>one-time launch offer</small></div>
+          <p>For people who just want the Mac app.</p>
+          <ul class="price-list">
+            <li>Lifetime access for this founding offer</li>
+            <li>Local Whisper dictation</li>
+            <li>License issued after Stripe checkout</li>
+          </ul>
+          <a class="button primary plausible-event-name=Cartoon+Buy+Lifetime" href="/checkout">Buy lifetime $19</a>
+        </article>
+      </div>
+      <div class="launch-note">
+        <span>Apple notarization is in progress. First open may show a macOS warning.</span>
+        <a class="button plausible-event-name=Cartoon+Download+Release" href="downloads/IDontType-0.1.0.dmg" download>Download current release</a>
+      </div>
+    </section>
+
+    <section class="section shell" id="faq">
+      <div class="section-title">
+        <p class="kicker">FAQ</p>
+        <h2>FAQ.</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Is this private?</summary>
+          <p>i don't type has no account, no i don't type server, and stores no audio. Local settings and history stay on your Mac.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What model does it use?</summary>
+          <p>Local Whisper uses whisper.cpp with the English model by default and the multilingual model for other languages. Apple on-device Speech remains available as a fallback.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does it work offline?</summary>
+          <p>Yes for local dictation. Once the local model is installed, recording and transcription can run without an i don't type cloud service.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How do Skool members get access?</summary>
+          <p>Open the Skool member access page, then use the private link from the pinned member post. Members go through a free Stripe checkout before the license key is issued.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What happens after I buy lifetime?</summary>
+          <p>Stripe handles checkout and receipts. After payment, the success page issues a signed license key that the Mac app can verify locally.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner shell">
+      <span>i don't type</span>
+      <div class="footer-links">
+        <a href="skool.html">Skool access</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:hello@lukejbyrne.com?subject=i don't type%20support">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const paletteChoices = [...document.querySelectorAll("[data-palette-choice]")];
+      const allowedPalettes = new Set(paletteChoices.map((button) => button.dataset.paletteChoice));
+
+      const setPalette = (palette, shouldStore = true) => {
+        const nextPalette = allowedPalettes.has(palette) ? palette : "sketch";
+        document.documentElement.dataset.palette = nextPalette;
+        paletteChoices.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.paletteChoice === nextPalette));
+        });
+
+        if (shouldStore) {
+          localStorage.setItem("idonttype-cartoon-palette", nextPalette);
+        }
+      };
+
+      const query = new URLSearchParams(window.location.search);
+      const queryPalette = query.get("palette");
+      document.documentElement.dataset.lab = query.get("lab") === "1" ? "true" : "false";
+      setPalette(queryPalette || localStorage.getItem("idonttype-cartoon-palette") || "sketch", false);
+
+      paletteChoices.forEach((button) => {
+        button.addEventListener("click", () => setPalette(button.dataset.paletteChoice));
+      });
+
+      const playAutoplayVideos = () => {
+        document.querySelectorAll("video[autoplay]").forEach((video) => {
+          video.muted = true;
+          video.playsInline = true;
+          video.play().catch(() => {});
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", playAutoplayVideos, { once: true });
+      } else {
+        playAutoplayVideos();
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          playAutoplayVideos();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
