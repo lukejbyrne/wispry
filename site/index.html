@@ -20,7 +20,10 @@
       --muted: rgba(242, 241, 236, 0.66);
       --quiet: rgba(242, 241, 236, 0.40);
       --line: rgba(242, 241, 236, 0.18);
-      --accent: oklch(66% 0.08 62);
+      --accent: oklch(72% 0.11 64);
+      --mint: oklch(91% 0.045 150);
+      --peach: oklch(91% 0.052 38);
+      --sky: oklch(90% 0.048 235);
       --red: #b8b5ad;
       --blue: #d6d4cd;
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -120,7 +123,9 @@
       color: var(--paper-text);
       border-bottom: 1px solid var(--line);
       background:
-        radial-gradient(circle at 82% 18%, oklch(66% 0.08 62 / 0.22), transparent 28%),
+        radial-gradient(circle at 78% 18%, oklch(90% 0.048 235 / 0.62), transparent 30%),
+        radial-gradient(circle at 18% 78%, oklch(91% 0.052 38 / 0.50), transparent 28%),
+        radial-gradient(circle at 58% 86%, oklch(91% 0.045 150 / 0.38), transparent 30%),
         var(--paper);
     }
 
@@ -142,17 +147,17 @@
       width: min(1140px, calc(100% - 44px));
       display: grid;
       grid-template-columns: minmax(0, 0.78fr) minmax(420px, 1.22fr);
-      grid-template-areas:
-        "copy demo"
-        "actions actions";
+      grid-template-areas: "copy demo";
       align-items: center;
       gap: clamp(24px, 4vw, 52px);
       margin: 0 auto;
       padding: clamp(18px, 3vw, 30px);
       border: 1px solid rgba(20, 20, 18, 0.14);
       border-radius: 22px;
-      background: rgba(250, 249, 244, 0.66);
-      box-shadow: 0 28px 90px rgba(23, 24, 19, 0.14);
+      background:
+        linear-gradient(135deg, rgba(250, 249, 244, 0.86), rgba(250, 249, 244, 0.62)),
+        rgba(250, 249, 244, 0.72);
+      box-shadow: 0 28px 90px rgba(23, 24, 19, 0.12);
       backdrop-filter: blur(14px);
       opacity: 0;
       transform: translateY(18px) scale(0.985);
@@ -209,7 +214,7 @@
       color: var(--paper-text);
       font-size: clamp(52px, 6vw, 92px);
       line-height: 0.94;
-      letter-spacing: 0;
+      letter-spacing: -0.055em;
     }
 
     .hero-copy {
@@ -217,13 +222,21 @@
       max-width: 560px;
     }
 
+    .hero-copy p {
+      max-width: 450px;
+      margin: 18px 0 0;
+      color: rgba(20, 20, 18, 0.64);
+      font-size: clamp(17px, 1.65vw, 22px);
+      font-weight: 760;
+      line-height: 1.38;
+    }
+
     .hero-actions {
-      grid-area: actions;
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 12px;
-      margin-top: -10px;
+      margin-top: 24px;
     }
 
     .hero-actions .button {
@@ -231,6 +244,7 @@
     }
 
     .hero-demo {
+      position: relative;
       grid-area: demo;
       width: 100%;
       padding: 10px;
@@ -243,6 +257,24 @@
       opacity: 0;
       transform: translateY(14px);
       animation: heroChildIn 680ms cubic-bezier(0.19, 1, 0.22, 1) 250ms forwards;
+    }
+
+    .hero-demo::after {
+      content: "text lands where the cursor is";
+      position: absolute;
+      right: 18px;
+      bottom: -18px;
+      max-width: 210px;
+      padding: 10px 12px;
+      border: 1px solid rgba(20, 20, 18, 0.14);
+      border-radius: 999px;
+      background: var(--mint);
+      color: rgba(20, 20, 18, 0.76);
+      box-shadow: 0 16px 40px rgba(23, 24, 19, 0.12);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
 
     .hero-demo-label {
@@ -274,17 +306,20 @@
     }
 
     .language-strip {
+      position: relative;
       overflow: hidden;
       border-top: 1px solid rgba(23, 24, 19, 0.12);
       border-bottom: 1px solid rgba(23, 24, 19, 0.12);
-      background: var(--paper-2);
+      background:
+        linear-gradient(90deg, rgba(231, 229, 221, 0.72), rgba(250, 249, 244, 0.88), rgba(231, 229, 221, 0.72)),
+        var(--paper-2);
     }
 
     .language-track {
       width: max-content;
       display: flex;
       gap: 12px;
-      padding: 13px 0;
+      padding: 16px 0;
       animation: languageMarquee 34s linear infinite;
     }
 
@@ -295,11 +330,24 @@
       padding: 8px 12px;
       border: 1px solid rgba(23, 24, 19, 0.12);
       border-radius: 999px;
-      background: rgba(250, 249, 244, 0.72);
+      background: rgba(250, 249, 244, 0.76);
       color: rgba(20, 20, 18, 0.72);
       font-size: 13px;
       font-weight: 850;
       white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(23, 24, 19, 0.06);
+    }
+
+    .language-pill:nth-child(4n+1) {
+      background: color-mix(in oklch, var(--mint) 64%, var(--paper));
+    }
+
+    .language-pill:nth-child(4n+2) {
+      background: color-mix(in oklch, var(--sky) 62%, var(--paper));
+    }
+
+    .language-pill:nth-child(4n+3) {
+      background: color-mix(in oklch, var(--peach) 64%, var(--paper));
     }
 
     .proof-strip {
@@ -314,10 +362,11 @@
       gap: 0;
       margin: 0 auto;
       padding: clamp(34px, 5vw, 52px) clamp(18px, 4vw, 48px);
-      border: 1px solid rgba(242, 241, 236, 0.14);
+      border: 1px solid rgba(242, 241, 236, 0.16);
       border-radius: 28px;
       background:
-        radial-gradient(circle at 8% 0%, rgba(179, 148, 85, 0.20), transparent 34%),
+        radial-gradient(circle at 8% 0%, oklch(72% 0.11 64 / 0.24), transparent 34%),
+        radial-gradient(circle at 92% 100%, oklch(90% 0.048 235 / 0.18), transparent 30%),
         linear-gradient(135deg, #10100f, #1b1a18 58%, #11110f);
       box-shadow: 0 32px 90px rgba(23, 24, 19, 0.24);
     }
@@ -408,17 +457,20 @@
       color: var(--paper);
       font-size: 14px;
       font-weight: 900;
-      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      box-shadow: 0 14px 32px rgba(23, 24, 19, 0.12);
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
     }
 
     .button:hover {
       transform: translateY(-2px);
+      box-shadow: 0 18px 42px rgba(23, 24, 19, 0.16);
     }
 
     .button.secondary {
-      background: transparent;
+      background: rgba(250, 249, 244, 0.52);
       color: var(--paper-text);
       border-color: rgba(23, 24, 19, 0.24);
+      box-shadow: none;
     }
 
     .section.light .button {
@@ -1321,6 +1373,10 @@
         display: none;
       }
 
+      .hero {
+        min-height: auto;
+      }
+
       .hero-demo {
         width: 100%;
         margin-top: 4px;
@@ -1328,7 +1384,7 @@
 
       .hero-shell {
         min-height: auto;
-        padding: 96px 0 44px;
+        padding: 96px 0 34px;
       }
 
       .hero-inner {
@@ -1338,8 +1394,7 @@
         grid-template-columns: 1fr;
         grid-template-areas:
           "copy"
-          "demo"
-          "actions";
+          "demo";
         padding: 16px;
       }
 
@@ -1348,8 +1403,14 @@
         line-height: 0.96;
       }
 
-      .hero-actions {
-        grid-column: 1;
+      .hero-actions .button {
+        flex: 1 1 100%;
+      }
+
+      .hero-demo::after {
+        right: 12px;
+        bottom: -14px;
+        max-width: calc(100% - 24px);
       }
 
       .hero-visual {
@@ -1535,16 +1596,18 @@
         <div class="hero-copy">
           <span class="eyebrow">Private speech to text for Mac</span>
           <h1>Click. Speak. Done.</h1>
+          <p>Put your cursor anywhere, speak naturally, and the words land back there. Local Whisper by default, no hosted audio.</p>
+          <div class="hero-actions">
+            <a class="button plausible-event-name=Hero+Buy+Lifetime" href="/checkout">Stop typing for $19</a>
+            <a class="button secondary plausible-event-name=Hero+Skool+Access" href="skool.html">Free with Skool</a>
+          </div>
         </div>
         <div class="hero-demo">
-          <div class="hero-demo-label"><b>Real Mac use</b><span>autoplays muted</span></div>
+          <div class="hero-demo-label"><b>Real Mac demo</b><span>click, speak, paste</span></div>
           <video class="hero-demo-player" autoplay loop muted playsinline preload="auto" poster="demo-poster.jpg" aria-label="i don't type Mac dictation demo">
             <source src="media/idonttype-demo.mp4" type="video/mp4">
             <a href="media/idonttype-demo.mp4">Watch the i don't type demo video</a>
           </video>
-        </div>
-        <div class="hero-actions">
-          <a class="button plausible-event-name=Hero+Get+Access" href="#download">Get launch access</a>
         </div>
       </div>
     </div>
@@ -1668,8 +1731,8 @@
           <span><strong>Launch note:</strong> Apple verification is in progress. The app is built, but the public DMG will stop showing Apple's warning after Developer Program enrollment and notarization are complete.</span>
           <a class="plausible-event-name=Download+Release+Fallback" href="downloads/IDontType-0.1.0.dmg" download>Download current release</a>
         </div>
-	      </div>
-	    </section>
+      </div>
+    </section>
 
     <section class="section dark" id="faq">
       <div class="section-inner">
