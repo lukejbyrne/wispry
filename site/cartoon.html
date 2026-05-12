@@ -171,7 +171,7 @@
       grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
       gap: clamp(24px, 5vw, 58px);
       align-items: center;
-      padding: clamp(52px, 8vw, 96px) 0 42px;
+      padding: clamp(52px, 8vw, 96px) 0 clamp(68px, 8vw, 104px);
     }
 
     .hero-copy {
@@ -445,6 +445,7 @@
 
     .language-strip {
       overflow: hidden;
+      margin-bottom: clamp(22px, 4vw, 42px);
       border-block: 3px solid var(--ink);
       background: var(--ink);
       color: var(--card);
@@ -453,23 +454,29 @@
     .language-track {
       width: max-content;
       display: flex;
-      gap: 12px;
-      padding: 14px 0;
-      animation: marquee 28s linear infinite;
+      gap: 14px;
+      padding: 16px 0;
+      animation: marquee 30s linear infinite;
     }
 
     .language-pill {
+      width: 50px;
+      height: 42px;
+      display: grid;
+      place-items: center;
       border: 2px solid var(--card);
       border-radius: 999px;
-      padding: 7px 12px;
       background: var(--green);
       color: var(--card);
+      font-size: 1.35rem;
       font-weight: 950;
+      line-height: 1;
       white-space: nowrap;
+      box-shadow: 2px 2px 0 oklch(99% 0.012 88 / 0.45);
     }
 
     .stats {
-      padding: 42px 0 72px;
+      padding: clamp(42px, 5vw, 70px) 0 clamp(86px, 9vw, 128px);
     }
 
     .stats-grid {
@@ -520,7 +527,7 @@
     }
 
     .section {
-      padding: 78px 0;
+      padding: clamp(86px, 9vw, 128px) 0;
     }
 
     .section-title {
@@ -1152,36 +1159,36 @@
 
   <section class="language-strip" aria-label="Supported languages">
     <div class="language-track">
-      <span class="language-pill">English</span>
-      <span class="language-pill">French</span>
-      <span class="language-pill">German</span>
-      <span class="language-pill">Spanish</span>
-      <span class="language-pill">Italian</span>
-      <span class="language-pill">Portuguese</span>
-      <span class="language-pill">Dutch</span>
-      <span class="language-pill">Swedish</span>
-      <span class="language-pill">Japanese</span>
-      <span class="language-pill">Korean</span>
-      <span class="language-pill">Chinese</span>
-      <span class="language-pill">Polish</span>
-      <span class="language-pill">Turkish</span>
-      <span class="language-pill">Hindi</span>
-      <span class="language-pill">Vietnamese</span>
-      <span class="language-pill">English</span>
-      <span class="language-pill">French</span>
-      <span class="language-pill">German</span>
-      <span class="language-pill">Spanish</span>
-      <span class="language-pill">Italian</span>
-      <span class="language-pill">Portuguese</span>
-      <span class="language-pill">Dutch</span>
-      <span class="language-pill">Swedish</span>
-      <span class="language-pill">Japanese</span>
-      <span class="language-pill">Korean</span>
-      <span class="language-pill">Chinese</span>
-      <span class="language-pill">Polish</span>
-      <span class="language-pill">Turkish</span>
-      <span class="language-pill">Hindi</span>
-      <span class="language-pill">Vietnamese</span>
+      <span class="language-pill" role="img" aria-label="English" title="English">🇬🇧</span>
+      <span class="language-pill" role="img" aria-label="French" title="French">🇫🇷</span>
+      <span class="language-pill" role="img" aria-label="German" title="German">🇩🇪</span>
+      <span class="language-pill" role="img" aria-label="Spanish" title="Spanish">🇪🇸</span>
+      <span class="language-pill" role="img" aria-label="Italian" title="Italian">🇮🇹</span>
+      <span class="language-pill" role="img" aria-label="Portuguese" title="Portuguese">🇵🇹</span>
+      <span class="language-pill" role="img" aria-label="Dutch" title="Dutch">🇳🇱</span>
+      <span class="language-pill" role="img" aria-label="Swedish" title="Swedish">🇸🇪</span>
+      <span class="language-pill" role="img" aria-label="Japanese" title="Japanese">🇯🇵</span>
+      <span class="language-pill" role="img" aria-label="Korean" title="Korean">🇰🇷</span>
+      <span class="language-pill" role="img" aria-label="Chinese" title="Chinese">🇨🇳</span>
+      <span class="language-pill" role="img" aria-label="Polish" title="Polish">🇵🇱</span>
+      <span class="language-pill" role="img" aria-label="Turkish" title="Turkish">🇹🇷</span>
+      <span class="language-pill" role="img" aria-label="Hindi" title="Hindi">🇮🇳</span>
+      <span class="language-pill" role="img" aria-label="Vietnamese" title="Vietnamese">🇻🇳</span>
+      <span class="language-pill" role="img" aria-label="English" title="English">🇬🇧</span>
+      <span class="language-pill" role="img" aria-label="French" title="French">🇫🇷</span>
+      <span class="language-pill" role="img" aria-label="German" title="German">🇩🇪</span>
+      <span class="language-pill" role="img" aria-label="Spanish" title="Spanish">🇪🇸</span>
+      <span class="language-pill" role="img" aria-label="Italian" title="Italian">🇮🇹</span>
+      <span class="language-pill" role="img" aria-label="Portuguese" title="Portuguese">🇵🇹</span>
+      <span class="language-pill" role="img" aria-label="Dutch" title="Dutch">🇳🇱</span>
+      <span class="language-pill" role="img" aria-label="Swedish" title="Swedish">🇸🇪</span>
+      <span class="language-pill" role="img" aria-label="Japanese" title="Japanese">🇯🇵</span>
+      <span class="language-pill" role="img" aria-label="Korean" title="Korean">🇰🇷</span>
+      <span class="language-pill" role="img" aria-label="Chinese" title="Chinese">🇨🇳</span>
+      <span class="language-pill" role="img" aria-label="Polish" title="Polish">🇵🇱</span>
+      <span class="language-pill" role="img" aria-label="Turkish" title="Turkish">🇹🇷</span>
+      <span class="language-pill" role="img" aria-label="Hindi" title="Hindi">🇮🇳</span>
+      <span class="language-pill" role="img" aria-label="Vietnamese" title="Vietnamese">🇻🇳</span>
     </div>
   </section>
 
