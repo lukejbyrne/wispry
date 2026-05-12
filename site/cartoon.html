@@ -10,21 +10,22 @@
   <style>
     :root {
       color-scheme: light;
-      --paper: oklch(97% 0.025 98);
+      --paper: oklch(98% 0.022 96);
       --card: oklch(99% 0.012 88);
-      --mint: oklch(93% 0.055 154);
-      --peach: oklch(92% 0.055 38);
-      --banana: oklch(92% 0.095 88);
-      --blue: oklch(86% 0.075 238);
+      --mint: oklch(94% 0.045 154);
+      --peach: oklch(93% 0.05 36);
+      --banana: oklch(93% 0.078 88);
+      --blue: oklch(89% 0.058 236);
       --ink: oklch(20% 0.025 78);
       --muted: oklch(47% 0.022 78);
-      --green: oklch(43% 0.13 154);
-      --coral: oklch(70% 0.145 30);
-      --grid: oklch(81% 0.025 98 / 0.32);
-      --wash-1: oklch(92% 0.095 88 / 0.58);
-      --wash-2: oklch(86% 0.075 238 / 0.45);
-      --wash-3: oklch(93% 0.055 154 / 0.52);
-      --pulse: oklch(43% 0.13 154 / 0.18);
+      --green: oklch(58% 0.085 154);
+      --coral: oklch(68% 0.13 30);
+      --accent: oklch(58% 0.145 30);
+      --grid: oklch(82% 0.022 98 / 0.28);
+      --wash-1: oklch(93% 0.078 88 / 0.52);
+      --wash-2: oklch(89% 0.058 236 / 0.38);
+      --wash-3: oklch(94% 0.045 154 / 0.48);
+      --pulse: oklch(89% 0.058 236 / 0.42);
       --radius: 8px;
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -47,6 +48,7 @@
       --muted: oklch(43% 0.03 76);
       --green: oklch(42% 0.18 152);
       --coral: oklch(67% 0.2 28);
+      --accent: oklch(58% 0.21 28);
       --grid: oklch(72% 0.06 92 / 0.24);
       --wash-1: oklch(91% 0.18 91 / 0.72);
       --wash-2: oklch(82% 0.13 235 / 0.5);
@@ -65,6 +67,7 @@
       --muted: oklch(46% 0.035 322);
       --green: oklch(45% 0.14 171);
       --coral: oklch(68% 0.18 17);
+      --accent: oklch(60% 0.19 17);
       --grid: oklch(80% 0.035 350 / 0.3);
       --wash-1: oklch(90% 0.105 16 / 0.58);
       --wash-2: oklch(88% 0.095 278 / 0.5);
@@ -83,6 +86,7 @@
       --muted: oklch(39% 0.045 145);
       --green: oklch(39% 0.18 145);
       --coral: oklch(63% 0.19 42);
+      --accent: oklch(55% 0.17 42);
       --grid: oklch(70% 0.07 145 / 0.22);
       --wash-1: oklch(91% 0.16 104 / 0.62);
       --wash-2: oklch(84% 0.13 203 / 0.46);
@@ -224,7 +228,7 @@
       border: 3px solid var(--ink);
       border-radius: 999px;
       background: var(--ink);
-      box-shadow: 3px 3px 0 var(--green);
+      box-shadow: 3px 3px 0 var(--blue);
     }
 
     .nav-links {
@@ -347,7 +351,7 @@
     h1 span:nth-child(3) {
       --headline-x: 0.32em;
       animation-delay: 320ms;
-      color: var(--green);
+      color: var(--accent);
     }
 
     h1 span:nth-child(1) {
@@ -482,7 +486,7 @@
       border: 3px solid var(--ink);
       border-radius: 999px;
       background: var(--ink);
-      box-shadow: 4px 4px 0 var(--green);
+      box-shadow: 4px 4px 0 var(--blue);
       animation: micPulse 1.9s ease-in-out infinite;
     }
 
@@ -535,7 +539,7 @@
       bottom: 14px;
       width: 9px;
       height: 1.25em;
-      background: var(--green);
+      background: var(--accent);
       animation: blink 1s steps(2, start) infinite;
     }
 
@@ -560,7 +564,11 @@
     }
 
     .language-strip {
-      overflow: hidden;
+      position: relative;
+      overflow: clip;
+      overflow-clip-margin: 0;
+      contain: layout paint;
+      height: 80px;
       margin-bottom: clamp(22px, 4vw, 42px);
       border-block: 3px solid var(--ink);
       background: var(--ink);
@@ -568,6 +576,9 @@
     }
 
     .language-track {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: max-content;
       display: flex;
       gap: 14px;
@@ -582,7 +593,7 @@
       place-items: center;
       border: 2px solid var(--card);
       border-radius: 999px;
-      background: var(--green);
+      background: var(--mint);
       color: var(--card);
       font-size: 1.35rem;
       font-weight: 950;
@@ -908,6 +919,10 @@
       color: oklch(88% 0.018 88);
     }
 
+    .privacy-card .kicker {
+      color: var(--ink);
+    }
+
     .privacy-list {
       display: grid;
       gap: 12px;
@@ -957,7 +972,7 @@
       height: 34px;
       border: 3px solid var(--ink);
       border-radius: 999px;
-      background: var(--green);
+      background: var(--mint);
       padding: 3px;
       box-shadow: 3px 3px 0 var(--ink);
     }
@@ -1053,7 +1068,7 @@
       height: 15px;
       border: 2px solid var(--ink);
       border-radius: 4px;
-      background: var(--green);
+      background: var(--accent);
       box-shadow: 2px 2px 0 var(--ink);
     }
 
@@ -1219,11 +1234,11 @@
     @keyframes micPulse {
       0%,
       100% {
-        box-shadow: 4px 4px 0 var(--green);
+        box-shadow: 4px 4px 0 var(--blue);
       }
 
       50% {
-        box-shadow: 4px 4px 0 var(--green), 0 0 0 10px var(--pulse);
+        box-shadow: 4px 4px 0 var(--blue), 0 0 0 10px var(--pulse);
       }
     }
 
