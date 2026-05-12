@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>i don't type | Cartoon landing test</title>
+  <meta name="description" content="A playful test landing page for i don't type, private speech to text for Mac.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script defer data-domain="idonttype.com" src="https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(97% 0.025 98);
+      --card: oklch(99% 0.012 88);
+      --mint: oklch(93% 0.055 154);
+      --peach: oklch(92% 0.055 38);
+      --banana: oklch(92% 0.095 88);
+      --blue: oklch(86% 0.075 238);
+      --ink: oklch(20% 0.025 78);
+      --muted: oklch(47% 0.022 78);
+      --green: oklch(43% 0.13 154);
+      --coral: oklch(70% 0.145 30);
+      --radius: 8px;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(oklch(81% 0.025 98 / 0.32) 1px, transparent 1px),
+        linear-gradient(90deg, oklch(81% 0.025 98 / 0.32) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 10%, oklch(92% 0.095 88 / 0.58), transparent 24rem),
+        radial-gradient(circle at 85% 8%, oklch(86% 0.075 238 / 0.45), transparent 22rem),
+        radial-gradient(circle at 75% 72%, oklch(93% 0.055 154 / 0.52), transparent 24rem);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid oklch(77% 0.13 154 / 0.7);
+      outline-offset: 3px;
+    }
+
+    img,
+    video {
+      max-width: 100%;
+      display: block;
+    }
+
+    .shell {
+      width: min(1140px, calc(100% - 34px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      margin-top: 14px;
+      padding: 10px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 950;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 3px 3px 0 var(--green);
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .nav-links a,
+    .tag {
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: var(--mint);
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .button {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 18px;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      color: var(--ink);
+      font-weight: 950;
+      transition:
+        transform 170ms var(--ease),
+        box-shadow 170ms var(--ease);
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .button.primary {
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .button.skool {
+      background: var(--banana);
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+      gap: clamp(24px, 5vw, 58px);
+      align-items: center;
+      padding: clamp(52px, 8vw, 96px) 0 42px;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+    }
+
+    .kicker {
+      width: fit-content;
+      margin: 0 0 18px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: var(--blue);
+      box-shadow: 3px 3px 0 var(--ink);
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 8.4ch;
+      margin-bottom: 18px;
+      font-size: clamp(4.5rem, 11vw, 9rem);
+      line-height: 0.84;
+      letter-spacing: -0.08em;
+    }
+
+    h1 span {
+      display: block;
+      width: fit-content;
+      padding-right: 0.06em;
+    }
+
+    h1 span:nth-child(2) {
+      transform: translateX(0.16em) rotate(-1.5deg);
+    }
+
+    h1 span:nth-child(3) {
+      transform: translateX(0.32em);
+      color: var(--green);
+    }
+
+    .hero-copy p {
+      max-width: 35rem;
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: clamp(1.08rem, 2vw, 1.32rem);
+      line-height: 1.42;
+      font-weight: 760;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .hero-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .demo-card {
+      position: relative;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--banana);
+      box-shadow: 10px 10px 0 var(--ink);
+      transform: rotate(1deg);
+    }
+
+    .demo-card::before,
+    .demo-card::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+    }
+
+    .demo-card::before {
+      width: 96px;
+      height: 96px;
+      top: -32px;
+      right: -28px;
+      background: var(--peach);
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .demo-card::after {
+      width: 62px;
+      height: 62px;
+      bottom: -24px;
+      left: -22px;
+      background: var(--mint);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .demo-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 54px;
+      padding: 10px 14px;
+      border-bottom: 3px solid var(--ink);
+      background: var(--blue);
+      font-weight: 950;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 7px;
+    }
+
+    .traffic span {
+      width: 13px;
+      height: 13px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+    }
+
+    .demo-body {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .video-frame {
+      overflow: hidden;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--ink);
+    }
+
+    .video-frame video {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+    }
+
+    .speech-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .orb {
+      width: 62px;
+      height: 62px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 4px 4px 0 var(--green);
+    }
+
+    .orb-bars {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 32px;
+    }
+
+    .orb-bars span {
+      width: 5px;
+      border-radius: 999px;
+      background: var(--card);
+    }
+
+    .orb-bars span:nth-child(1) {
+      height: 18px;
+    }
+
+    .orb-bars span:nth-child(2) {
+      height: 30px;
+    }
+
+    .orb-bars span:nth-child(3) {
+      height: 22px;
+    }
+
+    .typed-note {
+      position: relative;
+      min-height: 88px;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      padding: 14px;
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      color: var(--ink);
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .typed-note::after {
+      content: "";
+      position: absolute;
+      right: 16px;
+      bottom: 14px;
+      width: 9px;
+      height: 1.25em;
+      background: var(--green);
+      animation: blink 1s steps(2, start) infinite;
+    }
+
+    .cursor {
+      position: absolute;
+      right: 42px;
+      bottom: 100px;
+      width: 34px;
+      height: 34px;
+      transform: rotate(-15deg);
+      filter: drop-shadow(3px 3px 0 var(--ink));
+    }
+
+    .cursor svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--card);
+      stroke: var(--ink);
+      stroke-width: 8;
+      stroke-linejoin: round;
+    }
+
+    .language-strip {
+      overflow: hidden;
+      border-block: 3px solid var(--ink);
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .language-track {
+      width: max-content;
+      display: flex;
+      gap: 12px;
+      padding: 14px 0;
+      animation: marquee 28s linear infinite;
+    }
+
+    .language-pill {
+      border: 2px solid var(--card);
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: var(--green);
+      color: var(--card);
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .stats {
+      padding: 42px 0 72px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 10px;
+      min-height: 150px;
+      align-content: center;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: var(--card);
+      box-shadow: 6px 6px 0 var(--ink);
+      text-align: center;
+    }
+
+    .stat:nth-child(2) {
+      background: var(--mint);
+      transform: rotate(-1deg);
+    }
+
+    .stat:nth-child(3) {
+      background: var(--blue);
+      transform: rotate(1deg);
+    }
+
+    .stat:nth-child(4) {
+      background: var(--peach);
+    }
+
+    .stat strong {
+      font-size: clamp(2.3rem, 4vw, 4.1rem);
+      line-height: 0.9;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .section {
+      padding: 78px 0;
+    }
+
+    .section-title {
+      max-width: 720px;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: clamp(2.4rem, 6vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      word-spacing: 0.02em;
+    }
+
+    .section-title p {
+      max-width: 42rem;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.45;
+      font-weight: 760;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .step,
+    .price-card,
+    .faq-item,
+    .privacy-card {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    .step {
+      min-height: 270px;
+      padding: 22px;
+    }
+
+    .step:nth-child(1) {
+      background: var(--banana);
+      transform: rotate(-1deg);
+    }
+
+    .step:nth-child(2) {
+      background: var(--mint);
+    }
+
+    .step:nth-child(3) {
+      background: var(--blue);
+      transform: rotate(1deg);
+    }
+
+    .step-number {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 22px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-weight: 950;
+    }
+
+    .step h3,
+    .price-card h3 {
+      margin-bottom: 10px;
+      font-size: 1.55rem;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .step p,
+    .price-card p,
+    .faq-item p,
+    .privacy-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 740;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(340px, 1.15fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .privacy-card {
+      padding: 24px;
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .privacy-card p {
+      color: oklch(88% 0.018 88);
+    }
+
+    .privacy-list {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .privacy-list li {
+      border: 2px solid var(--card);
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: var(--card);
+      background: oklch(35% 0.035 78);
+      font-weight: 900;
+    }
+
+    .mini-window {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--peach);
+      box-shadow: 8px 8px 0 var(--ink);
+      padding: 18px;
+    }
+
+    .mini-window-inner {
+      min-height: 100%;
+      border: 3px solid var(--ink);
+      border-radius: 6px;
+      background: var(--card);
+      padding: 18px;
+    }
+
+    .local-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      font-weight: 950;
+    }
+
+    .toggle {
+      width: 66px;
+      height: 34px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--green);
+      padding: 3px;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .toggle span {
+      display: block;
+      width: 22px;
+      height: 22px;
+      margin-left: auto;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+    }
+
+    .sample-lines {
+      display: grid;
+      gap: 9px;
+      margin-top: 22px;
+    }
+
+    .sample-lines span {
+      height: 14px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .sample-lines span:nth-child(2) {
+      width: 74%;
+      background: var(--mint);
+    }
+
+    .sample-lines span:nth-child(3) {
+      width: 48%;
+      background: var(--banana);
+    }
+
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .price-card {
+      display: grid;
+      gap: 16px;
+      padding: 24px;
+      background: var(--mint);
+    }
+
+    .price-card.featured {
+      background: var(--banana);
+      transform: rotate(1deg);
+    }
+
+    .price {
+      font-size: clamp(3.2rem, 8vw, 6.4rem);
+      line-height: 0.85;
+      font-weight: 950;
+      letter-spacing: -0.07em;
+    }
+
+    .price small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      letter-spacing: 0;
+    }
+
+    .price-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .price-list li {
+      position: relative;
+      padding-left: 28px;
+      color: var(--ink);
+      font-weight: 850;
+    }
+
+    .price-list li::before {
+      content: "";
+      position: absolute;
+      top: 0.26em;
+      left: 0;
+      width: 15px;
+      height: 15px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      background: var(--green);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .launch-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      margin-top: 22px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: var(--blue);
+      box-shadow: 6px 6px 0 var(--ink);
+      font-weight: 850;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--card);
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .faq-item summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      font-size: 1.08rem;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary::after {
+      content: "+";
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--banana);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .faq-item[open] summary::after {
+      content: "-";
+      background: var(--mint);
+    }
+
+    .faq-item p {
+      padding: 0 18px 18px;
+    }
+
+    .footer {
+      padding: 34px 0;
+      border-top: 3px solid var(--ink);
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      font-weight: 900;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: oklch(88% 0.018 88);
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .hero,
+      .privacy-grid,
+      .pricing {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-card {
+        transform: none;
+      }
+
+      .stats-grid,
+      .workflow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 22px, 1140px);
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+      }
+
+      .hero {
+        padding-top: 38px;
+      }
+
+      h1 {
+        font-size: clamp(4rem, 22vw, 6.4rem);
+      }
+
+      .hero-actions,
+      .launch-note,
+      .footer-inner {
+        display: grid;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .stats-grid,
+      .workflow {
+        grid-template-columns: 1fr;
+      }
+
+      .stat,
+      .step,
+      .price-card.featured {
+        transform: none;
+      }
+
+      .cursor {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav shell" aria-label="Primary navigation">
+    <a class="brand" href="#top">
+      <img src="favicon.svg" alt="" width="36" height="36">
+      <span>i don't type</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#download">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="button primary plausible-event-name=Cartoon+Nav+Stop+Typing" href="#download">Stop typing</a>
+  </nav>
+
+  <header class="hero shell" id="top">
+    <div class="hero-copy">
+      <p class="kicker">Private speech to text for Mac</p>
+      <h1 aria-label="Click. Speak. Done.">
+        <span>Click.</span>
+        <span>Speak.</span>
+        <span>Done.</span>
+      </h1>
+      <p>Put your cursor anywhere, press your trigger, talk normally, and the words land in the app you were already using. No hosted audio. No i don't type server. No extra text box.</p>
+      <div class="hero-actions">
+        <a class="button primary plausible-event-name=Cartoon+Hero+Buy" href="/checkout">Stop typing for $19</a>
+        <a class="button skool plausible-event-name=Cartoon+Hero+Skool" href="skool.html">Free with Skool</a>
+      </div>
+      <div class="hero-note">Launch build for Mac. Apple notarization is in progress.</div>
+    </div>
+
+    <div class="demo-card" aria-label="Cartoon demo panel">
+      <div class="demo-topbar">
+        <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+        <span>real Mac demo</span>
+      </div>
+      <div class="demo-body">
+        <div class="video-frame">
+          <video autoplay loop muted playsinline preload="auto" poster="demo-poster.jpg" aria-label="i don't type Mac dictation demo">
+            <source src="media/idonttype-demo.mp4" type="video/mp4">
+            <a href="media/idonttype-demo.mp4">Watch the i don't type demo video</a>
+          </video>
+        </div>
+        <div class="speech-row">
+          <div class="orb" aria-hidden="true">
+            <div class="orb-bars"><span></span><span></span><span></span></div>
+          </div>
+          <div class="typed-note">Hey, can you turn this ramble into a clean reply and paste it into the email draft?</div>
+        </div>
+      </div>
+      <div class="cursor" aria-hidden="true">
+        <svg viewBox="0 0 100 100" role="img">
+          <path d="M18 10 82 54 55 61 44 88 18 10Z"></path>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <section class="language-strip" aria-label="Supported languages">
+    <div class="language-track">
+      <span class="language-pill">English</span>
+      <span class="language-pill">French</span>
+      <span class="language-pill">German</span>
+      <span class="language-pill">Spanish</span>
+      <span class="language-pill">Italian</span>
+      <span class="language-pill">Portuguese</span>
+      <span class="language-pill">Dutch</span>
+      <span class="language-pill">Swedish</span>
+      <span class="language-pill">Japanese</span>
+      <span class="language-pill">Korean</span>
+      <span class="language-pill">Chinese</span>
+      <span class="language-pill">Polish</span>
+      <span class="language-pill">Turkish</span>
+      <span class="language-pill">Hindi</span>
+      <span class="language-pill">Vietnamese</span>
+      <span class="language-pill">English</span>
+      <span class="language-pill">French</span>
+      <span class="language-pill">German</span>
+      <span class="language-pill">Spanish</span>
+      <span class="language-pill">Italian</span>
+      <span class="language-pill">Portuguese</span>
+      <span class="language-pill">Dutch</span>
+      <span class="language-pill">Swedish</span>
+      <span class="language-pill">Japanese</span>
+      <span class="language-pill">Korean</span>
+      <span class="language-pill">Chinese</span>
+      <span class="language-pill">Polish</span>
+      <span class="language-pill">Turkish</span>
+      <span class="language-pill">Hindi</span>
+      <span class="language-pill">Vietnamese</span>
+    </div>
+  </section>
+
+  <section class="stats shell" aria-label="Product proof">
+    <div class="stats-grid">
+      <article class="stat">
+        <strong>3x</strong>
+        <span>Faster than typing</span>
+      </article>
+      <article class="stat">
+        <strong>0</strong>
+        <span>Hosted transcripts</span>
+      </article>
+      <article class="stat">
+        <strong>100+</strong>
+        <span>Languages supported</span>
+      </article>
+      <article class="stat">
+        <strong>Local</strong>
+        <span>Whisper on your Mac</span>
+      </article>
+    </div>
+  </section>
+
+  <main>
+    <section class="section shell" id="how">
+      <div class="section-title">
+        <p class="kicker">Useful toy energy</p>
+        <h2>Cartoon outside, useful inside.</h2>
+        <p>Fast Mac dictation that pastes into the place your cursor already is. The wrapper is playful, but the promise stays practical: less typing, more output.</p>
+      </div>
+      <div class="workflow">
+        <article class="step">
+          <div class="step-number">01</div>
+          <h3>Click where the words go</h3>
+          <p>Email, ChatGPT, Notion, Slack, docs. If it is a normal Mac text field, i don't type is designed to paste there.</p>
+        </article>
+        <article class="step">
+          <div class="step-number">02</div>
+          <h3>Hold or press your trigger</h3>
+          <p>Use the bubble, Fn, or your own shortcut. Hold to record, or press once to start and again to stop.</p>
+        </article>
+        <article class="step">
+          <div class="step-number">03</div>
+          <h3>Get clean text back</h3>
+          <p>Local Whisper transcribes on your Mac, then the app pastes the result and keeps history locally.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell" id="privacy">
+      <div class="privacy-grid">
+        <article class="privacy-card">
+          <p class="kicker">Privacy first</p>
+          <h2>Not another cloud voice inbox.</h2>
+          <p>i don't type is built around local history and local transcription. The sale is simple: speak into your Mac without turning every thought into hosted data.</p>
+          <ul class="privacy-list">
+            <li>No i don't type account required</li>
+            <li>No hosted audio by i don't type</li>
+            <li>Transcript history stays on your Mac</li>
+          </ul>
+        </article>
+        <div class="mini-window" aria-label="Local settings illustration">
+          <div class="mini-window-inner">
+            <div class="local-row">
+              <span>Storage</span>
+              <strong>Local</strong>
+            </div>
+            <div class="local-row">
+              <span>Model</span>
+              <strong>Whisper</strong>
+            </div>
+            <div class="local-row">
+              <span>Cleanup</span>
+              <div class="toggle" aria-hidden="true"><span></span></div>
+            </div>
+            <div class="sample-lines" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="download">
+      <div class="section-title">
+        <p class="kicker">Launch pricing</p>
+        <h2>Free with Skool. Cheap if you only want the app.</h2>
+        <p>Skool members get the Mac app as part of membership. Everyone else can buy the founding lifetime while the launch price is still aggressive.</p>
+      </div>
+      <div class="pricing">
+        <article class="price-card">
+          <h3>Skool member perk</h3>
+          <div class="price">Free<small>included with Skool membership</small></div>
+          <p>Join Build With Luke, get the courses and community, and claim i don't type through the member access flow.</p>
+          <ul class="price-list">
+            <li>Private Mac dictation</li>
+            <li>Included for Skool members</li>
+            <li>Courses, community, and roadmap feedback</li>
+          </ul>
+          <a class="button skool plausible-event-name=Cartoon+Skool+Access" href="skool.html">Skool member access</a>
+        </article>
+        <article class="price-card featured">
+          <h3>Founding lifetime</h3>
+          <div class="price">$19<small>one-time launch offer</small></div>
+          <p>For people who just want the Mac app and do not want another subscription.</p>
+          <ul class="price-list">
+            <li>Lifetime access for this founding offer</li>
+            <li>Local Whisper dictation</li>
+            <li>License issued after Stripe checkout</li>
+          </ul>
+          <a class="button primary plausible-event-name=Cartoon+Buy+Lifetime" href="/checkout">Buy lifetime $19</a>
+        </article>
+      </div>
+      <div class="launch-note">
+        <span>Apple verification is in progress. Until notarization lands, macOS may show a safety warning on first open.</span>
+        <a class="button plausible-event-name=Cartoon+Download+Release" href="downloads/IDontType-0.1.0.dmg" download>Download current release</a>
+      </div>
+    </section>
+
+    <section class="section shell" id="faq">
+      <div class="section-title">
+        <p class="kicker">FAQ</p>
+        <h2>The practical bits.</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Is this private?</summary>
+          <p>i don't type has no account, no i don't type server, and stores no audio. Local settings and history stay on your Mac.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What model does it use?</summary>
+          <p>Local Whisper uses whisper.cpp with the English model by default and the multilingual model for other languages. Apple on-device Speech remains available as a fallback.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does it work offline?</summary>
+          <p>Yes for local dictation. Once the local model is installed, recording and transcription can run without an i don't type cloud service.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How do Skool members get access?</summary>
+          <p>Open the Skool member access page, then use the private link from the pinned member post. Members go through a free Stripe checkout before the license key is issued.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What happens after I buy lifetime?</summary>
+          <p>Stripe handles checkout and receipts. After payment, the success page issues a signed license key that the Mac app can verify locally.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner shell">
+      <span>i don't type</span>
+      <div class="footer-links">
+        <a href="skool.html">Skool access</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:hello@lukejbyrne.com?subject=i don't type%20support">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const playAutoplayVideos = () => {
+        document.querySelectorAll("video[autoplay]").forEach((video) => {
+          video.muted = true;
+          video.playsInline = true;
+          video.play().catch(() => {});
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", playAutoplayVideos, { once: true });
+      } else {
+        playAutoplayVideos();
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          playAutoplayVideos();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
