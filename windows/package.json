@@ -1,0 +1,67 @@
+{
+  "name": "idonttype-windows",
+  "version": "0.1.0",
+  "description": "Windows client for i don't type, a local dictation utility.",
+  "author": "i don't type",
+  "private": true,
+  "main": "src/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "test": "node --check src/main.js && node --check src/preload.js && node --check src/bubble.js && node --check src/home.js && node --check scripts/generate-icon.js && node --check scripts/prepare-runtime.js && node test/text-pipeline.test.js && node test/license.test.js",
+    "prepare-assets": "node scripts/generate-icon.js",
+    "prepare-runtime": "node scripts/generate-icon.js && node scripts/prepare-runtime.js",
+    "dist": "npm run prepare-runtime && electron-builder --win nsis portable zip --x64",
+    "pack": "npm run prepare-runtime && electron-builder --win dir --x64"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
+    "extract-zip": "^2.0.1",
+    "ffmpeg-static": "^5.3.0"
+  },
+  "build": {
+    "appId": "com.idonttype.windows",
+    "productName": "i don't type",
+    "artifactName": "IDontType-${version}-win-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "artifactName": "IDontType-${version}-win-${arch}-setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "i don't type"
+    },
+    "portable": {
+      "artifactName": "IDontType-${version}-win-${arch}-portable.${ext}"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "version": "0.1.0",
+  "build": "1",
+  "minimum_windows": "10",
+  "download_url": "https://idonttype.com/downloads/IDontType-0.1.0-win-x64-setup.exe",
+  "release_notes": "Initial Windows package with local Whisper transcription, tray controls, floating bubble, offline license verification, and Windows installer workflow."
+}

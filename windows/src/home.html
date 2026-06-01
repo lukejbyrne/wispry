@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>i don't type</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="home-body">
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div class="brand-mark">i</div>
+          <div>
+            <div class="brand-name">i don't type</div>
+            <div class="brand-subtitle">voice in, text out</div>
+          </div>
+        </div>
+        <nav class="nav-list" aria-label="Sections">
+          <button class="nav-item active" data-section="home">Home</button>
+          <button class="nav-item" data-section="history">History</button>
+          <button class="nav-item" data-section="dictionary">Dictionary</button>
+          <button class="nav-item" data-section="transcribe">Transcribe</button>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <header class="topbar">
+          <div>
+            <h1 id="sectionTitle">Home</h1>
+            <p id="sectionSubtitle">Private Windows dictation with Local Whisper or OpenAI cloud.</p>
+          </div>
+          <button id="toggleDictation" class="primary-action" type="button">Start dictation</button>
+        </header>
+
+        <section id="statusBand" class="status-band">
+          <div>
+            <div class="status-label">Status</div>
+            <div id="dictationStatus" class="status-text">Ready.</div>
+          </div>
+          <div>
+            <div class="status-label">License</div>
+            <div id="licenseStatus" class="status-text">Inactive</div>
+          </div>
+          <div>
+            <div class="status-label">Runtime</div>
+            <div id="runtimeStatus" class="status-text">Checking...</div>
+          </div>
+        </section>
+
+        <section id="homePanel" class="section-panel active">
+          <div class="settings-grid">
+            <label class="field-row">
+              <span>Cleanup style</span>
+              <select id="transformStyle"></select>
+            </label>
+            <label class="field-row">
+              <span>Speech model</span>
+              <select id="speechModel">
+                <option value="localWhisper">Local Whisper</option>
+                <option value="openaiCloud">OpenAI cloud</option>
+              </select>
+            </label>
+            <label id="cloudModeRow" class="field-row">
+              <span>Cloud mode</span>
+              <select id="openAICloudMode">
+                <option value="service">i don't type service</option>
+                <option value="apiKey">Own OpenAI key</option>
+              </select>
+            </label>
+            <label class="field-row">
+              <span>Language</span>
+              <input id="speechLanguage" type="text" spellcheck="false" placeholder="en">
+            </label>
+            <label class="field-row">
+              <span>Toggle shortcut</span>
+              <input id="shortcut" type="text" spellcheck="false" placeholder="Control+Alt+Space">
+            </label>
+            <label class="check-row">
+              <input id="autoPaste" type="checkbox">
+              <span>Paste automatically after dictation</span>
+            </label>
+            <label class="check-row">
+              <input id="cleanupEnabled" type="checkbox">
+              <span>Clean up spoken punctuation and fillers</span>
+            </label>
+            <label class="check-row">
+              <input id="bubbleVisible" type="checkbox">
+              <span>Show floating bubble</span>
+            </label>
+          </div>
+
+          <div class="license-block">
+            <div>
+              <h2>Activation</h2>
+              <p>Paste the signed key from checkout. It is verified locally and saved on this PC.</p>
+            </div>
+            <div class="license-controls">
+              <input id="licenseKey" type="password" spellcheck="false" placeholder="IDT1...">
+              <button id="saveLicense" type="button">Save license</button>
+            </div>
+          </div>
+
+          <div id="openAIKeyBlock" class="license-block">
+            <div>
+              <h2>OpenAI key</h2>
+              <p>Only needed for Own OpenAI key mode. It is encrypted with Windows secure storage on this PC.</p>
+            </div>
+            <div class="license-controls">
+              <input id="openAIAPIKey" type="password" spellcheck="false" placeholder="sk-...">
+              <button id="saveOpenAIAPIKey" type="button">Save key</button>
+            </div>
+          </div>
+
+          <div class="split-actions">
+            <button id="saveSettings" type="button">Save settings</button>
+            <div class="action-row">
+              <button id="sendFeedback" type="button">Send feedback</button>
+              <button id="openRuntime" type="button">Open runtime folder</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="historyPanel" class="section-panel">
+          <div class="section-header">
+            <h2>Recent dictations</h2>
+            <button id="clearHistory" type="button">Clear history</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+
+        <section id="dictionaryPanel" class="section-panel">
+          <div class="section-header">
+            <h2>Dictionary hints</h2>
+            <button id="saveDictionary" type="button">Save dictionary</button>
+          </div>
+          <textarea id="dictionaryWords" spellcheck="false" placeholder="One term per line"></textarea>
+          <div class="section-header">
+            <h2>Voice snippets</h2>
+            <button id="saveSnippets" type="button">Save snippets</button>
+          </div>
+          <textarea id="snippets" spellcheck="false" placeholder="phrase => expansion"></textarea>
+        </section>
+
+        <section id="transcribePanel" class="section-panel">
+          <div class="file-transcribe">
+            <div>
+              <h2>Transcribe a file</h2>
+              <p>Choose an audio or video file. The transcript is copied and saved beside the original file.</p>
+            </div>
+            <button id="transcribeFile" class="primary-action" type="button">Choose file</button>
+          </div>
+          <pre id="fileResult" class="file-result"></pre>
+        </section>
+      </section>
+    </main>
+    <script src="home.js"></script>
+  </body>
+</html>

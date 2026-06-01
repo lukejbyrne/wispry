@@ -4,7 +4,12 @@ xcuserdata/
 *.xcuserstate
 site/downloads/*.zip
 site/downloads/*.dmg
+site/downloads/*.exe
 mockups/
+windows/node_modules/
+windows/build/
+windows/dist/
+windows/runtime/
 
 # Local Netlify folder
 .netlify
